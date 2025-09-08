@@ -10,10 +10,13 @@ pipeline {
 
   stages {
     stage('Checkout') { // GitLab 에서 코드 가져옴
-      steps { checkout scm }
-      script {
-        // 실제 잡에서 보이는 브랜치명 확인용
-        echo "BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}"
+      steps {
+        checkout scm
+        script {
+          // 브랜치/커밋 정보 세팅 및 로깅
+          env.COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+          echo "BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}, COMMIT_SHA=${env.COMMIT_SHA}"
+        }
       }
     }
 
