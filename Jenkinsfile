@@ -42,8 +42,6 @@ pipeline {
     }
 
     stage('Push to Docker Hub') {
-      // 원하는 브랜치에서만 푸시 (필요 시 수정)
-      when { anyOf { branch 'main'; branch 'dev/server'; branch 'be' } }
       steps {
         withCredentials([usernamePassword( // Jenkins에 등록된 Docker Hub 크리덴셜 사용
           credentialsId: 'dockerhub-cred',
