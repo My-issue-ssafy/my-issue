@@ -10,11 +10,13 @@ pipeline {
 
         stages('Build Docker Image') {
             steps{
-                sh ```
-                    echo "=== Docker 이미지 빌드 시작 ==="
-                    docker build -t my-app:latest .
-                    echo "=== 빌드 완료 ==="
-                ```
+                dir('backend/my-issue'){
+                    sh '''
+                        echo "=== Docker 이미지 빌드 시작 ==="
+                        docker build -t my-app:latest .
+                        echo "=== 빌드 완료 ==="
+                    '''
+                }
             }
         }
     }
