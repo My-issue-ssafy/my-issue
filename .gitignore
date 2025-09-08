@@ -1,0 +1,36 @@
+### OS / 에디터 ###
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.iml
+
+### Logs / Temp ###
+*.log
+*.tmp
+*.bak
+*.swp
+
+### Node.js (혹시 프론트 모듈 쓴다면) ###
+node_modules/
+dist/
+
+### Python (ai 폴더용) ###
+__pycache__/
+*.pyc
+.venv/
+env/
+
+### Android ###
+*.apk
+*.aar
+*.dex
+*.class
+*.log
+local.properties
+.gradle/
+build/
+
+### 공통 설정 파일 (환경 변수 등) ###
+.env
+*.env
