@@ -1,6 +1,8 @@
 package com.ioi.myssue.navigation
 
+import android.R.attr.text
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 
@@ -90,12 +93,9 @@ private fun RowScope.MainBottomBarItem(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(
-                imageVector = ImageVector.vectorResource(
-                    if (selected) tab.activeIconResId else tab.inactiveIconResId
-                ),
+            Image(
+                painter = painterResource(if(selected) tab.activeIconResId else tab.inactiveIconResId),
                 contentDescription = tab.contentDescription,
-                tint = if (selected) iconTint else Color.Gray,
             )
             Text(
                 text = tab.label,
