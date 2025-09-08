@@ -24,11 +24,12 @@ pipeline {
           docker build \
             --pull \
             --cache-from=${IMAGE_REPO}:latest \
-            -f backend/my-issue/Dockerfile \ # Dockerfile 경로 지정
-            -t ${IMAGE_REPO}:latest \ # 최신 태그로도 빌드
-            -t ${IMAGE_REPO}:${COMMIT_SHA} \ # 커밋 SHA 태그로 빌드
+            -f backend/my-issue/Dockerfile \
+            -t ${IMAGE_REPO}:latest \
+            -t ${IMAGE_REPO}:${COMMIT_SHA} \
             backend/my-issue
         '''
+        // Dockerfile 경로 지정 -> 최신 태그로도 빌드 -> 커밋 SHA 태그로도 빌드
         // Docker 이미지 2개 태그로 빌더 (latest + 커밋 버전)
       }
     }
