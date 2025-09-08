@@ -1,29 +1,55 @@
 package com.ioi.myssue.ui.cartoon
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
+import com.ioi.myssue.R
+import com.ioi.myssue.designsystem.theme.BackgroundColors.Background100
+import com.ioi.myssue.designsystem.theme.BackgroundColors.Background50
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import com.ioi.myssue.R
+import swipeWithAnimation
 
 @Composable
 fun CartoonActionButtons(
@@ -34,7 +60,7 @@ fun CartoonActionButtons(
     onHatePressed: () -> Unit
 ) {
     Row(
-        modifier = Modifier.padding(horizontal = 16.dp),
+        modifier = Modifier.padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         ActionButton(
@@ -84,6 +110,8 @@ fun CartoonCardStack(
     currentIndex: Int,
     exitTrigger: Int,
     onExitFinished: () -> Unit,
+    onLikePressed: () -> Unit,
+    onHatePressed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var exitingKey by remember { mutableStateOf<String?>(null) }
@@ -98,14 +126,15 @@ fun CartoonCardStack(
         }
     }
 
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        val baseStart = currentIndex
-
-        for (i in cartoonList.size - 1 downTo baseStart) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        for (i in cartoonList.size - 1 downTo currentIndex) {
             val item = cartoonList[i]
-            val isTop = i == baseStart
+            val isTop = i == currentIndex
             val isExiting = isTop && (keyOf(item) == exitingKey)
-            val layerOrder = i - baseStart
+            val layerOrder = i - currentIndex
 
             key(keyOf(item)) {
                 CartoonCard(
@@ -113,8 +142,17 @@ fun CartoonCardStack(
                     isExiting = isExiting,
                     exitDir = exitDir,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .zIndex(if (isExiting) 1f else -layerOrder.toFloat()),
+                        .zIndex(if (isExiting) 1f else -layerOrder.toFloat())
+                        .swipeWithAnimation(
+                            key = item.cartoonUrl,
+                            locked = isExiting,
+                            onSwiped = { dir ->
+                                when (dir) {
+                                    SwipeDir.Left  -> onHatePressed()
+                                    SwipeDir.Right -> onLikePressed()
+                                }
+                            }
+                        ),
                     onExitEnd = {
                         if (isExiting) {
                             exitingKey = null
@@ -122,6 +160,7 @@ fun CartoonCardStack(
                         }
                     }
                 )
+
             }
         }
     }
@@ -137,32 +176,105 @@ private fun CartoonCard(
 ) {
     val animKey = remember { "${cartoon.cartoonUrl}|${cartoon.newsTitle}" }
     val tx = remember(animKey) { Animatable(0f) }
-    val rot = remember(animKey) { Animatable(0f) }
+    val rotZ = remember(animKey) { Animatable(0f) }
+
+    var flipped by remember(animKey) { mutableStateOf(false) }
+    val flip by animateFloatAsState(
+        targetValue = if (flipped) 180f else 0f,
+        animationSpec = tween(600),
+        label = "flip"
+    )
+    val showFront = flip <= 90f
 
     LaunchedEffect(isExiting) {
         if (isExiting) {
             coroutineScope {
                 launch { tx.animateTo(600f * exitDir, tween(600)) }
-                launch { rot.animateTo(-30f * exitDir, tween(600)) }
+                launch { rotZ.animateTo(-30f * exitDir, tween(600)) }
             }
             onExitEnd?.invoke()
         } else {
-            tx.snapTo(0f)
-            rot.snapTo(0f)
+            tx.snapTo(0f); rotZ.snapTo(0f)
         }
     }
 
-    CartoonImage(
-        url = cartoon.cartoonUrl,
-        contentDesc = cartoon.newsTitle,
-        modifier = modifier.graphicsLayer {
-            if (isExiting) {
-                translationX = tx.value
-                rotationZ = rot.value
-                compositingStrategy = CompositingStrategy.Offscreen
+    val interactionSource = remember { MutableInteractionSource() }
+    val cameraDistancePx = with(LocalDensity.current) { 12.dp.toPx() }
+    Box(
+        modifier = modifier
+            .size(380.dp)
+            .graphicsLayer {
+                if (isExiting) {
+                    translationX = tx.value
+                    rotationZ = rotZ.value
+                }
+                rotationY = flip
+                cameraDistance = cameraDistancePx
+                // Offscreen 사용하지 않기
+            }
+            .clickable(
+                enabled = !isExiting,
+                indication = null,
+                interactionSource = interactionSource
+            ) { flipped = !flipped }
+    ) {
+        Card(
+            elevation = CardDefaults.cardElevation(8.dp),
+            colors = CardDefaults.cardColors(containerColor = Background100),
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            if (showFront) {
+                CartoonImage(
+                    url = cartoon.cartoonUrl,
+                    contentDesc = cartoon.newsTitle,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(8.dp)
+                )
+            } else {
+                Box {
+                    CartoonImage(
+                        url = cartoon.cartoonUrl,
+                        contentDesc = cartoon.newsTitle,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp)
+                            .alpha(0.1f)
+                            .graphicsLayer { rotationY = 180f }
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                            .graphicsLayer { rotationY = 180f },
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(4.dp),
+                            text = cartoon.newsTitle,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontSize = 32.sp
+                        )
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            color = Background50,
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(16.dp),
+                                text = cartoon.newsDescription,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+
+                    }
+                }
+
             }
         }
-    )
+    }
 }
 
 @Composable

@@ -20,14 +20,14 @@ class CartoonViewModel @Inject constructor() : ViewModel() {
         _state.value = _state.value.copy(
             cartoonNewsList = listOf(
                 CartoonNews(
-                    newsTitle = "뉴스 제목 1",
-                    newsDescription = "뉴스 설명 1",
-                    cartoonUrl = "android.resource://com.ioi.myssue/drawable/news_cartoon_example1"
+                    newsTitle = "어른이? 얼음이?\n말장난 속 오해 발생",
+                    newsDescription = "병아리가 '어른이'를 묻자\n닭이 설을 시작하지만,\n대화는 '얼음이'라는 말장난으로 이어져 웃음을 자아냈다.",
+                    cartoonUrl = "android.resource://com.ioi.myssue/drawable/cartoon_example_1"
                 ),
                 CartoonNews(
                     newsTitle = "뉴스 제목 2",
                     newsDescription = "뉴스 설명 2",
-                    cartoonUrl = "android.resource://com.ioi.myssue/drawable/news_cartoon_example2"
+                    cartoonUrl = "android.resource://com.ioi.myssue/drawable/cartoon_example_2"
                 )
             ),
         )

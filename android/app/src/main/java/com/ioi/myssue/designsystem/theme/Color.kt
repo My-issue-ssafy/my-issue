@@ -10,9 +10,6 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-val white = Color(0xFFFFFFFF)
-val black = Color(0xFF000000)
-
 // Primary Colors (메인 컬러)
 object AppColors {
     val Primary50 = Color(0xFFEAF6F8)

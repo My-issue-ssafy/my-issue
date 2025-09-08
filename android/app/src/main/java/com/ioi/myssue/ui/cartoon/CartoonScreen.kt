@@ -10,7 +10,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -43,7 +47,7 @@ fun CartoonScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Image(painter = painterResource(R.drawable.ic_battery1), contentDescription = null)
+                    BatteryChargingIcon()
                     Text(text = "뉴스 충전 중...", style = MaterialTheme.typography.titleLarge)
                     Text(text= "내일의 네컷뉴스를 기다려주세요!", style = MaterialTheme.typography.titleLarge)
                 }
@@ -60,7 +64,9 @@ fun CartoonScreen(
                         cartoonList = uiState.cartoonNewsList,
                         currentIndex = uiState.currentCartoonIndex,
                         exitTrigger = uiState.exitTrigger,
-                        onExitFinished = { viewModel.onExitFinished() },
+                        onExitFinished = viewModel::onExitFinished,
+                        onLikePressed = viewModel::onLikePressed,
+                        onHatePressed = viewModel::onHatePressed,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -68,11 +74,44 @@ fun CartoonScreen(
                         isLikePressed = uiState.isLikePressed,
                         isHatePressed = uiState.isHatePressed,
                         canInteract = uiState.canInteract(),
-                        onLikePressed = { viewModel.onLikePressed() },
-                        onHatePressed = { viewModel.onHatePressed() }
+                        onLikePressed = viewModel::onLikePressed,
+                        onHatePressed = viewModel::onHatePressed
                     )
                 }
             }
         }
     }
+}
+
+@Composable
+fun BatteryChargingIcon(
+    modifier: Modifier = Modifier,
+    frameDurationMillis: Long = 300L,
+    isRunning: Boolean = true
+) {
+    val frames = remember {
+        listOf(
+            R.drawable.ic_battery1,
+            R.drawable.ic_battery2,
+            R.drawable.ic_battery3,
+            R.drawable.ic_battery4,
+            R.drawable.ic_battery5,
+            R.drawable.ic_battery6
+        )
+    }
+    var idx by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(isRunning, frameDurationMillis, frames) {
+        if (!isRunning || frames.isEmpty()) return@LaunchedEffect
+        while (true) {
+            kotlinx.coroutines.delay(frameDurationMillis)
+            idx = (idx + 1) % frames.size
+        }
+    }
+
+    Image(
+        painter = painterResource(frames[idx]),
+        contentDescription = null,
+        modifier = modifier
+    )
 }

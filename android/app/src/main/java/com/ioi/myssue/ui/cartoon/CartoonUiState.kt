@@ -19,6 +19,6 @@ data class CartoonUiState(
 ) {
     val isEmpty: Boolean
         get() = cartoonNewsList.isEmpty() || currentCartoonIndex == cartoonNewsList.size
-    fun canInteract(): Boolean = currentCartoonIndex < cartoonNewsList.size
+    fun canInteract(): Boolean = currentCartoonIndex < cartoonNewsList.size && !isLikePressed && !isHatePressed
     fun getCurrentCartoon(): CartoonNews? = cartoonNewsList.getOrNull(currentCartoonIndex)
 }
