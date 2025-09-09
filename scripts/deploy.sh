@@ -105,43 +105,53 @@ fi
 # ====== Nginx 프록시 전환 ======
 echo "🔁 Nginx 프록시 전환..."
 
-# 우선순위:
-# 1) 호스트 Nginx(SSH): NGINX_HOST가 설정되어 있으면 host:/etc/nginx/... 수정
-# 2) 컨테이너 Nginx(docker exec): NGINX_CONTAINER가 있고 같은 네트워크일 때만
-# 없으면 스킵(배포는 성공)
+# upstream myapp { ... } 범위 안의 server 라인만 NEW_PORT로 치환
+RANGE_EXPR="/upstream[[:space:]]\\+myapp[[:space:]]*{/,/}/ s#server[[:space:]]\\+[^;]*;#server localhost:${NEW_PORT};#"
 
-
-SED_EXPR_HOST="s#server[[:space:]]\\+[^;]*;#server localhost:${NEW_PORT};#"
 if [[ -n "${NGINX_HOST:-}" ]]; then
+  # 1) 호스트 Nginx를 SSH로 수정 (Jenkins 에이전트가 호스트가 아닐 때)
   NGINX_USER="${NGINX_USER:-ubuntu}"
   SSH="ssh -o StrictHostKeyChecking=no ${NGINX_USER}@${NGINX_HOST}"
   echo "🔁 호스트(${NGINX_HOST}) Nginx 설정 변경 → localhost:${NEW_PORT}"
-  if $SSH "sudo test -f '${NGINX_CONF}' && \
-           sudo sed -i '${SED_EXPR_HOST}' '${NGINX_CONF}' && \
-           sudo nginx -s reload"; then
+  if $SSH "sudo test -f \"${NGINX_CONF:-/etc/nginx/conf.d/upstream.conf}\" && \
+           sudo sed -i \"${RANGE_EXPR}\" \"${NGINX_CONF:-/etc/nginx/conf.d/upstream.conf}\" && \
+           sudo nginx -t && sudo nginx -s reload"; then
     echo "✅ Nginx reloaded on ${NGINX_HOST}"
   else
-    echo "⚠️  호스트 Nginx 업데이트 실패. 경로/권한/비번/무비번 sudo 설정을 확인하세요."
+    echo "⚠️  호스트 Nginx 업데이트 실패(경로/권한/무비번 sudo/SSH 확인)."
   fi
+
 else
-  NGINX_CONTAINER="${NGINX_CONTAINER:-}"  # 있으면 이름 지정
+  # 2) Nginx가 컨테이너로 떠 있을 때 (같은 네트워크여야 컨테이너명 참조 가능)
+  NGINX_CONTAINER="${NGINX_CONTAINER:-}"
   if [[ -n "${NGINX_CONTAINER}" ]] && docker ps --format '{{.Names}}' | grep -q "^${NGINX_CONTAINER}$"; then
-    # 컨테이너가 app-net에 붙어 있어야 컨테이너명으로 접근 가능
     if docker inspect -f '{{json .NetworkSettings.Networks}}' "${NGINX_CONTAINER}" | grep -q "${DOCKER_NETWORK}"; then
       TARGET="${NEW_CONTAINER}:8080"
-      SED_EXPR_CONT="s#server[[:space:]]\\+[^;]*;#server ${TARGET};#"
+      RANGE_EXPR_CONT="/upstream[[:space:]]\\+myapp[[:space:]]*{/,/}/ s#server[[:space:]]\\+[^;]*;#server ${TARGET};#"
       echo "🔁 Nginx 컨테이너(${NGINX_CONTAINER}) 설정 변경 → ${TARGET}"
       if docker exec "${NGINX_CONTAINER}" sh -lc \
-        "test -f '${NGINX_CONF}' && sed -i '${SED_EXPR_CONT}' '${NGINX_CONF}' && nginx -s reload"; then
+        "test -f \"${NGINX_CONF:-/etc/nginx/conf.d/upstream.conf}\" && \
+         sed -i \"${RANGE_EXPR_CONT}\" \"${NGINX_CONF:-/etc/nginx/conf.d/upstream.conf}\" && \
+         nginx -t && nginx -s reload"; then
         echo "✅ Nginx reloaded in container '${NGINX_CONTAINER}'"
       else
-        echo "⚠️  ${NGINX_CONTAINER}:${NGINX_CONF} 수정 실패(파일/권한/경로 확인)."
+        echo "⚠️  ${NGINX_CONTAINER}:${NGINX_CONF:-/etc/nginx/conf.d/upstream.conf} 수정 실패(파일/권한/경로 확인)."
       fi
     else
       echo "⚠️  '${NGINX_CONTAINER}'가 '${DOCKER_NETWORK}'에 연결되어 있지 않아 전환 불가 → 스킵"
     fi
+
+  # 3) 에이전트=호스트이고 호스트에 Nginx 파일이 있는 경우 직접 수정
+  elif [[ -f "${NGINX_CONF:-/etc/nginx/conf.d/upstream.conf}" ]]; then
+    echo "🔁 호스트 Nginx 설정 변경(${NGINX_CONF:-/etc/nginx/conf.d/upstream.conf}) → localhost:${NEW_PORT}"
+    if sed -i "${RANGE_EXPR}" "${NGINX_CONF:-/etc/nginx/conf.d/upstream.conf}" && nginx -t && nginx -s reload; then
+      echo "✅ Nginx reloaded on host"
+    else
+      echo "⚠️  호스트 Nginx 설정 변경/리로드 실패. 경로/권한 확인 요망."
+    fi
+
   else
-    echo "ℹ️ NGINX_HOST/NGINX_CONTAINER 미설정 → 프록시 전환 스킵(배포 계속)"
+    echo "ℹ️ NGINX_HOST/NGINX_CONTAINER 미설정 & 호스트 경로 없음 → 프록시 전환 스킵(배포 계속)"
   fi
 fi
 
