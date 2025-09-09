@@ -314,25 +314,64 @@ def test_recommendations(model, users, items, interaction_matrix, num_test_users
                     non_zero_count = (user_items.toarray() > 0).sum()
                     print(f"[디버그] user_items 비영값 개수: {non_zero_count}")
                 
-                rec_items, scores = model.recommend(
-                    user_idx, 
-                    user_items,  # item 관점에서의 사용자 선호도 벡터
-                    N=topn, 
-                    filter_already_liked_items=True
-                )
+                # implicit이 차원을 바꿔 학습했으므로 직접 계산으로 추천 생성
+                import numpy as np
+                
+                # implicit이 사용자/아이템을 바꿔 학습했으므로 변수명을 명확하게:
+                # model.item_factors가 실제로는 사용자 임베딩 (50000, 64)
+                # model.user_factors가 실제로는 아이템 임베딩 (200000, 64) 
+                actual_user_embeddings = model.item_factors     # (50000, 64) - 실제 사용자들
+                actual_item_embeddings = model.user_factors     # (200000, 64) - 실제 아이템들
+                
+                user_embedding = actual_user_embeddings[user_idx]   # shape: (64,) - 해당 사용자 임베딩
+                item_embeddings = actual_item_embeddings           # shape: (200000, 64) - 모든 아이템 임베딩
+                
+                # 내적으로 모든 아이템에 대한 점수 계산
+                scores_all = item_embeddings.dot(user_embedding)  # shape: (200000,)
+                
+                # 이미 상호작용한 아이템들은 제외 (filter_already_liked_items=True)
+                if hasattr(user_items, 'toarray'):
+                    user_items_dense = user_items.toarray().flatten()
+                else:
+                    user_items_dense = user_items
+                    
+                # 상호작용한 아이템의 점수를 매우 낮게 설정
+                interacted_items = np.where(user_items_dense > 0)[0]
+                scores_all[interacted_items] = -np.inf
+                
+                # 상위 N개 아이템 선택
+                top_indices = np.argsort(-scores_all)[:topn]
+                rec_items = top_indices
+                scores = scores_all[top_indices]
+                
+                print(f"[디버그] 직접 계산 결과:")
+                print(f"[디버그] actual_user_embeddings shape: {actual_user_embeddings.shape}")
+                print(f"[디버그] actual_item_embeddings shape: {actual_item_embeddings.shape}")
+                print(f"[디버그] user_embedding shape: {user_embedding.shape}")
+                print(f"[디버그] item_embeddings shape: {item_embeddings.shape}")
+                print(f"[디버그] scores_all shape: {scores_all.shape}")
+                print(f"[디버그] 상호작용한 아이템 수: {len(interacted_items)}")
+                print(f"[디버그] 점수 통계 - min: {scores_all.min():.6f}, max: {scores_all.max():.6f}, mean: {scores_all.mean():.6f}")
+                print(f"[디버그] 최대 추천 아이템 인덱스: {max(rec_items) if len(rec_items) > 0 else 'N/A'}")
+                print(f"[디버그] 아이템 카테고리 수: {len(items.cat.categories)}")
                 print(f"[디버그] 추천된 아이템 인덱스: {rec_items}")
                 print(f"[디버그] 아이템 인덱스 범위: max={max(rec_items) if len(rec_items) > 0 else 'N/A'}, items_count={len(items.cat.categories)}")
             except (IndexError, ValueError) as idx_error:
                 print(f"[경고] 사용자 {user_id} 인덱스/값 오류: {idx_error}")
                 try:
-                    # 대안 1: filter_already_liked_items=False로 다시 시도 (원래 행렬 사용)
-                    user_items = interaction_matrix[user_idx]
-                    rec_items, scores = model.recommend(
-                        user_idx, 
-                        user_items, 
-                        N=topn, 
-                        filter_already_liked_items=False
-                    )
+                    # 대안 1: filter_already_liked_items=False로 직접 계산 재시도
+                    actual_user_embeddings = model.item_factors     # 실제 사용자 임베딩들
+                    actual_item_embeddings = model.user_factors     # 실제 아이템 임베딩들
+                    user_embedding = actual_user_embeddings[user_idx]
+                    item_embeddings = actual_item_embeddings
+                    scores_all = item_embeddings.dot(user_embedding)
+                    
+                    # 이번에는 이미 상호작용한 아이템도 포함 (filter_already_liked_items=False)
+                    top_indices = np.argsort(-scores_all)[:topn]
+                    rec_items = top_indices
+                    scores = scores_all[top_indices]
+                    
+                    print(f"[디버그] 대안 계산 완료 - filter_already_liked_items=False")
                 except Exception as e:
                     print(f"[에러] 사용자 {user_id} 추천 생성 완전 실패: {e}")
                     # 대안 2: 빈 추천 결과로 처리
@@ -359,17 +398,20 @@ def test_recommendations(model, users, items, interaction_matrix, num_test_users
                     print(f"  ... and {len(user_interactions) - 3} more")
             
             # 추천 결과 출력
-            print("추천 뉴스:")
-            for rank, (item_idx, score) in enumerate(zip(rec_items, scores), 1):
-                # 아이템 인덱스가 범위를 벗어나면 건너뛰기
-                if item_idx < 0 or item_idx >= len(items.cat.categories):
-                    print(f"  {rank}. [잘못된 아이템 인덱스 {item_idx}/{len(items.cat.categories)}] (점수: {score:.4f})")
-                    continue
-                try:
-                    item_id = items.cat.categories[item_idx]
-                    print(f"  {rank}. {item_id} (점수: {score:.4f})")
-                except IndexError as e:
-                    print(f"  {rank}. [인덱스 에러 {item_idx}] (점수: {score:.4f}) - {e}")
+            print("추천 뉴스 (점수가 높을수록 선호도 높음):")
+            if len(rec_items) == 0:
+                print("  추천 결과가 없습니다.")
+            else:
+                for rank, (item_idx, score) in enumerate(zip(rec_items, scores), 1):
+                    # 아이템 인덱스가 범위를 벗어나면 건너뛰기
+                    if item_idx < 0 or item_idx >= len(items.cat.categories):
+                        print(f"  {rank}. [잘못된 아이템 인덱스 {item_idx}/{len(items.cat.categories)}] (선호도: {score:.4f})")
+                        continue
+                    try:
+                        item_id = items.cat.categories[item_idx]
+                        print(f"  {rank}. {item_id} (선호도: {score:.4f})")
+                    except IndexError as e:
+                        print(f"  {rank}. [인덱스 에러 {item_idx}] (선호도: {score:.4f}) - {e}")
                 
         except Exception as e:
             print(f"Error generating recommendations for {user_id}: {e}")
