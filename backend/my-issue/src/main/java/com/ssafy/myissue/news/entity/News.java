@@ -1,11 +1,7 @@
 package com.ssafy.myissue.news.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel; // Lombok이 생성해주는 getter, setter 등 접근 제어자를 지정할 때 씀. (public, protect, package 등)
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
 import java.time.LocalDateTime;
 
 @Getter
@@ -14,15 +10,18 @@ import java.time.LocalDateTime;
 @Table(
         name = "news",
         indexes = {
-                @Index(name = "idx_news_created_at", columnList = "created_at"),
-                @Index(name = "idx_news_views_created", columnList = "views, created_at"),
-                @Index(name = "idx_news_category_id", columnList = "category, news_id")
+                @Index(name = "idx_news_created_at", columnList = "created_at, news_id"),
+                // 최신 뉴스 전체 조회 무한 스크롤 ㄱㄴ
+                @Index(name = "idx_news_views_created", columnList = "views, created_at, news_id"),
+                // HOT 뉴스 전체 조회 무한 스크롤 ㄱㄴ
+                @Index(name = "idx_news_category_cursor", columnList = "category, news_id")
+                // 카테고리별 뉴스 전체 조회 무한 스크롤 ㄱㄴ
         }
 )
 public class News {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // PK 값을 DB가 자동으로 생성하도록 지정하는 JPA 어노테이션.
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // PK 값을 DB가 자동으로 생성하도록 지정하는 JPA 어노테이션. DB auto-increment
     @Column(name = "news_id")
     private Long newsId;
 
@@ -32,8 +31,8 @@ public class News {
     @Column(nullable = false, length = 500)
     private String summary;
 
-    @Lob
-    @Column(nullable = false)
+    @Lob // JPA에서 string을 그냥 쓰면 보통 varchar와 같이 고정 길이로 매핑. 뉴스 본문은 훨씬 길수도? -> LOB(CLOB/TEXT) 타입으로 저장해야 안전
+    @Column(nullable = false, columnDefinition="TEXT") // @Lob은 JPA 수준 의도, columnDefinition="TEXT"는 DB 수준 의도
     private String content;
 
     @Enumerated(EnumType.STRING)
