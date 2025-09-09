@@ -67,26 +67,40 @@ docker run -d \
   -e MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED="${MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED}" \
   "${APP_IMAGE}"
 
-# ====== 헬스체크 ======
-echo "⏳ 헬스체크 중..."
+check_health() {
+  docker run --rm --network "${DOCKER_NETWORK}" curlimages/curl:8.10.1 \
+    -fsS "http://${NEW_CONTAINER}:8080${HEALTH_ENDPOINT}" 2>/dev/null | grep -q '"status":"UP"'
+}
+
+ok=0
 for i in {1..10}; do
   sleep 3
-  if curl -fsS "http://localhost:${NEW_PORT}${HEALTH_ENDPOINT}" | grep -q '"status":"UP"'; then
-    echo "✅ 헬스체크 통과"
+  if check_health; then
+    echo "✅ 헬스체크 통과 (via ${DOCKER_NETWORK} → ${NEW_CONTAINER}:8080)"
+    ok=1
     break
   fi
-  if [[ $i -eq 10 ]]; then
-    echo "❌ 헬스체크 실패. 롤백 진행"
-    docker logs --tail=300 "${NEW_CONTAINER}" || true
 
-    if [[ "${KEEP_ON_FAIL:-0}" == "1" ]]; then
-      echo "🧷 KEEP_ON_FAIL=1 → 실패 컨테이너 유지: ${NEW_CONTAINER}"
-    else
-      docker rm -f "${NEW_CONTAINER}" || true
-    fi
-    exit 1
+  # 보조 플랜: 혹시 호스트에서 돌고 있으면 기존 방식도 한번 시도
+  if curl -fsS "http://localhost:${NEW_PORT}${HEALTH_ENDPOINT}" 2>/dev/null | grep -q '"status":"UP"'; then
+    echo "✅ 헬스체크 통과 (via localhost:${NEW_PORT})"
+    ok=1
+    break
   fi
+
+  echo "… 대기 중(${i}/10)"
 done
+
+if [[ $ok -ne 1 ]]; then
+  echo "❌ 헬스체크 실패. 롤백 진행"
+  docker logs --tail=300 "${NEW_CONTAINER}" || true
+  if [[ "${KEEP_ON_FAIL:-0}" == "1" ]]; then
+    echo "🧷 KEEP_ON_FAIL=1 → 실패 컨테이너 유지: ${NEW_CONTAINER}"
+  else
+    docker rm -f "${NEW_CONTAINER}" || true
+  fi
+  exit 1
+fi
 
 # ====== Nginx 프록시 전환 ======
 echo "🔁 Nginx 프록시를 ${NEW_PORT}로 전환 중..."
