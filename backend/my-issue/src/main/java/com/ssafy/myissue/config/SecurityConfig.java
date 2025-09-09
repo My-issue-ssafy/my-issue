@@ -15,7 +15,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/actuator/health", "/actuator/health/**", "/actuator/info"
+                                "/actuator/health", "/actuator/health/**", "/actuator/info",
+                                    "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/v3/api-docs.yaml"
                         ).permitAll()
                         .anyRequest().permitAll() // 필요 시 수정
                 )
