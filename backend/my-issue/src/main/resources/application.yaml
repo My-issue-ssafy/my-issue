@@ -18,6 +18,3 @@ management:
     web:
       exposure:
         include: health, info
-
-
-# 파이프라인 확인해보겠슴니다/?
