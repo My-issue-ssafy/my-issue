@@ -116,8 +116,10 @@ pipeline {
           bash -lc "
             set -Eeuo pipefail
 
-            echo 🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}
-            env | egrep '^(SPRING_DATASOURCE_|SPRING_PROFILES_ACTIVE|NGINX_)=' | sed -E 's/(PASSWORD|USERNAME)=.*/\\1=****/'
+            echo \"🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}\"
+
+            # [FIX] 매칭 없을 때도 성공 처리
+            env | grep -E '^(SPRING_DATASOURCE_|SPRING_PROFILES_ACTIVE|NGINX_)=' | sed -E 's/(PASSWORD|USERNAME)=.*/\\1=****/' || true
 
             # 키 바인딩 확인
             head -1 \\"$SSH_KEY\\"; echo \\"SSH_USER=$SSH_USER\\"
