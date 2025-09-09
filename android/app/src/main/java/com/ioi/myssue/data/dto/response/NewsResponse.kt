@@ -7,11 +7,19 @@ import kotlinx.serialization.Serializable
 data class NewsResponse(
     val title: String,
     val content: String,
-    val url: String
+    val url: String,
+    val img: String,
+    val category: String,
+    val createdAt: String,
+    val views: Int
 )
 
 fun NewsResponse.toDomain() = News(
     title = title,
     content = content,
-    url = url
+    url = url,
+    img = img,
+    category = category,
+    createdAt = createdAt,
+    views = views
 )
