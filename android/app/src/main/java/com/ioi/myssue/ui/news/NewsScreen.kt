@@ -12,16 +12,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ioi.myssue.domain.model.News
 
-
 @Composable
 fun NewsScreen(
     viewModel: NewsViewModel = hiltViewModel()
 ) {
     val state = viewModel.state.collectAsState()
-
-    val hot = state.value.hot
-    val rec = state.value.recommend
-    val recent = state.value.recent
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -41,14 +36,15 @@ fun LazyListScope.NewsHOT(list: List<News>) {
         HotNewsPager(items = list)
     }
 }
+
 fun LazyListScope.NewsRecommend(list: List<News>) {
     if (list.isEmpty()) return
     item { NewsSectionHeader("맞춤 뉴스") }
-    items(list) { item -> NewsItem(item) }
+    items(list) { item -> NewsItem(Modifier, item) }
 }
 
 private fun LazyListScope.NewsRecent(list: List<News>) {
     if (list.isEmpty()) return
     item { NewsSectionHeader("최신 뉴스") }
-    items(list) { item -> NewsItem(item) }
+    items(list) { item -> NewsItem(Modifier, item) }
 }

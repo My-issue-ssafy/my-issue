@@ -27,22 +27,23 @@ class NewsViewModel @Inject constructor(
         getNews()
     }
 
-    fun getNews() { viewModelScope.launch {
-        runCatching {
-            val hotNews = fakeNewsRepository.getHotNews()
-            val recommendedNews = fakeNewsRepository.getRecommendedNews()
-            val recentNews = fakeNewsRepository.getRecentNews()
-            Triple(hotNews, recommendedNews, recentNews)
-        }
-            .onSuccess { (hot, recommend, recent) ->
-                _state.value = _state.value.copy(
-                    hot = hot,
-                    recommend = recommend,
-                    recent = recent
-                )
+    fun getNews() {
+        viewModelScope.launch {
+            runCatching {
+                val hotNews = fakeNewsRepository.getHotNews()
+                val recommendedNews = fakeNewsRepository.getRecommendedNews()
+                val recentNews = fakeNewsRepository.getRecentNews()
+                Triple(hotNews, recommendedNews, recentNews)
             }
-            .onFailure {
-            }
-        }
+                .onSuccess { (hot, recommend, recent) ->
+                    _state.value = _state.value.copy(
+                        hot = hot,
+                        recommend = recommend,
+                        recent = recent
+                    )
+                }
+                .onFailure {
+                }
         }
     }
+}

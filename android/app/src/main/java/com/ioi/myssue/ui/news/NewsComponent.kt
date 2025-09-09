@@ -1,6 +1,13 @@
 package com.ioi.myssue.ui.news
 
+import android.R.attr.bottom
 import android.R.attr.onClick
+import android.annotation.SuppressLint
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +41,7 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +61,8 @@ import coil.compose.AsyncImage
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.AppColors.Primary700
+import com.ioi.myssue.designsystem.theme.BackgroundColors.Background200
+import com.ioi.myssue.designsystem.theme.BackgroundColors.Background300
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background400
 import com.ioi.myssue.domain.model.News
 import java.sql.Time
@@ -84,6 +94,7 @@ fun NewsSectionHeader(
 }
 
 // HOT뉴스 페이저
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun HotNewsPager(
     items: List<News>,
@@ -98,20 +109,12 @@ fun HotNewsPager(
     }
     val pagerState = rememberPagerState(pageCount = { items.size })
 
-    // 페이지에 따라 padding 조정
-    val startPad = remember {
-        derivedStateOf { if (pagerState.currentPage == 0) 28.dp else peek }
-    }
-    val endPad = remember {
-        derivedStateOf { if (pagerState.currentPage == items.lastIndex) 28.dp else peek }
-    }
-
     Column {
         HorizontalPager(
             state = pagerState,
             pageSize = PageSize.Fixed(pageWidth),
             pageSpacing = pageSpacing,
-            contentPadding = PaddingValues(start = startPad.value, end = endPad.value),
+            contentPadding = PaddingValues(start = peek, end = peek),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(170.dp)
@@ -119,15 +122,13 @@ fun HotNewsPager(
             HotNewsSlide(
                 news = items[page],
                 onClick = { onClick(items[page]) },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
                     .width(pageWidth)
-                    .fillMaxHeight()
             )
         }
         DotsIndicator(
             count = items.size,
             current = pagerState.currentPage,
-            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -169,8 +170,8 @@ fun HotNewsSlide(
                     .matchParentSize()
                     .background(
                         Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.6f to Color(0x66000000),
+                            0.3f to Color.Transparent,
+                            0.7f to Color(0x66000000),
                             1f to Color(0x99000000)
                         )
                     )
@@ -188,6 +189,7 @@ fun HotNewsSlide(
                 modifier = Modifier
                     .padding(start = 16.dp, top = 12.dp)
                     .align(Alignment.TopStart)
+                    .height(20.dp)
             )
 
             // 기사 제목
@@ -200,7 +202,7 @@ fun HotNewsSlide(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(16.dp)
+                    .padding(start= 16.dp, bottom = 8.dp)
             )
         }
     }
@@ -210,25 +212,43 @@ fun HotNewsSlide(
 fun DotsIndicator(
     count: Int,
     current: Int,
-    modifier: Modifier,
+    dotSize: Dp = 10.dp,
+    activeDotWidth: Dp = 22.dp,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .padding(top = 20.dp),
         horizontalArrangement = Arrangement.Center
     ) {
         repeat(count) { index ->
             val active = current == index
+            val width by animateDpAsState(
+                targetValue = if (active) activeDotWidth else dotSize,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = 3000f
+                ),
+                label = "dotWidth"
+            )
+            val color: Color by animateColorAsState(
+                targetValue = if (active) {
+                    Primary700
+                } else {
+                    Background300
+                },
+                animationSpec = tween(
+                    durationMillis = 300,
+                )
+            )
+
             Box(
                 Modifier
-                    .padding(horizontal = 3.dp)
-                    .size(if (active) 8.dp else 6.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (active) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant
-                    )
+                    .padding(horizontal = 5.dp)
+                    .height(dotSize)
+                    .width(width)
+                    .clip(RoundedCornerShape(percent = 50))
+                    .background(color)
             )
         }
     }
@@ -237,11 +257,12 @@ fun DotsIndicator(
 // 뉴스 목록 한 줄
 @Composable
 fun NewsItem(
+    modifier: Modifier = Modifier,
     news: News,
     onClick: (News) -> Unit = {},
-    modifier: Modifier = Modifier
 ) {
     Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .padding(16.dp, 8.dp)
@@ -254,8 +275,8 @@ fun NewsItem(
         Column(
             Modifier
                 .weight(1f)
-                .padding(top = 5.dp, bottom = 5.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .padding(top = 5.dp, bottom = 5.dp, start = 5.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             NewsCategory(category = news.category)
             NewsTitle(title = news.title)
@@ -280,7 +301,7 @@ fun NewsThumbnail(img: String?) {
             containerColor = Color.White
         ),
         modifier = Modifier
-            .size(80.dp),
+            .size(100.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Image(
@@ -296,7 +317,7 @@ fun NewsThumbnail(img: String?) {
 fun NewsCategory(category: String) {
     Text(
         text = category,
-        style = typography.labelMedium,
+        style = typography.labelLarge,
         fontWeight = FontWeight.Bold,
         color = Background400
     )
@@ -307,7 +328,7 @@ fun NewsCategory(category: String) {
 fun NewsTitle(title: String) {
     Text(
         text = title,
-        style = typography.bodyMedium,
+        style = typography.bodyLarge,
         fontWeight = FontWeight.Bold,
         maxLines = 2,
         minLines = 2,
@@ -322,11 +343,11 @@ fun NewsCreatedAt(createdAt: String) {
         Image(
             painter = painterResource(R.drawable.ic_time),
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(18.dp),
         )
         Text(
             text = createdAt,
-            style = typography.labelMedium,
+            style = typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = Background400,
             modifier = Modifier.padding(start = 4.dp)
@@ -341,12 +362,12 @@ fun NewsViews(views: Int) {
         Icon(
             painter = painterResource(R.drawable.ic_eye),
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(18.dp),
             tint = Background400
         )
         Text(
             text = "$views",
-            style = typography.labelMedium,
+            style = typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = Background400,
             modifier = Modifier.padding(start = 4.dp)
