@@ -25,7 +25,6 @@ datastorePreferences = "1.1.7"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilCompose" }
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -57,8 +56,6 @@ androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", vers
 androidx-lifecycle-viewmodel-navigation3-android = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3-android", version.ref = "lifecycleViewmodelNavigation3Android" }
 
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
-coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
-
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 
 [plugins]
