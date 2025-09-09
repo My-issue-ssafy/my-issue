@@ -3,10 +3,18 @@ pipeline {
 
   environment { // 전역 환경변수 정의
     IMAGE_REPO = 'xioz19/my-issue' // 빌드/푸시할 Docker 이미지 경로.
-    COMMIT_SHA = "${env.GIT_COMMIT?.take(7) ?: 'manual'}" // 이미지에 버전 태그로 붙여서 이력 추적 가능
+    COMMIT_SHA = 'manual' // 이미지에 버전 태그로 붙여서 이력 추적 가능
   }
 
-  options { timestamps() } // Output 로그에 타임스탬프 붙여줌
+  options {
+    timestamps()
+    gitLabConnection('my-issue')
+  } // Output 로그에 타임스탬프 붙여줌
+
+  // MR/Push 이벤트 수신
+  triggers {
+    gitlab(triggerOnPush: true, triggerOnMergeRequest: true)
+  }
 
   stages {
     stage('Checkout') { // GitLab 에서 코드 가져옴
@@ -16,6 +24,14 @@ pipeline {
           // 브랜치/커밋 정보 세팅 및 로깅
           env.COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
           echo "BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}, COMMIT_SHA=${env.COMMIT_SHA}"
+        }
+      }
+    }
+
+    stage('Build & Test') {
+      steps {
+        gitlabCommitStatus(name: 'jenkins-ci') {
+          sh './gradlew clean build'
         }
       }
     }
@@ -61,7 +77,13 @@ pipeline {
 
   // 빌드 성공/실패 후 처리
   post {
-    success { echo "✅ Pushed: ${IMAGE_REPO}:${COMMIT_SHA} & :latest" }
+    success {
+        echo "✅ Pushed: ${IMAGE_REPO}:${COMMIT_SHA} & :latest"
+        updateGitlabCommitStatus name: 'jenkins-ci', state: 'success'
+    }
+    failure {
+        updateGitlabCommitStatus name: 'jenkins-ci', state: 'failed'
+    }
     always  { sh 'docker image prune -f || true' }
   }
 }
