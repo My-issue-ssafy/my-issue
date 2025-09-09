@@ -4,9 +4,9 @@ pipeline {
   environment { // 전역 환경변수 정의
     IMAGE_REPO = 'xioz19/my-issue' // 빌드/푸시할 Docker 이미지 경로.
     COMMIT_SHA = 'manual' // 이미지에 버전 태그로 붙여서 이력 추적 가능
-    DB_URL = credentials('my-db-url')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
-    DB_USERNAME = credentials('my-db-username')  // Jenkins에 등록된 보안값
-    DB_PASSWORD = credentials('my-db-password') // Jenkins에 등록된 보안값
+    DB_URL = credentials('SPRING_DATASOURCE_URL')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
+    DB_USERNAME = credentials('SPRING_DATASOURCE_USERNAME')  // Jenkins에 등록된 보안값
+    DB_PASSWORD = credentials('SPRING_DATASOURCE_PASSWORD') // Jenkins에 등록된 보안값
   }
 
   options {
