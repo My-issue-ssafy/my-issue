@@ -2,8 +2,8 @@
 
 IMAGE_TAG=$1
 BASE_PORT=8080
-BLUE_PORT=8081
-GREEN_PORT=8082
+BLUE_PORT=8083
+GREEN_PORT=8084
 
 # 현재 실행 중인 컨테이너 확인
 CURRENT=$(docker ps --filter "name=myapp-" --format "{{.Names}}")
