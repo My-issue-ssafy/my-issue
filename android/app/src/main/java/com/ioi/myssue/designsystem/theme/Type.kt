@@ -22,8 +22,8 @@ val Typography = Typography(
     headlineLarge = TextStyle(
         fontFamily = spoqaHanSansNeo,
         fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp
+        fontSize = 25.sp,
+        lineHeight = 35.sp
     ),
 
     // 일반 제목 (카드 제목, 섹션 헤더)
@@ -31,7 +31,7 @@ val Typography = Typography(
         fontFamily = spoqaHanSansNeo,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
-        lineHeight = 24.sp
+        lineHeight = 30.sp
     ),
 
     // 작은 제목 (서브 헤더)
@@ -39,23 +39,23 @@ val Typography = Typography(
         fontFamily = spoqaHanSansNeo,
         fontWeight = FontWeight.Medium,
         fontSize = 18.sp,
-        lineHeight = 22.sp
+        lineHeight = 26.sp
     ),
 
     // 본문 (가장 많이 사용)
     bodyLarge = TextStyle(
         fontFamily = spoqaHanSansNeo,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp
+        fontWeight = FontWeight.Medium,
+        fontSize = 15.sp,
+        lineHeight = 25.sp
     ),
 
     // 작은 본문 (설명, 부연설명)
     bodyMedium = TextStyle(
         fontFamily = spoqaHanSansNeo,
-        fontWeight = FontWeight.Normal,
+        fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
-        lineHeight = 18.sp
+        lineHeight = 25.sp
     ),
 
     // 버튼, 라벨
@@ -70,7 +70,7 @@ val Typography = Typography(
     labelMedium = TextStyle(
         fontFamily = spoqaHanSansNeo,
         fontWeight = FontWeight.Normal,
-        fontSize = 11.sp,
+        fontSize = 12.sp,
         lineHeight = 16.sp
     )
 )

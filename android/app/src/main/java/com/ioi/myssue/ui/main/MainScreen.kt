@@ -15,6 +15,7 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.navigation3.ui.rememberSceneSetupNavEntryDecorator
+import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.navigation.BottomTabRoute
 import com.ioi.myssue.navigation.MainBottomBar
 import com.ioi.myssue.navigation.MainTab
@@ -47,7 +48,7 @@ fun MainScreen(
                 onTabSelected = onTabSelected,
             )
         },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = BackgroundColors.Background100,
     ) { innerPadding ->
         NavDisplay(
             entryDecorators = listOf(
