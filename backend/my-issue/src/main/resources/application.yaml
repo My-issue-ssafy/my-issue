@@ -1,7 +1,18 @@
 spring:
   application:
     name: my-issue
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true # SQL 쿼리 로그 출력
 
+# Spring Boot Actuator configuration ( Jenkins 에서 접근 가능하도록 설정 )
+# health: 시스템 상태 확인(헬스체크용)
+# info: 애플리케이션 정보 제공(git 커밋 정보 등)
 management:
   endpoints:
     web:

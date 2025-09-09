@@ -3,10 +3,31 @@ pipeline {
 
   environment { // 전역 환경변수 정의
     IMAGE_REPO = 'xioz19/my-issue' // 빌드/푸시할 Docker 이미지 경로.
-    COMMIT_SHA = "${env.GIT_COMMIT?.take(7) ?: 'manual'}" // 이미지에 버전 태그로 붙여서 이력 추적 가능
+    COMMIT_SHA = 'manual' // 이미지에 버전 태그로 붙여서 이력 추적 가능
+    DB_URL = credentials('my-db-url')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
+    DB_USERNAME = credentials('my-db-username')  // Jenkins에 등록된 보안값
+    DB_PASSWORD = credentials('my-db-password') // Jenkins에 등록된 보안값
   }
 
-  options { timestamps() } // Output 로그에 타임스탬프 붙여줌
+  options {
+    timestamps()
+    gitLabConnection('my-issue')
+  } // Output 로그에 타임스탬프 붙여줌
+
+  // MR/Push 이벤트 수신
+  triggers {
+    gitlab (
+      triggerOnPush: true,
+      triggerOnMergeRequest: true,
+
+      // 브랜치 필터
+      branchFilterType: 'NameBasedFilter',
+      includeBranchesSpec: 'dev/server',  // push 이벤트: 이 브랜치만
+
+      // dev/server 브랜치에 대해서만 빌드 트리거
+      targetBranchRegex: 'dev/server'
+    )
+  }
 
   stages {
     stage('Checkout') { // GitLab 에서 코드 가져옴
@@ -20,7 +41,20 @@ pipeline {
       }
     }
 
+    stage('Build & Test') {
+      steps {
+        gitlabCommitStatus(name: 'jenkins-ci') {
+          dir('backend/my-issue') {
+            sh './gradlew clean build'
+          }
+        }
+      }
+    }
+
     stage('Docker Build') { // Docker BuildKit 활성화
+      when {
+        expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
+      }
       steps {
         sh '''
           echo "=== Docker Build (backend/my-issue) ==="
@@ -61,7 +95,13 @@ pipeline {
 
   // 빌드 성공/실패 후 처리
   post {
-    success { echo "✅ Pushed: ${IMAGE_REPO}:${COMMIT_SHA} & :latest" }
+    success {
+        echo "✅ Pushed: ${IMAGE_REPO}:${COMMIT_SHA} & :latest"
+        updateGitlabCommitStatus name: 'jenkins-ci', state: 'success'
+    }
+    failure {
+        updateGitlabCommitStatus name: 'jenkins-ci', state: 'failed'
+    }
     always  { sh 'docker image prune -f || true' }
   }
 }
