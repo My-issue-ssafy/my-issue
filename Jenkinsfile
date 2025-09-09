@@ -75,6 +75,9 @@ pipeline {
     }
 
     stage('Push to Docker Hub') {
+      when {
+        expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
+      }
       steps {
         withCredentials([usernamePassword( // Jenkins에 등록된 Docker Hub 크리덴셜 사용
           credentialsId: 'dockerhub-cred',
