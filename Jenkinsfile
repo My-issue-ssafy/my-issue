@@ -4,9 +4,9 @@ pipeline {
   environment { // 전역 환경변수 정의
     IMAGE_REPO = 'xioz19/my-issue' // 빌드/푸시할 Docker 이미지 경로.
     COMMIT_SHA = 'manual' // 이미지에 버전 태그로 붙여서 이력 추적 가능
-    DB_URL = credentials('SPRING_DATASOURCE_URL')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
-    DB_USERNAME = credentials('SPRING_DATASOURCE_USERNAME')  // Jenkins에 등록된 보안값
-    DB_PASSWORD = credentials('SPRING_DATASOURCE_PASSWORD') // Jenkins에 등록된 보안값
+    SPRING_DATASOURCE_URL = credentials('SPRING_DATASOURCE_URL')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
+    SPRING_DATASOURCE_USERNAME = credentials('SPRING_DATASOURCE_USERNAME')  // Jenkins에 등록된 보안값
+    SPRING_DATASOURCE_PASSWORD = credentials('SPRING_DATASOURCE_PASSWORD') // Jenkins에 등록된 보안값
   }
 
   options {
@@ -99,13 +99,22 @@ pipeline {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        sh '''
-          echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
+         withCredentials([
+           string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
+           string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
+           string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
+        ]) {
+            sh '''
+              echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
 
-          chmod +x ./scripts/deploy.sh
-          ./scripts/deploy.sh ${COMMIT_SHA} 8081
-        '''
+              env | egrep '^SPRING_DATASOURCE_|^SPRING_PROFILES_ACTIVE' | \
+                            sed -E 's/(PASSWORD|USERNAME)=.*/\\1=****/'
+
+              chmod +x ./scripts/deploy.sh
+              ./scripts/deploy.sh ${COMMIT_SHA} 8081
+            '''
         }
+      }
     }
   }
 
