@@ -18,7 +18,6 @@ pipeline {
   triggers {
     gitlab (
       triggerOnPush: true,
-      triggerOnMergeRequest: true,
 
       // 브랜치 필터
       branchFilterType: 'NameBasedFilter',
