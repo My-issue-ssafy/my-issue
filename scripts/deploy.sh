@@ -51,8 +51,14 @@ for i in {1..10}; do
   fi
   if [[ $i -eq 10 ]]; then
     echo "❌ 헬스체크 실패. 롤백 진행"
-    docker stop $NEW_CONTAINER || true
-    docker rm $NEW_CONTAINER || true
+    docker logs --tail 300 "$NEW_CONTAINER" || true
+
+    # 디버깅 편의: 컨테이너를 남겨두고 종료 (KEEP_ON_FAIL=1 일 때만)
+    if [[ "${KEEP_ON_FAIL:-0}" == "1" ]]; then
+      echo "🧷 KEEP_ON_FAIL=1 → 실패 컨테이너 유지: $NEW_CONTAINER"
+    else
+      docker rm -f "$NEW_CONTAINER" || true
+    fi
     exit 1
   fi
 done
