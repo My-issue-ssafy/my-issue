@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Myssue</string>
+    <string name="charging_news">뉴스 충전 중...</string>
+    <string name="empty_cartoon_news_description">내일의 네컷뉴스를 기다려주세요!</string>
 </resources>

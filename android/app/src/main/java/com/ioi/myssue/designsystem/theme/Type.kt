@@ -23,7 +23,7 @@ val Typography = Typography(
         fontFamily = spoqaHanSansNeo,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
-        lineHeight = 32.sp
+        lineHeight = 44.sp
     ),
 
     // 일반 제목 (카드 제목, 섹션 헤더)
@@ -31,7 +31,7 @@ val Typography = Typography(
         fontFamily = spoqaHanSansNeo,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp,
-        lineHeight = 24.sp
+        lineHeight = 40.sp
     ),
 
     // 작은 제목 (서브 헤더)
@@ -39,7 +39,7 @@ val Typography = Typography(
         fontFamily = spoqaHanSansNeo,
         fontWeight = FontWeight.Medium,
         fontSize = 18.sp,
-        lineHeight = 22.sp
+        lineHeight = 26.sp
     ),
 
     // 본문 (가장 많이 사용)
