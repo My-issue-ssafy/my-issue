@@ -102,30 +102,30 @@ pipeline {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-         withCredentials([
-           string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
-           string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
-           string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
+        withCredentials([
+          string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
+          string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
+          string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
         ]) {
-            sshagent(credentials: ['ec2-ssh-key']) {
-                sh '''
-                  set -xeuo pipefail
+          // Jenkins > Credentials 에 등록한 SSH 키의 ID로 교체하세요 (여기선 ec2-ssh-key)
+          sshagent(credentials: ['ec2-ssh-key']) {
+            sh '''
+              set -xeuo pipefail
 
-                  echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
-                  # 민감값 마스킹 출력
-                  env | egrep '^(SPRING_DATASOURCE_|SPRING_PROFILES_ACTIVE|NGINX_)=' | sed -E 's/(PASSWORD|USERNAME)=.*/\\1=****/'
+              echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
+              # 민감값 마스킹 출력
+              env | egrep '^(SPRING_DATASOURCE_|SPRING_PROFILES_ACTIVE|NGINX_)=' | sed -E 's/(PASSWORD|USERNAME)=.*/\\1=****/'
 
-                  # 0) 호스트 SSH/ sudo / 경로 사전 점검 (여기서 막히는 지점 바로 확인)
-                  ssh -o StrictHostKeyChecking=no ${NGINX_USER}@${NGINX_HOST} 'echo OK && whoami && hostname'
-                  ssh -o StrictHostKeyChecking=no ${NGINX_USER}@${NGINX_HOST} 'sudo -n true && echo SUDO_OK || echo SUDO_NOK'
-                  ssh -o StrictHostKeyChecking=no ${NGINX_USER}@${NGINX_HOST} "set -e; which nginx; nginx -v; ls -l /etc/nginx/nginx.conf; ls -l ${NGINX_CONF} || echo NO_UPSTREAM_CONF; sudo -n nginx -t"
+              # 0) 호스트 SSH/ sudo / 경로 사전 점검
+              ssh -o StrictHostKeyChecking=no ${NGINX_USER}@${NGINX_HOST} 'echo OK && whoami && hostname'
+              ssh -o StrictHostKeyChecking=no ${NGINX_USER}@${NGINX_HOST} 'sudo -n true && echo SUDO_OK || echo SUDO_NOK'
+              ssh -o StrictHostKeyChecking=no ${NGINX_USER}@${NGINX_HOST} "set -e; which nginx; nginx -v; ls -l /etc/nginx/nginx.conf; ls -l ${NGINX_CONF} || echo NO_UPSTREAM_CONF; sudo -n nginx -t"
 
-                  # 1) 앱 배포 (블루/그린 띄우기 + 헬스체크 + Nginx 전환은 deploy.sh에 위임)
-                  chmod +x ./scripts/deploy.sh
-                  bash -xe ./scripts/deploy.sh ${COMMIT_SHA} 8081
-                '''
-              }.sh ${COMMIT_SHA} 8081
+              # 1) 앱 배포 (블루/그린 띄우기 + 헬스체크 + Nginx 전환은 deploy.sh에 위임)
+              chmod +x ./scripts/deploy.sh
+              bash -xe ./scripts/deploy.sh ${COMMIT_SHA} 8081
             '''
+          }
         }
       }
     }
