@@ -19,7 +19,7 @@ pipeline {
 
       // 브랜치 필터
       branchFilterType: 'NameBasedFilter',
-      includeBranchesSpec: 'dev/server'  // push 이벤트: 이 브랜치만
+      includeBranchesSpec: 'dev/server',  // push 이벤트: 이 브랜치만
 
       // dev/server 브랜치에 대해서만 빌드 트리거
       targetBranchRegex: 'dev/server'
