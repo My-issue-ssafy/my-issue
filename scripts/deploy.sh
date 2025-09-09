@@ -103,10 +103,47 @@ if [[ $ok -ne 1 ]]; then
 fi
 
 # ====== Nginx 프록시 전환 ======
-echo "🔁 Nginx 프록시를 ${NEW_PORT}로 전환 중..."
-# upstream.conf의 'server localhost:xxxx;' 한 줄을 새 포트로 교체
-sed -i "s/server localhost:.*/server localhost:${NEW_PORT};/" "${NGINX_CONF}"
-nginx -s reload
+echo "🔁 Nginx 프록시 전환..."
+
+# 우선순위:
+# 1) 호스트 Nginx(SSH): NGINX_HOST가 설정되어 있으면 host:/etc/nginx/... 수정
+# 2) 컨테이너 Nginx(docker exec): NGINX_CONTAINER가 있고 같은 네트워크일 때만
+# 없으면 스킵(배포는 성공)
+
+
+SED_EXPR_HOST="s#server[[:space:]]\\+[^;]*;#server localhost:${NEW_PORT};#"
+if [[ -n "${NGINX_HOST:-}" ]]; then
+  NGINX_USER="${NGINX_USER:-ubuntu}"
+  SSH="ssh -o StrictHostKeyChecking=no ${NGINX_USER}@${NGINX_HOST}"
+  echo "🔁 호스트(${NGINX_HOST}) Nginx 설정 변경 → localhost:${NEW_PORT}"
+  if $SSH "sudo test -f '${NGINX_CONF}' && \
+           sudo sed -i '${SED_EXPR_HOST}' '${NGINX_CONF}' && \
+           sudo nginx -s reload"; then
+    echo "✅ Nginx reloaded on ${NGINX_HOST}"
+  else
+    echo "⚠️  호스트 Nginx 업데이트 실패. 경로/권한/비번/무비번 sudo 설정을 확인하세요."
+  fi
+else
+  NGINX_CONTAINER="${NGINX_CONTAINER:-}"  # 있으면 이름 지정
+  if [[ -n "${NGINX_CONTAINER}" ]] && docker ps --format '{{.Names}}' | grep -q "^${NGINX_CONTAINER}$"; then
+    # 컨테이너가 app-net에 붙어 있어야 컨테이너명으로 접근 가능
+    if docker inspect -f '{{json .NetworkSettings.Networks}}' "${NGINX_CONTAINER}" | grep -q "${DOCKER_NETWORK}"; then
+      TARGET="${NEW_CONTAINER}:8080"
+      SED_EXPR_CONT="s#server[[:space:]]\\+[^;]*;#server ${TARGET};#"
+      echo "🔁 Nginx 컨테이너(${NGINX_CONTAINER}) 설정 변경 → ${TARGET}"
+      if docker exec "${NGINX_CONTAINER}" sh -lc \
+        "test -f '${NGINX_CONF}' && sed -i '${SED_EXPR_CONT}' '${NGINX_CONF}' && nginx -s reload"; then
+        echo "✅ Nginx reloaded in container '${NGINX_CONTAINER}'"
+      else
+        echo "⚠️  ${NGINX_CONTAINER}:${NGINX_CONF} 수정 실패(파일/권한/경로 확인)."
+      fi
+    else
+      echo "⚠️  '${NGINX_CONTAINER}'가 '${DOCKER_NETWORK}'에 연결되어 있지 않아 전환 불가 → 스킵"
+    fi
+  else
+    echo "ℹ️ NGINX_HOST/NGINX_CONTAINER 미설정 → 프록시 전환 스킵(배포 계속)"
+  fi
+fi
 
 # ====== 기존 컨테이너 제거 ======
 if docker ps -a --format '{{.Names}}' | grep -q "^${OLD_CONTAINER}$"; then
