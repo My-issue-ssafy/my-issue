@@ -112,14 +112,13 @@ pipeline {
             usernameVariable: 'SSH_USER'          // 보통 ubuntu
           )
         ]) {
-          sh '''
-            #!/usr/bin/env bash
+          sh(script: '''
             set -Eeuo pipefail
 
             echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
             env | egrep '^(SPRING_DATASOURCE_|SPRING_PROFILES_ACTIVE|NGINX_)=' | sed -E 's/(PASSWORD|USERNAME)=.*/\\1=****/'
 
-            # 사전 점검 (키가 제대로 바인딩됐는지)
+            # 사전 점검 (키 바인딩 확인)
             head -1 "$SSH_KEY"; echo "SSH_USER=$SSH_USER"
 
             # 0) SSH / sudo / 경로 점검
@@ -130,7 +129,7 @@ pipeline {
             # 1) 앱 배포
             chmod +x ./scripts/deploy.sh
             bash -xe ./scripts/deploy.sh ${COMMIT_SHA} 8081
-          '''
+          ''', shell: '/bin/bash')
         }
       }
     }
