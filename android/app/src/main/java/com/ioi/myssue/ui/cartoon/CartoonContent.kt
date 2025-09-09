@@ -47,6 +47,7 @@ import coil.size.Size
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background100
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background50
+import com.ioi.myssue.domain.model.CartoonNews
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import swipeWithAnimation
@@ -109,15 +110,16 @@ fun CartoonCardStack(
     cartoonList: List<CartoonNews>,
     currentIndex: Int,
     exitTrigger: Int,
+    isSwiping: Boolean,
     onExitFinished: () -> Unit,
-    onLikePressed: () -> Unit,
-    onHatePressed: () -> Unit,
+    onLikePressed: (Boolean) -> Unit,
+    onHatePressed: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var exitingKey by remember { mutableStateOf<String?>(null) }
     var exitDir by remember { mutableIntStateOf(1) }
 
-    fun keyOf(item: CartoonNews) = "${item.cartoonUrl}|${item.newsTitle}"
+    fun keyOf(item: CartoonNews) = "${item.toonImageUrl}|${item.newsTitle}"
 
     LaunchedEffect(exitTrigger) {
         if (exitTrigger != 0 && currentIndex in cartoonList.indices) {
@@ -144,12 +146,12 @@ fun CartoonCardStack(
                     modifier = Modifier
                         .zIndex(if (isExiting) 1f else -layerOrder.toFloat())
                         .swipeWithAnimation(
-                            key = item.cartoonUrl,
-                            locked = isExiting,
+                            key = item.toonImageUrl,
+                            locked = isExiting && !isSwiping,
                             onSwiped = { dir ->
                                 when (dir) {
-                                    SwipeDir.Left  -> onHatePressed()
-                                    SwipeDir.Right -> onLikePressed()
+                                    SwipeDir.Left  -> onHatePressed(true)
+                                    SwipeDir.Right -> onLikePressed(true)
                                 }
                             }
                         ),
@@ -174,7 +176,7 @@ private fun CartoonCard(
     modifier: Modifier = Modifier,
     onExitEnd: (() -> Unit)? = null
 ) {
-    val animKey = remember { "${cartoon.cartoonUrl}|${cartoon.newsTitle}" }
+    val animKey = remember { "${cartoon.toonImageUrl}|${cartoon.newsTitle}" }
     val tx = remember(animKey) { Animatable(0f) }
     val rotZ = remember(animKey) { Animatable(0f) }
 
@@ -225,7 +227,7 @@ private fun CartoonCard(
         ) {
             if (showFront) {
                 CartoonImage(
-                    url = cartoon.cartoonUrl,
+                    url = cartoon.toonImageUrl,
                     contentDesc = cartoon.newsTitle,
                     modifier = Modifier
                         .fillMaxSize()
@@ -234,7 +236,7 @@ private fun CartoonCard(
             } else {
                 Box {
                     CartoonImage(
-                        url = cartoon.cartoonUrl,
+                        url = cartoon.toonImageUrl,
                         contentDesc = cartoon.newsTitle,
                         modifier = Modifier
                             .fillMaxSize()

@@ -73,9 +73,9 @@ fun Modifier.swipeWithAnimation(
                         val target = if (dir == SwipeDir.Right) x + exitPx else x - exitPx
                         val endRot = if (dir == SwipeDir.Right) -maxRotation else maxRotation
                         scope.launch {
+                            onSwiped(dir)
                             tx.animateTo(target, tween(280))
                             rot.animateTo(endRot, tween(280))
-                            onSwiped(dir)
                         }
                     }
                 },

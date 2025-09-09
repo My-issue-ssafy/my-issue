@@ -1,16 +1,12 @@
 package com.ioi.myssue.ui.cartoon
-data class CartoonNews(
-    val newsTitle: String = "",
-    val newsDescription: String = "",
-    val newsFullContent: String = "",
-    val newsUrl: String = "",
-    val cartoonUrl: String = ""
-)
+
+import com.ioi.myssue.domain.model.CartoonNews
 
 data class CartoonUiState(
     val cartoonNewsList: List<CartoonNews> = emptyList(),
     val currentCartoonIndex: Int = 0,
     val exitTrigger: Int = 0,
+    val isSwiping: Boolean = false,
     val isLikePressed: Boolean = false,
     val isHatePressed: Boolean = false,
 
@@ -19,6 +15,6 @@ data class CartoonUiState(
 ) {
     val isEmpty: Boolean
         get() = cartoonNewsList.isEmpty() || currentCartoonIndex == cartoonNewsList.size
+
     fun canInteract(): Boolean = currentCartoonIndex < cartoonNewsList.size && !isLikePressed && !isHatePressed
-    fun getCurrentCartoon(): CartoonNews? = cartoonNewsList.getOrNull(currentCartoonIndex)
 }

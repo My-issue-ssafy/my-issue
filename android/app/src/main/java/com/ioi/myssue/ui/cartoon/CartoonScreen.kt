@@ -64,6 +64,7 @@ fun CartoonScreen(
                         cartoonList = uiState.cartoonNewsList,
                         currentIndex = uiState.currentCartoonIndex,
                         exitTrigger = uiState.exitTrigger,
+                        isSwiping = uiState.isSwiping,
                         onExitFinished = viewModel::onExitFinished,
                         onLikePressed = viewModel::onLikePressed,
                         onHatePressed = viewModel::onHatePressed,
