@@ -105,6 +105,8 @@ fi
 # ====== Nginx 프록시 전환 ======
 echo "🔁 Nginx 프록시 전환..."
 
+echo "[DBG] NGINX_HOST='${NGINX_HOST-}' NGINX_CONTAINER='${NGINX_CONTAINER-}' NGINX_CONF='${NGINX_CONF-}' PWD=$(pwd) WHO=$(whoami)"
+
 # upstream myapp { ... } 범위 안의 server 라인만 NEW_PORT로 치환
 RANGE_EXPR="/upstream[[:space:]]\\+myapp[[:space:]]*{/,/}/ s#server[[:space:]]\\+[^;]*;#server localhost:${NEW_PORT};#"
 
