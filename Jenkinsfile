@@ -41,7 +41,9 @@ pipeline {
     stage('Build & Test') {
       steps {
         gitlabCommitStatus(name: 'jenkins-ci') {
-          sh './gradlew clean build'
+          dir('backend/my-issue') {
+            sh './gradlew clean build'
+          }
         }
       }
     }
