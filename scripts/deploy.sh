@@ -39,7 +39,6 @@ docker run -d \
   -e SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD \
   -p ${NEW_PORT}:8080 \
   xioz19/my-issue:${IMAGE_TAG}
-  }
 
 # 헬스체크 대기
 echo "⏳ 헬스체크 중..."
