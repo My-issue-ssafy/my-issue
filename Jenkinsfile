@@ -113,7 +113,8 @@ pipeline {
           )
         ]) {
           sh '''
-            set -xeuo pipefail
+            #!/usr/bin/env bash
+            set -Eeuo pipefail
 
             echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
             env | egrep '^(SPRING_DATASOURCE_|SPRING_PROFILES_ACTIVE|NGINX_)=' | sed -E 's/(PASSWORD|USERNAME)=.*/\\1=****/'
