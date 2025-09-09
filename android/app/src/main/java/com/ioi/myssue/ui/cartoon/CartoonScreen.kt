@@ -10,6 +10,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -18,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +30,12 @@ fun CartoonScreen(
     viewModel: CartoonViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.onExitFinished()
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -48,8 +56,14 @@ fun CartoonScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     BatteryChargingIcon()
-                    Text(text = "뉴스 충전 중...", style = MaterialTheme.typography.titleLarge)
-                    Text(text= "내일의 네컷뉴스를 기다려주세요!", style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = stringResource(R.string.charging_news),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Text(
+                        text = stringResource(R.string.empty_cartoon_news_description),
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 }
 
             }

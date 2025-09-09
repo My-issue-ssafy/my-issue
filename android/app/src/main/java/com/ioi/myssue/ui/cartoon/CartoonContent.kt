@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.cartoon
 
+import SwipeDir
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -8,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,10 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -138,32 +140,29 @@ fun CartoonCardStack(
             val isExiting = isTop && (keyOf(item) == exitingKey)
             val layerOrder = i - currentIndex
 
-            key(keyOf(item)) {
-                CartoonCard(
-                    cartoon = item,
-                    isExiting = isExiting,
-                    exitDir = exitDir,
-                    modifier = Modifier
-                        .zIndex(if (isExiting) 1f else -layerOrder.toFloat())
-                        .swipeWithAnimation(
-                            key = item.toonImageUrl,
-                            locked = isExiting && !isSwiping,
-                            onSwiped = { dir ->
-                                when (dir) {
-                                    SwipeDir.Left  -> onHatePressed(true)
-                                    SwipeDir.Right -> onLikePressed(true)
-                                }
+            CartoonCard(
+                cartoon = item,
+                isExiting = isExiting,
+                exitDir = exitDir,
+                modifier = Modifier
+                    .zIndex(if (isExiting) 1f else -layerOrder.toFloat())
+                    .swipeWithAnimation(
+                        key = item.toonImageUrl,
+                        locked = isExiting && !isSwiping,
+                        onSwiped = { dir ->
+                            when (dir) {
+                                SwipeDir.Left -> onHatePressed(true)
+                                SwipeDir.Right -> onLikePressed(true)
                             }
-                        ),
-                    onExitEnd = {
-                        if (isExiting) {
-                            exitingKey = null
-                            onExitFinished()
                         }
+                    ),
+                onExitEnd = {
+                    if (isExiting) {
+                        exitingKey = null
+                        onExitFinished()
                     }
-                )
-
-            }
+                }
+            )
         }
     }
 }
@@ -180,7 +179,7 @@ private fun CartoonCard(
     val tx = remember(animKey) { Animatable(0f) }
     val rotZ = remember(animKey) { Animatable(0f) }
 
-    var flipped by remember(animKey) { mutableStateOf(false) }
+    var flipped by rememberSaveable(animKey) { mutableStateOf(false) }
     val flip by animateFloatAsState(
         targetValue = if (flipped) 180f else 0f,
         animationSpec = tween(600),
@@ -202,80 +201,91 @@ private fun CartoonCard(
 
     val interactionSource = remember { MutableInteractionSource() }
     val cameraDistancePx = with(LocalDensity.current) { 12.dp.toPx() }
-    Box(
-        modifier = modifier
-            .size(380.dp)
-            .graphicsLayer {
-                if (isExiting) {
-                    translationX = tx.value
-                    rotationZ = rotZ.value
-                }
-                rotationY = flip
-                cameraDistance = cameraDistancePx
-                // Offscreen 사용하지 않기
-            }
-            .clickable(
-                enabled = !isExiting,
-                indication = null,
-                interactionSource = interactionSource
-            ) { flipped = !flipped }
+
+    BoxWithConstraints(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
     ) {
-        Card(
-            elevation = CardDefaults.cardElevation(8.dp),
-            colors = CardDefaults.cardColors(containerColor = Background100),
-            modifier = Modifier.fillMaxSize(),
+        Box(
+            modifier = modifier
+                .size(maxWidth - 32.dp)
+                .graphicsLayer {
+                    if (isExiting) {
+                        translationX = tx.value
+                        rotationZ = rotZ.value
+                    }
+                    rotationY = flip
+                    cameraDistance = cameraDistancePx
+                }
+                .clickable(
+                    enabled = !isExiting,
+                    indication = null,
+                    interactionSource = interactionSource
+                ) { flipped = !flipped }
         ) {
-            if (showFront) {
-                CartoonImage(
-                    url = cartoon.toonImageUrl,
-                    contentDesc = cartoon.newsTitle,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(8.dp)
-                )
-            } else {
-                Box {
+            Card(
+                elevation = CardDefaults.cardElevation(8.dp),
+                colors = CardDefaults.cardColors(containerColor = Background100),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (showFront) {
                     CartoonImage(
                         url = cartoon.toonImageUrl,
                         contentDesc = cartoon.newsTitle,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(8.dp)
-                            .alpha(0.1f)
-                            .graphicsLayer { rotationY = 180f }
                     )
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .graphicsLayer { rotationY = 180f },
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(4.dp),
-                            text = cartoon.newsTitle,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontSize = 32.sp
+                } else {
+                    Box {
+                        CartoonImage(
+                            url = cartoon.toonImageUrl,
+                            contentDesc = cartoon.newsTitle,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp)
+                                .alpha(0.1f)
+                                .graphicsLayer { rotationY = 180f }
                         )
-
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            color = Background50,
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Text(
-                                modifier = Modifier.padding(16.dp),
-                                text = cartoon.newsDescription,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-
+                        CartoonWithNewsSummary(cartoon)
                     }
                 }
-
             }
         }
+    }
+
+}
+
+@Composable
+private fun CartoonWithNewsSummary(cartoon: CartoonNews) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .graphicsLayer { rotationY = 180f },
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            modifier = Modifier.padding(4.dp),
+            text = cartoon.newsTitle,
+            style = MaterialTheme.typography.titleLarge,
+            fontSize = 32.sp
+        )
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            color = Background50,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text(
+                modifier = Modifier.padding(16.dp),
+                text = cartoon.newsDescription,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
     }
 }
 

@@ -55,18 +55,19 @@ class CartoonViewModel @Inject constructor(
     }
 
     fun onExitFinished() {
-        _state.value = _state.value.copy(
-            currentCartoonIndex = _state.value.currentCartoonIndex + 1,
-            isLikePressed = false,
-            isHatePressed = false,
-            isSwiping = false
-        )
+        if (_state.value.isHatePressed || _state.value.isLikePressed) {
+            _state.value =
+                _state.value.copy(currentCartoonIndex = _state.value.currentCartoonIndex + 1)
+        }
+        resetState()
     }
 
-    fun resetButtonStates() {
+    private fun resetState() {
         _state.value = _state.value.copy(
             isLikePressed = false,
-            isHatePressed = false
+            isHatePressed = false,
+            isSwiping = false,
+            exitTrigger = 0
         )
     }
 }
