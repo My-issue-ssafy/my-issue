@@ -13,7 +13,17 @@ pipeline {
 
   // MR/Push 이벤트 수신
   triggers {
-    gitlab(triggerOnPush: true, triggerOnMergeRequest: true)
+    gitlab (
+      triggerOnPush: true,
+      triggerOnMergeRequest: true,
+
+      // 브랜치 필터
+      branchFilterType: 'NameBasedFilter',
+      includeBranchesSpec: 'dev/server'  // push 이벤트: 이 브랜치만
+
+      // dev/server 브랜치에 대해서만 빌드 트리거
+      targetBranchRegex: 'dev/server'
+    )
   }
 
   stages {
@@ -37,6 +47,9 @@ pipeline {
     }
 
     stage('Docker Build') { // Docker BuildKit 활성화
+      when {
+        expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
+      }
       steps {
         sh '''
           echo "=== Docker Build (backend/my-issue) ==="
