@@ -49,3 +49,10 @@ docker-compose.override.yml
 # Project specific
 output/              # 네이버 기사 저장 JSONL 결과
 images/              # 이미지 저장 폴더(옵션)
+
+
+fastapi/service-account.json  # 서비스 계정 키 파일
+
+# ML Models and training artifacts
+fastapi/models/               # 학습된 모델 저장 폴더
+fastapi/last_trained.txt      # 마지막 학습 날짜 기록 파일

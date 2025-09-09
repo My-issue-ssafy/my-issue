@@ -17,3 +17,8 @@ db-dtypes>=1.0.0
 pandas>=2.2.2
 pyarrow>=15.0.0
 python-dateutil>=2.9.0
+
+# 협업 필터링 모델 학습용 패키지
+numpy>=1.24.0
+scipy>=1.10.0
+implicit>=0.7.0
