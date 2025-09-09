@@ -90,6 +90,20 @@ pipeline {
         }
       }
     }
+
+    stage('Deploy') {
+      when {
+        expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
+      }
+      steps {
+        sh '''
+          echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
+
+          chmod +x ./scripts/deploy.sh
+          ./scripts/deploy.sh ${COMMIT_SHA} 8081
+        '''
+        }
+    }
   }
 
   // 빌드 성공/실패 후 처리
