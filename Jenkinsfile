@@ -7,6 +7,9 @@ pipeline {
     SPRING_DATASOURCE_URL = credentials('SPRING_DATASOURCE_URL')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
     SPRING_DATASOURCE_USERNAME = credentials('SPRING_DATASOURCE_USERNAME')  // Jenkins에 등록된 보안값
     SPRING_DATASOURCE_PASSWORD = credentials('SPRING_DATASOURCE_PASSWORD') // Jenkins에 등록된 보안값
+    NGINX_HOST = credentials('NGINX_HOST')
+    NGINX_USER = credentials('NGINX_USER')
+    NGINX_CONF = credentials('NGINX_CONF')
   }
 
   options {
