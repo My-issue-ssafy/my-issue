@@ -116,18 +116,9 @@ pipeline {
             bash -c '
               set -euo pipefail
               echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
-
-              # 스크립트 원격 업로드
               scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh "$SSH_USER@$NGINX_HOST:~/deploy.sh"
-
-              # 원격 실행(환경변수 전달)
-              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \\
-                'chmod +x ~/deploy.sh && \\
-                 SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \\
-                 SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \\
-                 SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \\
-                 SPRING_PROFILES_ACTIVE=prod \\
-                 sudo -E ~/deploy.sh ${COMMIT_SHA}'
+              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \
+                "chmod +x ~/deploy.sh && sudo -E ~/deploy.sh ${COMMIT_SHA}"
             '
           """
         }
