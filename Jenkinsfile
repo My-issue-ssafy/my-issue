@@ -125,7 +125,12 @@ pipeline {
               echo "🚀 Start Deploying \$IMAGE_REPO:\$COMMIT_SHA"
               scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" scripts/deploy.sh "\$SSH_USER@\$NGINX_HOST:~/deploy.sh"
               ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SSH_USER@\$NGINX_HOST" \\
-                "chmod +x ~/deploy.sh && sudo -E ~/deploy.sh \$COMMIT_SHA"
+                "export SPRING_DATASOURCE_URL='${env.SPRING_DATASOURCE_URL}' && \\
+                 export SPRING_DATASOURCE_USERNAME='${env.SPRING_DATASOURCE_USERNAME}' && \\
+                 export SPRING_DATASOURCE_PASSWORD='${env.SPRING_DATASOURCE_PASSWORD}' && \\
+                 export SPRING_PROFILES_ACTIVE=prod && \\
+                 chmod +x ~/deploy.sh && \\
+                 sudo -E ~/deploy.sh \$COMMIT_SHA"
             '
           """
         }
