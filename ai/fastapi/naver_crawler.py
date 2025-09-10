@@ -299,6 +299,13 @@ def build_body_blocks(soup: BeautifulSoup, base_url: str) -> list[dict]:
                 flush_buf()
                 blocks.append({"type": "image", "content": u})
             return
+        if name == "em" and "img_desc" in (node.get("class") or []):
+            desc = node.get_text(" ", strip=True)
+            if desc:
+                flush_buf()
+                blocks.append({"type": "img_desc", "content": desc})
+            return
+        
         if name in ("picture", "figure"):
             for child in node.children:
                 walk(child)

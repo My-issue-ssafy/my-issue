@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
-from pgvector.sqlalchemy import VECTOR
+from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
 
@@ -16,4 +16,4 @@ class News(Base):
     newsPaper = Column(String)    # 언론사
     created_at = Column(DateTime) # 발행일
     views = Column(Integer, default=0)
-    embedding = Column(VECTOR(768))  # pgvector 확장
+    embedding = Column(Vector(768))  # pgvector 확장
