@@ -30,7 +30,7 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
     public List<News> findLatestPage(LocalDateTime lastCreatedAt, Long lastNewsId, int size) {
         // 최신 전체 뉴스를 가져오는 메서드. lastCreatedAt, lastNewsId는 커서 경계값.
         var where = new BooleanBuilder(); // 동적 where 시작. var는 지역 변수 타입.
-        if (lastCreatedAt != null && lastNewsId != null) {
+        if (lastCreatedAt != null && lastNewsId != null) { // 커서가 있을 때만(= 이전 페이지의 '마지막 아이템' 키를 받았을 때만) 다음 페이지 조건을 건다
             where.and(news.createdAt.lt(lastCreatedAt)
                     .or(news.createdAt.eq(lastCreatedAt).and(news.newsId.lt(lastNewsId))));
         } // 커서가 있을 떄만 키셋 조건 추가. 직전 마지막 (createdAt, newsId)보다 작은 것만 가져오라는 뜻.
@@ -38,10 +38,23 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
         // 만일 시간이 같다면 id를 더 작은 거: createdAt = lastCreatedAt AND newsId < lastNewsId
         return query.selectFrom(news) // FROM news
                 .where(where) // 첫 페이지면 빈 where -> 전체, 다음 페이지면 키셋 where 적용
-                .orderBy(news.createdAt.desc(), news.newsId.desc()) // 불변 정렬
-                .limit(size) // 요청 개수만금
-                .fetch(); // List<news> 반환
+                .orderBy(news.createdAt.desc(), news.newsId.desc()) // 불변 정렬. 여기서 키셋 페이징은 where의 비교 키들과 order by 순서가 완전히 일치해야 함.
+                .limit(size) // 요청 개수만큼. 보통 service 단에서 size+1을 넣어 받아옴. 초과분으로 hasNext를 판정하고 1개를 잘라서 보내는 패턴 사용
+                .fetch(); // 실제로 쿼리를 실행하고 List<news> 반환
     }
+    /* 첫 페이지(커서 없음)
+    * SELECT *
+    FROM news
+    ORDER BY created_at DESC, news_id DESC
+    LIMIT :size
+    *
+    * 다음 페이지(커서 있음)
+    * SELECT *
+    FROM news
+    WHERE (created_at < :lastCreatedAt)
+       OR (created_at = :lastCreatedAt AND news_id < :lastNewsId)
+    ORDER BY created_at DESC, news_id DESC
+    LIMIT :size */
 
     @Override
     public List<News> findHotPage(Integer lastViews, LocalDateTime lastCreatedAt, Long lastNewsId, int size) {
@@ -63,6 +76,15 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
                 .limit(size)
                 .fetch();
     }
+    /*
+    * (100, 2025-09-01, 15)
+    (100, 2025-09-01, 13)
+    (100, 2025-09-01, 11)  ← 1페이지의 마지막 아이템
+    (100, 2025-09-01, 10)
+    ( 99, 2025-08-31, 50)
+    * 이렇게 존재하면 newsId를 타이브레이커로 사용해야되기 때문에 newsId까지 같이 넣었음.
+    * newsId 없었더라면 views < 100 OR (views=100 AND createdAt < 2025-09-01) →
+        (100, 2025-09-01, 10)은 걸러져서 사라짐(둘 다 같으니 < 조건에 안 걸림).*/
 
     @Override
     public List<News> findCategoryLatestPage(NewsCategory category, LocalDateTime lastCreatedAt, Long lastNewsId, int size) {
@@ -81,6 +103,9 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
 
     @Override
     public List<NewsImage> findImagesByNewsId(Long newsId) {
+        // 이미지 단건. 한 뉴스의 모든 이미지.
+        // 연관 경로로 부모 뉴스ID 조건을 검
+        // 정렬을 하면 한 뉴스의 이미지가 전부 내려감
         return query.selectFrom(newsImage)
                 .where(newsImage.news.newsId.eq(newsId))
                 .orderBy(newsImage.news.newsId.asc(), newsImage.imageIndex.asc())
@@ -89,6 +114,7 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
 
     @Override
     public List<NewsImage> findImagesByNewsIds(Collection<Long> newsIds) {
+        // 여러 뉴스의 모든 이미지 한 번에
         if (newsIds == null || newsIds.isEmpty()) return Collections.emptyList();
         return query.selectFrom(newsImage)
                 .where(newsImage.news.newsId.in(newsIds))
