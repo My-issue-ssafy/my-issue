@@ -18,16 +18,24 @@ HEALTH_PATH="/actuator/health"
 echo "▶ IMAGE=${APP_IMAGE}"
 
 # 1) 현재 활성 포트 판정
-if [[ -f "${NGINX_UPSTREAM_FILE}" ]] && grep -q "127.0.0.1:${BLUE_PORT}" "${NGINX_UPSTREAM_FILE}"; then
-  ACTIVE_COLOR=blue;  ACTIVE_PORT=${BLUE_PORT};  ACTIVE_NAME=${BLUE_NAME}
-  NEW_COLOR=green;    NEW_PORT=${GREEN_PORT};    NEW_NAME=${GREEN_NAME}
-elif [[ -f "${NGINX_UPSTREAM_FILE}" ]] && grep -q "127.0.0.1:${GREEN_PORT}" "${NGINX_UPSTREAM_FILE}"; then
-  ACTIVE_COLOR=green; ACTIVE_PORT=${GREEN_PORT}; ACTIVE_NAME=${GREEN_NAME}
-  NEW_COLOR=blue;     NEW_PORT=${BLUE_PORT};     NEW_NAME=${BLUE_NAME}
+if [[ -f "${NGINX_UPSTREAM_FILE}" ]]; then
+  FIRST_LINE=$(head -n 1 "${NGINX_UPSTREAM_FILE}")
+
+  if echo "$FIRST_LINE" | grep -q "127.0.0.1:${BLUE_PORT}"; then
+    ACTIVE_COLOR=blue;  ACTIVE_PORT=${BLUE_PORT};  ACTIVE_NAME=${BLUE_NAME}
+    NEW_COLOR=green;    NEW_PORT=${GREEN_PORT};    NEW_NAME=${GREEN_NAME}
+  elif echo "$FIRST_LINE" | grep -q "127.0.0.1:${GREEN_PORT}"; then
+    ACTIVE_COLOR=green; ACTIVE_PORT=${GREEN_PORT}; ACTIVE_NAME=${GREEN_NAME}
+    NEW_COLOR=blue;     NEW_PORT=${BLUE_PORT};     NEW_NAME=${BLUE_NAME}
+  else
+    echo "❗️ Unknown active port in NGINX_UPSTREAM_FILE"
+    exit 1
+  fi
 else
-  ACTIVE_COLOR=blue;  ACTIVE_PORT=${BLUE_PORT};  ACTIVE_NAME=${BLUE_NAME}
-  NEW_COLOR=green;    NEW_PORT=${GREEN_PORT};    NEW_NAME=${GREEN_NAME}
+  echo "❗️ NGINX upstream file not found"
+  exit 1
 fi
+
 echo "👉 ACTIVE=${ACTIVE_COLOR}(${ACTIVE_PORT}) → NEW=${NEW_COLOR}(${NEW_PORT})"
 
 # 2) 새 컨테이너 기동 (-p 바인딩 필수)
