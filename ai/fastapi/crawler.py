@@ -1,5 +1,6 @@
 # app/crawler.py
 import hashlib
+import random
 from datetime import datetime, timedelta, timezone
 
 from models import News, Base
@@ -16,10 +17,8 @@ SessionLocal = sessionmaker(bind=engine)
 def save_news_to_db(article: dict, db):
     """크롤링된 기사 -> DB 저장"""
     try:
-        # 본문 텍스트만 추출
-        content_text = "\n".join(
-            b["content"] for b in article.get("body", []) if b.get("type") == "text"
-        )
+
+        content_blocks = article.get("body", [])
         category = ", ".join(article.get("section", []))
         created_at = (
             datetime.fromisoformat(article["published_at"])
@@ -30,12 +29,12 @@ def save_news_to_db(article: dict, db):
 
         news = News(
             title=article.get("title"),
-            content=content_text,
+            content=content_blocks,
             category=category,
             author=article.get("reporter"),
             newsPaper=article.get("press"),
             created_at=created_at,
-            views=0,
+            views=random.randint(1000,10000),
             embedding=embedding,
         )
         db.add(news)

@@ -234,13 +234,25 @@ def _normalize_img_url(u: str, base_url: str) -> str | None:
         return None
     return u
 
+# def _text_clean(s: str) -> str:
+#     s = re.sub(r"\s+", " ", s).strip()
+#     if not s:
+#         return ""
+#     if COPYRIGHT_RE.search(s):
+#         return ""
+#     return s
+
 def _text_clean(s: str) -> str:
-    s = re.sub(r"\s+", " ", s).strip()
+    # \n은 살리고, 나머지 연속 공백만 축소
+    s = re.sub(r"[ \t]+", " ", s)   # 스페이스/탭만 정리
+    s = re.sub(r"\n{3,}", "\n\n", s)  # 줄바꿈이 3개 이상 → 2개
+    s = s.strip()
     if not s:
         return ""
     if COPYRIGHT_RE.search(s):
         return ""
     return s
+
 
 def _body_root_candidates(soup: BeautifulSoup):
     cands = [
@@ -306,7 +318,7 @@ def build_body_blocks(soup: BeautifulSoup, base_url: str) -> list[dict]:
     cleaned = []
     for b in blocks:
         if b["type"] == "text":
-            t = re.sub(r"\n{2,}", "\n", b["content"]).strip()
+            t = b["content"].strip()
             if not t:
                 continue
             cleaned.append({"type": "text", "content": t})
