@@ -16,6 +16,7 @@ import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.navigation3.ui.rememberSceneSetupNavEntryDecorator
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.designsystem.ui.AppTopBar
 import com.ioi.myssue.navigation.BottomTabRoute
 import com.ioi.myssue.navigation.MainBottomBar
 import com.ioi.myssue.navigation.MainTab
@@ -41,6 +42,9 @@ fun MainScreen(
     }
 
     Scaffold(
+        topBar = {
+            AppTopBar()
+        },
         bottomBar = {
             MainBottomBar(
                 tabs = MainTab.entries.toList(),
