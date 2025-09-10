@@ -107,27 +107,27 @@ pipeline {
           string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
           string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
           sshUserPrivateKey(
-            credentialsId: 'ec2-ssh-key-pem',     // ✅ Jenkins에 등록한 SSH 키 ID
-            keyFileVariable: 'SSH_KEY',           // 임시 키파일 경로
-            usernameVariable: 'SSH_USER'          // 보통 ubuntu
+            credentialsId: 'ec2-ssh-key-pem',
+            keyFileVariable: 'SSH_KEY',
+            usernameVariable: 'SSH_USER'
           )
         ]) {
-         withEnv([
-           "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL",
-           "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME",
-           "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD",
-           "SPRING_PROFILES_ACTIVE=prod"
-         ]) {
-           sh '''
-             bash -c '
-               set -euo pipefail
-               echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
-               scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh "$SSH_USER@$NGINX_HOST:~/deploy.sh"
-               ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \
-                 "chmod +x ~/deploy.sh && sudo -E ~/deploy.sh ${COMMIT_SHA}"
-             '
-           '''
-         }
+          sh """
+            export IMAGE_REPO=${env.IMAGE_REPO}
+            export COMMIT_SHA=${env.COMMIT_SHA}
+            export SPRING_DATASOURCE_URL=${env.SPRING_DATASOURCE_URL}
+            export SPRING_DATASOURCE_USERNAME=${env.SPRING_DATASOURCE_USERNAME}
+            export SPRING_DATASOURCE_PASSWORD=${env.SPRING_DATASOURCE_PASSWORD}
+            export SPRING_PROFILES_ACTIVE=prod
+
+            bash -c '
+              set -euo pipefail
+              echo "🚀 Start Deploying \$IMAGE_REPO:\$COMMIT_SHA"
+              scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" scripts/deploy.sh "\$SSH_USER@\$NGINX_HOST:~/deploy.sh"
+              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SSH_USER@\$NGINX_HOST" \\
+                "chmod +x ~/deploy.sh && sudo -E ~/deploy.sh \$COMMIT_SHA"
+            '
+          """
         }
       }
     }
