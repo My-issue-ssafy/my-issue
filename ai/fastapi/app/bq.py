@@ -97,8 +97,8 @@ def fetch_events(client: bigquery.Client, dataset: str, from_str: str, to_str: s
     """
     sql = f"""
     SELECT
-      e.user_id,                                                      -- 사용자 ID
-      COALESCE(CAST(ep_item.value.int_value AS STRING), ep_item.value.string_value) AS news_id, -- 뉴스 ID
+      SAFE_CAST(e.user_id AS INT64) AS user_id,                      -- 사용자 ID
+      COALESCE(ep_item.value.int_value, SAFE_CAST(ep_item.value.string_value AS INT64)) AS news_id, -- 뉴스 ID
       e.event_name,                                                   -- 이벤트 이름
       TIMESTAMP_MICROS(e.event_timestamp) AS ts,                      -- 이벤트 발생 시간
       SAFE_CAST(ep_dwell.value.int_value AS INT64)  AS dwell_ms,      -- 체류 시간 (밀리초)
