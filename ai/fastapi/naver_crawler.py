@@ -233,7 +233,7 @@ def _normalize_img_url(u: str, base_url: str) -> str | None:
             return u
         return None
     return u
-ㄴ
+
 def _text_clean(s: str) -> str:
     # \n은 살리고, 나머지 연속 공백만 축소
     s = re.sub(r"[ \t]+", " ", s)   # 스페이스/탭만 정리
@@ -441,73 +441,87 @@ def _looks_like_korean_person_name(name: str) -> bool:
     return bool(re.fullmatch(r"[가-힣]{2,4}", n))
 
 def parse_reporter(soup: BeautifulSoup) -> str | None:
+    """
+    네이버 뉴스에서 기자 이름을 안정적으로 추출
+    - 1차: em.media_end_head_journalist_name
+    - 2차: span.byline_s
+    - 3차: 기자카드 em.media_journalistcard_summary_name_text
+    - 4차: JSON-LD 메타데이터
+    - 5차: 다양한 CSS selector
+    - 6차: 전체 텍스트 정규식 fallback
+    """
+
+    # --------------------------
+    # 1) 기본 헤드라인 기자
+    el = soup.select_one("em.media_end_head_journalist_name")
+    if el:
+        txt = el.get_text(strip=True).replace(" 기자", "").strip()
+        if txt and _looks_like_korean_person_name(txt):
+            return txt
+
+    # --------------------------
+    # 2) 바이라인(span.byline_s)
+    byline = soup.select_one("span.byline_s")
+    if byline:
+        txt = byline.get_text(strip=True)
+        if txt:
+            txt = txt.split("(")[0].replace(" 기자", "").strip()
+            if txt and _looks_like_korean_person_name(txt):
+                return txt
+
+    # --------------------------
+    # 3) 기자카드(em.media_journalistcard_summary_name_text)
+    card = soup.select_one("em.media_journalistcard_summary_name_text")
+    if card:
+        txt = card.get_text(strip=True).replace(" 기자", "").strip()
+        if txt and _looks_like_korean_person_name(txt):
+            return txt
+
+    # --------------------------
+    # 4) JSON-LD 메타데이터(author)
     for tag in soup.find_all("script", {"type": "application/ld+json"}):
         try:
             data = json.loads(tag.string or tag.text or "")
             items = data if isinstance(data, list) else [data]
             for it in items:
-                if not isinstance(it, dict):
-                    continue
-                author = it.get("author")
-                if not author:
-                    continue
-                cand_list = author if isinstance(author, list) else [author]
-                for a in cand_list:
-                    if isinstance(a, dict):
-                        name = str(a.get("name") or "").replace(" 기자", "").strip()
-                        atype = str(a.get("@type") or a.get("type") or "").lower()
-                        if (_looks_like_korean_person_name(name) and (atype in {"person", ""})):
+                if isinstance(it, dict) and it.get("author"):
+                    authors = it["author"] if isinstance(it["author"], list) else [it["author"]]
+                    for a in authors:
+                        if isinstance(a, dict):
+                            name = str(a.get("name") or "").replace(" 기자", "").strip()
+                        else:
+                            name = str(a).replace(" 기자", "").strip()
+                        if name and _looks_like_korean_person_name(name):
                             return name
-                    elif isinstance(a, str):
-                        nm = a.replace(" 기자", "").strip()
-                        if _looks_like_korean_person_name(nm):
-                            return nm
         except Exception:
-            pass
+            continue
 
+    # --------------------------
+    # 5) 추가 selector 후보들
     cands = [
-        "em.media_end_head_journalist_name",
         ".journalist_name", ".reporter_name", ".author", ".byline",
-        ".journalistcard_summary_name",
-        "span.byline_s", "div.byline span", "div.byline", "p.byline_p",
-        'meta[name="author"]',
+        ".journalistcard_summary_name", "div.byline span",
+        "div.byline", "p.byline_p", 'meta[name="author"]',
     ]
     for sel in cands:
         el = soup.select_one(sel)
         if not el:
             continue
         txt = (el.get("content") if getattr(el, "name", "") == "meta" else el.get_text(" ", strip=True)) or ""
-        if not txt:
-            continue
-        txt = re.sub(r"[\[\]()<>{}〈〉]", " ", txt)
         txt = re.sub(r"\S+@\S+", " ", txt)
         txt = re.sub(r"\s+", " ", txt).strip()
-        if "기자" not in txt and "@" not in txt:
-            continue
-        m = re.search(r"([가-힣]{2,4})\s*(?:[가-힣A-Za-z·\-/]{0,12}\s*)?기자(?![가-힣])", txt)
-        if m:
-            name = m.group(1)
-            if _looks_like_korean_person_name(name):
-                return name
+        if txt and "기자" in txt:
+            m = re.search(r"([가-힣]{2,4})", txt)
+            if m and _looks_like_korean_person_name(m.group(1)):
+                return m.group(1)
 
+    # --------------------------
+    # 6) 최후 fallback: 전체 텍스트 정규식
     full = soup.get_text(" ", strip=True)
-    for inner in re.findall(r"\[([^\]]]{2,80})\]", full):
-        inner = re.sub(r"\S+@\S+", " ", inner)
-        m = re.search(r"([가-힣]{2,4})\s*(?:[가-힣A-Za-z·\-/]{0,12}\s*)?기자(?![가-힣])", inner)
-        if m and _looks_like_korean_person_name(m.group(1)):
-            return m.group(1)
-
-    m = re.search(r"([가-힣]{2,4})\s*(?:[가-힣A-Za-z·\-/]{0,12}\s*)?(?:기자|기자=)?\s*[A-Za-z0-9._%+-]+@", full)
+    m = re.search(r"([가-힣]{2,4})\s*기자", full)
     if m and _looks_like_korean_person_name(m.group(1)):
         return m.group(1)
 
-    for p in [
-        r"([가-힣]{2,4})\s*(?:[가-힣A-Za-z·\-/]{0,12}\s*)?기자\s*=",
-        r"([가-힣]{2,4})\s*(?:[가-힣A-Za-z·\-/]{0,12}\s*)?기자(?![가-힣])",
-    ]:
-        m = re.search(p, full)
-        if m and _looks_like_korean_person_name(m.group(1)):
-            return m.group(1)
     return None
 
 # ========================
