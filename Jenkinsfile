@@ -112,15 +112,22 @@ pipeline {
             usernameVariable: 'SSH_USER'          // 보통 ubuntu
           )
         ]) {
-          sh """
-            bash -c '
-              set -euo pipefail
-              echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
-              scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh "$SSH_USER@$NGINX_HOST:~/deploy.sh"
-              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \
-                "chmod +x ~/deploy.sh && sudo -E ~/deploy.sh ${COMMIT_SHA}"
-            '
-          """
+         withEnv([
+           "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL",
+           "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME",
+           "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD",
+           "SPRING_PROFILES_ACTIVE=prod"
+         ]) {
+           sh '''
+             bash -c '
+               set -euo pipefail
+               echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
+               scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh "$SSH_USER@$NGINX_HOST:~/deploy.sh"
+               ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \
+                 "chmod +x ~/deploy.sh && sudo -E ~/deploy.sh ${COMMIT_SHA}"
+             '
+           '''
+         }
         }
       }
     }
