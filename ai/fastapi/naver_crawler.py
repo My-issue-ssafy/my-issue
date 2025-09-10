@@ -47,9 +47,14 @@ INLINE_IMAGES_MODE = "blocks"  # "markdown" 가능
 # 네이버 뉴스 메인 섹션 코드 (sid1)
 NAVER_SECTIONS = ["100", "101", "102", "103", "104", "105"]
 
-SEARCH_KEYWORDS = [
-    "정치", "경제", "사회", "국제", "문화", "IT", "과학", "사건", "사고", "발표", "결정",
-]
+SID1_TO_SECTION = {
+    "100": "정치",
+    "101": "경제",
+    "102": "사회",
+    "103": "생활/문화",
+    "104": "세계",
+    "105": "IT/과학"
+}
 
 PC_LIST_WRAPPERS = [
     "div#main_content div.list_body",
@@ -70,9 +75,6 @@ IMG_URL_RE = re.compile(
 
 DOWNLOAD_IMAGES = False
 IMAGES_DIR = "images"
-
-# 섹션 허용 목록 (정확히 일치하는 토큰만 채택)
-ALLOWED_SECTIONS = ["정치", "경제", "사회", "생활", "문화", "세계", "IT", "과학"]
 
 # ========================
 # [NEW] KO-BERT 제목 임베딩 설정/유틸
@@ -336,16 +338,6 @@ def build_body_markdown(soup: BeautifulSoup, base_url: str) -> str | None:
     md = "\n\n".join(parts).strip()
     return md or None
 
-def build_body_text(soup: BeautifulSoup) -> str | None:
-    root = _body_root_candidates(soup)
-    ps = root.select("p")
-    out = []
-    for p in ps:
-        txt = _text_clean(p.get_text(" ", strip=True))
-        if txt:
-            out.append(txt)
-    return "\n".join(out).strip() or None
-
 # --- 메타 파싱
 def parse_title(soup: BeautifulSoup) -> str | None:
     h = soup.select_one("h2.media_end_head_headline, #newsct_article h2")
@@ -525,103 +517,10 @@ def parse_reporter(soup: BeautifulSoup) -> str | None:
     return None
 
 # ========================
-# 섹션 파싱 (정확 일치 8개, 여러 개면 리스트)
-# ========================
-
-_SECTION_SEPS_RE = re.compile(r"[／/·ㆍ,，\|\>]+|\s*,\s*")
-
-def parse_sections(soup: BeautifulSoup) -> list[str]:
-    """
-    기사의 섹션 라벨을 8개 허용 집합에서 '정확히 일치'하는 값만 추출하여 리스트로 반환.
-    우선순위:
-      1) 본문 전역 텍스트의 문장형 라벨: "이 기사는 언론사에서 {…} 섹션으로 분류했습니다"
-      2) JSON-LD articleSection/section (단일/배열/@graph/mainEntity)
-      3) meta(article:section / name=section)
-      4) breadcrumb/섹션 링크 텍스트
-    구분자: / ／ · ㆍ , ， | > (및 공백콤마)
-    """
-    allowed = set(ALLOWED_SECTIONS)
-    candidates: list[str] = []
-
-    # 1) 문장형 라벨
-    full_text = soup.get_text(" ", strip=True)
-    m = re.search(r"이 기사는 언론사에서\s*(.+?)\s*섹션으로 분류했습니다", full_text)
-    if m:
-        candidates.append(m.group(1))
-
-    # 2) JSON-LD
-    def _extract_article_sections_from_ld(ld):
-        secs = []
-        if isinstance(ld, dict):
-            if ld.get("@type") in ("NewsArticle", "Article"):
-                v = ld.get("articleSection") or ld.get("section")
-                if v:
-                    if isinstance(v, (list, tuple)):
-                        secs.extend([str(x).strip() for x in v if str(x).strip()])
-                    else:
-                        secs.append(str(v).strip())
-            me = ld.get("mainEntity")
-            if isinstance(me, (list, dict)):
-                secs.extend(_extract_article_sections_from_ld(me) or [])
-            g = ld.get("@graph")
-            if isinstance(g, list):
-                for it in g:
-                    secs.extend(_extract_article_sections_from_ld(it) or [])
-        elif isinstance(ld, list):
-            for it in ld:
-                secs.extend(_extract_article_sections_from_ld(it) or [])
-        return [s for s in secs if s]
-
-    for tag in soup.find_all("script", {"type": "application/ld+json"}):
-        try:
-            raw = tag.string or tag.text or ""
-            if not raw.strip():
-                continue
-            data = json.loads(raw)
-            candidates.extend(_extract_article_sections_from_ld(data))
-        except Exception:
-            continue
-
-    # 3) 메타
-    for key in [
-        {"property": "article:section"},
-        {"name": "section"},
-        {"name": "article:section"},
-        {"property": "og:section"},
-    ]:
-        meta = soup.find("meta", key)
-        if meta and meta.get("content"):
-            candidates.append(meta["content"].strip())
-
-    # 4) breadcrumb/섹션 링크
-    for sel in [
-        ".media_end_categorize a",
-        ".media_end_head_top .media_end_categorize_item",
-        "nav a[aria-current='page']",
-        "nav a[href*='/section/']",
-    ]:
-        for a in soup.select(sel):
-            t = a.get_text(" ", strip=True)
-            if t:
-                candidates.append(t)
-
-    # 토큰화 → 허용 집합과 정확 일치만 유지 (중복 제거, 최초 등장 순서 유지)
-    seen = set()
-    out: list[str] = []
-    for cand in candidates:
-        for tok in _SECTION_SEPS_RE.split(str(cand)):
-            tok = tok.strip()
-            if tok in allowed and tok not in seen:
-                seen.add(tok)
-                out.append(tok)
-
-    return out  # 없으면 빈 리스트
-
-# ========================
 # 기사 상세 페이지 수집 및 파싱
 # ========================
 
-def fetch_and_parse(url: str) -> dict | None:
+def fetch_and_parse(url: str, sid1: str | None = None) -> dict | None:
     canon_url, id_tuple = canonicalize_article_url(url)
     target = canon_url or url
     r = safe_get(target, timeout=15.0, referer="https://news.naver.com/")
@@ -635,7 +534,7 @@ def fetch_and_parse(url: str) -> dict | None:
         "published_at": parse_regdate_iso(soup),
         "press": parse_press(soup),
         "reporter": parse_reporter(soup),
-        "section": parse_sections(soup),  # 리스트로 저장 (정확 일치 8개만)
+        "section": [SID1_TO_SECTION.get(sid1, "기타")] if sid1 else [],
         "crawled_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -728,64 +627,6 @@ def discover_links(sid1: str, reg_date: str, max_pages: int = MAX_PAGES) -> list
         rand_sleep(LIST_DELAY)
     return list(found)
 
-def discover_links_from_main_page() -> list[str]:
-    found: set[str] = set()
-    main_urls = [
-        "https://news.naver.com/",
-        "https://news.naver.com/section/100",
-        "https://news.naver.com/section/101",
-        "https://news.naver.com/section/102",
-        "https://news.naver.com/section/103",
-        "https://news.naver.com/section/104",
-        "https://news.naver.com/section/105",
-        "https://news.naver.com/main/ranking/popularDay.naver",
-    ]
-    for url in main_urls:
-        try:
-            r = safe_get(url, timeout=12.0, referer="https://news.naver.com/")
-            if r.status_code == 200:
-                for u in extract_links_from_pc_html(r.text):
-                    found.add(u)
-                print(f"[MAIN-PAGE] {url} -> cumulative {len(found)}")
-        except Exception as e:
-            print(f"[ERR] main page {url} -> {e}")
-        rand_sleep(LIST_DELAY)
-    return list(found)
-
-def discover_links_by_keyword(keyword: str, max_pages: int = 5) -> list[str]:
-    found: set[str] = set()
-    same_html_streak = 0
-    prev_hash = None
-    for page in range(1, max_pages + 1):
-        search_url = f"https://search.naver.com/search.naver?where=news&sm=tab_pge&query={keyword}&start={(page-1)*10+1}"
-        try:
-            r = safe_get(search_url, timeout=12.0, referer="https://search.naver.com/")
-        except Exception as e:
-            print(f"[ERR] keyword {keyword} p{page} -> {e}")
-            break
-        if r.status_code != 200:
-            break
-        html = r.text
-        h = hashlib.sha1(html.encode("utf-8", "ignore")).hexdigest()
-        soup = BeautifulSoup(html, "lxml")
-        hrefs = set(a["href"].strip() for a in soup.find_all("a", href=True))
-        before = len(found)
-        for hrf in hrefs:
-            cu, _id = canonicalize_article_url(hrf)
-            if cu and _id:
-                found.add(cu)
-        page_new = len(found) - before
-        print(f"[KEY:{keyword}][p{page}] so_far={len(found)} page_new={page_new} hash={h[:8]}")
-        if prev_hash == h or page_new == 0:
-            same_html_streak += 1
-        else:
-            same_html_streak = 0
-        prev_hash = h
-        if same_html_streak >= 2:
-            break
-        rand_sleep(LIST_DELAY)
-    return list(found)
-
 # ========================
 # 저장 헬퍼(oid/aid 기준)
 # ========================
@@ -829,7 +670,7 @@ if __name__ == "__main__":
 
             for u in urls:
                 try:
-                    item = fetch_and_parse(u)
+                    item = fetch_and_parse(u, sid1=sid1)
                     if not item:
                         continue
 
