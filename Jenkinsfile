@@ -112,28 +112,22 @@ pipeline {
             usernameVariable: 'SSH_USER'          // 보통 ubuntu
           )
         ]) {
-          sh '''
-          bash -lc "
-            set -Eeuo pipefail
+          sh """
+              set -euo pipefail
+              echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
 
-            echo \"🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}\"
+              # 스크립트 원격 업로드
+              scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh "$SSH_USER@$NGINX_HOST:~/deploy.sh"
 
-            # [FIX] 매칭 없을 때도 성공 처리
-            env | grep -E '^(SPRING_DATASOURCE_|SPRING_PROFILES_ACTIVE|NGINX_)=' | sed -E 's/(PASSWORD|USERNAME)=.*/\\1=****/' || true
-
-            # 키 바인딩 확인
-            head -1 \\"$SSH_KEY\\"; echo \\"SSH_USER=$SSH_USER\\"
-
-            # SSH / sudo / 경로 점검
-            ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i \\"$SSH_KEY\\" \\"$SSH_USER@$NGINX_HOST\\" 'echo OK && whoami && hostname'
-            ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i \\"$SSH_KEY\\" \\"$SSH_USER@$NGINX_HOST\\" 'sudo -n true && echo SUDO_OK || echo SUDO_NOK'
-            ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i \\"$SSH_KEY\\" \\"$SSH_USER@$NGINX_HOST\\" \\"set -e; which nginx; nginx -v; ls -l /etc/nginx/nginx.conf; ls -l ${NGINX_CONF} || echo NO_UPSTREAM_CONF; sudo -n nginx -t\\"
-
-            # 앱 배포
-            chmod +x ./scripts/deploy.sh
-            bash -xe ./scripts/deploy.sh ${COMMIT_SHA} 8081
-          "
-          '''
+              # 원격 실행(환경변수 전달)
+              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \\
+                'chmod +x ~/deploy.sh && \\
+                 SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \\
+                 SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \\
+                 SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \\
+                 SPRING_PROFILES_ACTIVE=prod \\
+                 sudo -E ~/deploy.sh ${COMMIT_SHA}'
+          """
         }
       }
     }
