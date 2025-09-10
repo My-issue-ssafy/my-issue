@@ -448,6 +448,14 @@ def main():
     df = fetch_interactions(client)
     print(f"[INFO] interactions rows={len(df)}")
 
+    # 추출된 상호작용 데이터를 CSV로 저장 (EDA 및 추후 분석용)
+    if not df.empty:
+        csv_filename = f"interactions_{today_kst_str()}.csv"
+        csv_path = os.path.join(os.path.dirname(__file__), "..", "data", csv_filename)
+        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+        df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+        print(f"[INFO] Interactions data saved to {csv_path}")
+
     if df.empty:
         print("[SKIP] no interactions to train.")
         return

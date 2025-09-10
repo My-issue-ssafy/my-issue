@@ -97,27 +97,20 @@ def fetch_events(client: bigquery.Client, dataset: str, from_str: str, to_str: s
     """
     sql = f"""
     SELECT
-      SAFE_CAST(e.user_id AS INT64) AS user_id,                      -- 사용자 ID
-      COALESCE(ep_item.value.int_value, SAFE_CAST(ep_item.value.string_value AS INT64)) AS news_id, -- 뉴스 ID
-      e.event_name,                                                   -- 이벤트 이름
-      TIMESTAMP_MICROS(e.event_timestamp) AS ts,                      -- 이벤트 발생 시간
-      SAFE_CAST(ep_dwell.value.int_value AS INT64)  AS dwell_ms,      -- 체류 시간 (밀리초)
-      SAFE_CAST(ep_scroll.value.int_value AS INT64) AS scroll_pct,    -- 스크롤 비율
-      ep_action.value.string_value                  AS action,        -- 액션 종류 (add, remove 등)
-      ep_feed.value.string_value                    AS feed_source,   -- 피드 소스
-      ep_from.value.string_value                    AS from_source    -- 유입 소스
-    FROM `{PROJECT_ID}.{dataset}.events_*` e
-    -- 이벤트 매개변수를 컬럼으로 풀어내기 위한 LEFT JOIN
-    LEFT JOIN UNNEST(e.event_params) ep_item   ON ep_item.key  = 'news_id'
-    LEFT JOIN UNNEST(e.event_params) ep_dwell  ON ep_dwell.key = 'dwell_ms'
-    LEFT JOIN UNNEST(e.event_params) ep_scroll ON ep_scroll.key = 'scroll_pct'
-    LEFT JOIN UNNEST(e.event_params) ep_action ON ep_action.key = 'action'
-    LEFT JOIN UNNEST(e.event_params) ep_feed   ON ep_feed.key   = 'feed_source'
-    LEFT JOIN UNNEST(e.event_params) ep_from   ON ep_from.key   = 'from_source'
+      user_id,                                                        -- 사용자 ID
+      news_id,                                                        -- 뉴스 ID  
+      event_name,                                                     -- 이벤트 이름
+      ts,                                                             -- 이벤트 발생 시간
+      dwell_ms,                                                       -- 체류 시간 (밀리초)
+      scroll_pct,                                                     -- 스크롤 비율
+      action,                                                         -- 액션 종류 (add, remove 등)
+      feed_source,                                                    -- 피드 소스
+      from_source                                                     -- 유입 소스
+    FROM `{PROJECT_ID}.{dataset}.events_*`
     WHERE _TABLE_SUFFIX BETWEEN @from AND @to                         -- 날짜 범위 필터
-      AND e.user_id IS NOT NULL                                       -- 사용자 ID 필수
-      AND (ep_item.value.int_value IS NOT NULL OR ep_item.value.string_value IS NOT NULL) -- 뉴스 ID 필수
-      AND (STARTS_WITH(e.event_name, 'news_') OR STARTS_WITH(e.event_name, 'toon_')) -- news_ 또는 toon_ 이벤트만
+      AND user_id IS NOT NULL                                         -- 사용자 ID 필수
+      AND news_id IS NOT NULL                                         -- 뉴스 ID 필수
+      AND (STARTS_WITH(event_name, 'news_') OR STARTS_WITH(event_name, 'toon_')) -- news_ 또는 toon_ 이벤트만
     ORDER BY ts
     """
     # 쿼리 매개변수 설정 (SQL 인젝션 방지)
