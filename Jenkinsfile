@@ -113,6 +113,7 @@ pipeline {
           )
         ]) {
           sh """
+            bash -c '
               set -euo pipefail
               echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
 
@@ -127,6 +128,7 @@ pipeline {
                  SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \\
                  SPRING_PROFILES_ACTIVE=prod \\
                  sudo -E ~/deploy.sh ${COMMIT_SHA}'
+            '
           """
         }
       }
