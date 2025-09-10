@@ -41,10 +41,15 @@ docker run -d --name "${NEW_NAME}" \
   -e SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-}" \
   "${APP_IMAGE}"
 
+echo "⏳ Waiting for service to be healthy..."
+
 # 3) 헬스체크
 for i in {1..30}; do
   if curl -fsS "http://127.0.0.1:${NEW_PORT}${HEALTH_PATH}" | grep -q '"status":"UP"'; then
     echo "✅ health UP"; ok=1; break
+  fi
+  echo "⏳ waiting... ($i)"
+  sleep 2
   fi; sleep 2
 done
 [[ "${ok:-0}" -eq 1 ]] || { echo "❌ health FAILED"; docker logs --tail=200 "${NEW_NAME}" || true; exit 1; }
