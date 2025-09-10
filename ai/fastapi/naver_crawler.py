@@ -233,15 +233,7 @@ def _normalize_img_url(u: str, base_url: str) -> str | None:
             return u
         return None
     return u
-
-# def _text_clean(s: str) -> str:
-#     s = re.sub(r"\s+", " ", s).strip()
-#     if not s:
-#         return ""
-#     if COPYRIGHT_RE.search(s):
-#         return ""
-#     return s
-
+ㄴ
 def _text_clean(s: str) -> str:
     # \n은 살리고, 나머지 연속 공백만 축소
     s = re.sub(r"[ \t]+", " ", s)   # 스페이스/탭만 정리
