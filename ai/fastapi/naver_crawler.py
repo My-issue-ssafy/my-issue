@@ -37,7 +37,7 @@ HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
-MAX_PAGES = 1
+MAX_PAGES = 50
 CRAWL_BACK_DAYS = 1
 LIST_DELAY = (0.4, 0.9)
 DETAIL_DELAY = (0.6, 1.3)
