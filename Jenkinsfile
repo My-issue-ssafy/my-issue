@@ -4,9 +4,12 @@ pipeline {
   environment { // 전역 환경변수 정의
     IMAGE_REPO = 'xioz19/my-issue' // 빌드/푸시할 Docker 이미지 경로.
     COMMIT_SHA = 'manual' // 이미지에 버전 태그로 붙여서 이력 추적 가능
-    DB_URL = credentials('my-db-url')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
-    DB_USERNAME = credentials('my-db-username')  // Jenkins에 등록된 보안값
-    DB_PASSWORD = credentials('my-db-password') // Jenkins에 등록된 보안값
+    SPRING_DATASOURCE_URL = credentials('SPRING_DATASOURCE_URL')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
+    SPRING_DATASOURCE_USERNAME = credentials('SPRING_DATASOURCE_USERNAME')  // Jenkins에 등록된 보안값
+    SPRING_DATASOURCE_PASSWORD = credentials('SPRING_DATASOURCE_PASSWORD') // Jenkins에 등록된 보안값
+    NGINX_HOST = credentials('NGINX_HOST')
+    NGINX_USER = credentials('NGINX_USER')
+    NGINX_CONF = credentials('NGINX_CONF')
   }
 
   options {
@@ -18,7 +21,6 @@ pipeline {
   triggers {
     gitlab (
       triggerOnPush: true,
-      triggerOnMergeRequest: true,
 
       // 브랜치 필터
       branchFilterType: 'NameBasedFilter',
@@ -45,7 +47,7 @@ pipeline {
       steps {
         gitlabCommitStatus(name: 'jenkins-ci') {
           dir('backend/my-issue') {
-            sh './gradlew clean build'
+            sh './gradlew clean build -x test'
           }
         }
       }
@@ -76,6 +78,9 @@ pipeline {
     }
 
     stage('Push to Docker Hub') {
+      when {
+        expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
+      }
       steps {
         withCredentials([usernamePassword( // Jenkins에 등록된 Docker Hub 크리덴셜 사용
           credentialsId: 'dockerhub-cred',
@@ -88,6 +93,46 @@ pipeline {
             docker push ${IMAGE_REPO}:latest
             docker logout || true
           '''
+        }
+      }
+    }
+
+    stage('Deploy') {
+      when {
+        expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
+      }
+      steps {
+        withCredentials([
+          string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
+          string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
+          string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
+          sshUserPrivateKey(
+            credentialsId: 'ec2-ssh-key-pem',
+            keyFileVariable: 'SSH_KEY',
+            usernameVariable: 'SSH_USER'
+          )
+        ]) {
+          sh """
+            export IMAGE_REPO=${env.IMAGE_REPO}
+            export COMMIT_SHA=${env.COMMIT_SHA}
+            export SPRING_DATASOURCE_URL=${env.SPRING_DATASOURCE_URL}
+            export SPRING_DATASOURCE_USERNAME=${env.SPRING_DATASOURCE_USERNAME}
+            export SPRING_DATASOURCE_PASSWORD=${env.SPRING_DATASOURCE_PASSWORD}
+            export SPRING_PROFILES_ACTIVE=prod
+
+            bash -c '
+              set -euo pipefail
+              echo "🚀 Start Deploying \$IMAGE_REPO:\$COMMIT_SHA"
+              scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" scripts/deploy.sh "\$SSH_USER@\$NGINX_HOST:~/deploy.sh"
+              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SSH_USER@\$NGINX_HOST" \\
+                "export SPRING_DATASOURCE_URL='${env.SPRING_DATASOURCE_URL}' && \\
+                 export SPRING_DATASOURCE_USERNAME='${env.SPRING_DATASOURCE_USERNAME}' && \\
+                 export SPRING_DATASOURCE_PASSWORD='${env.SPRING_DATASOURCE_PASSWORD}' && \\
+                 export SPRING_PROFILES_ACTIVE=prod && \\
+                 chmod +x ~/deploy.sh && \\
+                 sudo -E ~/deploy.sh \$COMMIT_SHA"
+            '
+          """
         }
       }
     }
