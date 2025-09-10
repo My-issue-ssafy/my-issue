@@ -50,7 +50,6 @@ for i in {1..30}; do
   fi
   echo "⏳ waiting... ($i)"
   sleep 2
-  fi; sleep 2
 done
 [[ "${ok:-0}" -eq 1 ]] || { echo "❌ health FAILED"; docker logs --tail=200 "${NEW_NAME}" || true; exit 1; }
 
