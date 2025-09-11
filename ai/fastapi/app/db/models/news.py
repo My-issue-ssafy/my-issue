@@ -13,7 +13,7 @@ class News(Base):
     content = Column(JSONB)      # 본문
     category = Column(String)     # 섹션 (정치, 경제 등)
     author = Column(String)       # 기자
-    newsPaper = Column(String)    # 언론사
+    news_paper = Column(String)    # 언론사
     created_at = Column(DateTime) # 발행일
     views = Column(Integer, default=0)
     embedding = Column(Vector(768))  # pgvector 확장

@@ -37,7 +37,7 @@ HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
-MAX_PAGES = 50
+MAX_PAGES = 1
 CRAWL_BACK_DAYS = 1
 LIST_DELAY = (0.4, 0.9)
 DETAIL_DELAY = (0.6, 1.3)
@@ -534,7 +534,7 @@ def fetch_and_parse(url: str, sid1: str | None = None) -> dict | None:
         "published_at": parse_regdate_iso(soup),
         "press": parse_press(soup),
         "reporter": parse_reporter(soup),
-        "section": [SID1_TO_SECTION.get(sid1, "기타")] if sid1 else [],
+        "category": [SID1_TO_SECTION.get(sid1, "기타")] if sid1 else [],
         "crawled_at": datetime.now(timezone.utc).isoformat(),
     }
 

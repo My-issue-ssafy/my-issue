@@ -8,18 +8,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.crawler.naver_crawler import discover_links, fetch_and_parse, embed_title, EMBED_MODEL_NAME
+from app.utils.config import settings
 
-# DB 연결 (환경변수에서 읽도록 변경 권장)
-DATABASE_URL = "postgresql+psycopg2://postgres:1234@localhost:5432/newsdb"
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine)
+engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def save_news_to_db(article: dict, db):
     """크롤링된 기사 -> DB 저장"""
     try:
 
         content_blocks = article.get("body", [])
-        category = ", ".join(article.get("section", []))
+        category = ", ".join(article.get("category", []))
         created_at = (
             datetime.fromisoformat(article["published_at"])
             if article.get("published_at")
@@ -32,7 +31,7 @@ def save_news_to_db(article: dict, db):
             content=content_blocks,
             category=category,
             author=article.get("reporter"),
-            newsPaper=article.get("press"),
+            news_paper=article.get("press"),
             created_at=created_at,
             views=random.randint(1000,10000),
             embedding=embedding,
@@ -64,7 +63,7 @@ def run_crawl_job():
 
             for u in urls:
                 try:
-                    item = fetch_and_parse(u)
+                    item = fetch_and_parse(u, sid1=sid1)
                     if not item:
                         continue
 
