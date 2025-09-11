@@ -37,7 +37,7 @@ HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
 
-MAX_PAGES = 1
+MAX_PAGES = 100
 CRAWL_BACK_DAYS = 1
 LIST_DELAY = (0.4, 0.9)
 DETAIL_DELAY = (0.6, 1.3)
@@ -593,38 +593,108 @@ def extract_links_from_pc_html(html: str) -> list[str]:
             canon.add(cu)
     return list(canon)
 
-def discover_links(sid1: str, reg_date: str, max_pages: int = MAX_PAGES) -> list[str]:
-    found: set[str] = set()
-    same_html_streak = 0
+def discover_and_store(sid1: str, reg_date: str, db, latest_dt, seen_ids: set[str], save_fn, max_pages: int = MAX_PAGES):
     prev_hash = None
+    same_html_streak = 0
+
+    section_name = SID1_TO_SECTION.get(sid1, "기타")
+
     for page in range(1, max_pages + 1):
         list_url = f"https://news.naver.com/main/list.naver?mode=LSD&mid=sec&sid1={sid1}&date={reg_date}&page={page}"
-        try:
-            ref = f"https://news.naver.com/main/list.naver?mode=LSD&mid=sec&sid1={sid1}&date={reg_date}&page={page-1}" if page > 1 \
-                else f"https://news.naver.com/main/list.naver?mode=LSD&mid=sec&sid1={sid1}&date={reg_date}"
-            r = safe_get(list_url, timeout=12.0, referer=ref)
-        except Exception as e:
-            print(f"[ERR] discover sid1={sid1}/{reg_date} p{page} -> {e}")
-            break
+        r = safe_get(list_url, timeout=12.0)
         if r.status_code != 200:
-            print(f"[WARN] {list_url} -> {r.status_code}")
             break
+
+        html = r.text
+        h = hashlib.sha1(html.encode("utf-8", "ignore")).hexdigest()
+        urls = extract_links_from_pc_html(html)
+
+        print(f"[sid1:{sid1}][{reg_date}][p{page}] urls={len(urls)} hash={h[:8]}")
+
+        for u in urls:
+            try:
+                item = fetch_and_parse(u, sid1=sid1)
+                if not item:
+                    continue
+
+                # 발행일 확인 → 최신 기사 만나면 중단
+                pub_time = item.get("published_at")
+                if pub_time:
+                    pub_dt = datetime.fromisoformat(pub_time)
+                    if latest_dt and pub_dt <= latest_dt:
+                        print(f"[STOP] 섹션 {sid1} ({section_name}) - {pub_dt} <= {latest_dt}")
+                        return  # 함수 전체 종료 (크롤링 중단)
+
+                # 제목 임베딩 추가
+                try:
+                    emb = embed_title(item.get("title") or "")
+                    if emb:
+                        item["title_embedding"] = {
+                            "model": EMBED_MODEL_NAME,
+                            "vector": emb,
+                            "dim": len(emb),
+                            "normalized": True,
+                        }
+                except Exception as e:
+                    print("[EMB-ERR] title embedding:", e)
+
+                # 중복 확인
+                canon_url = item.get("url")
+                if canon_url and canon_url in seen_ids:
+                    continue
+                seen_ids.add(canon_url)
+
+                # DB 저장
+                save_fn(item, db)
+
+            except Exception as e:
+                print("[ERR]", u, e)
+
+        # 중복 페이지 반복되면 중단
+        if prev_hash == h:
+            same_html_streak += 1
+        else:
+            same_html_streak = 0
+        prev_hash = h
+        if same_html_streak >= 3:
+            break
+
+        rand_sleep(LIST_DELAY)
+
+def discover_links(sid1: str, reg_date: str, max_pages: int = MAX_PAGES) -> list[str]:
+    found: set[str] = set()
+    prev_hash = None
+    same_html_streak = 0
+
+    for page in range(1, max_pages + 1):
+        list_url = f"https://news.naver.com/main/list.naver?mode=LSD&mid=sec&sid1={sid1}&date={reg_date}&page={page}"
+        r = safe_get(list_url, timeout=12.0)
+        if r.status_code != 200:
+            break
+
         html = r.text
         h = hashlib.sha1(html.encode("utf-8", "ignore")).hexdigest()
         new_links = extract_links_from_pc_html(html)
+
         before = len(found)
         for u in new_links:
             found.add(u)
         page_new = len(found) - before
+
         print(f"[sid1:{sid1}][{reg_date}][p{page}] so_far={len(found)} page_new={page_new} hash={h[:8]}")
+
         if prev_hash == h or page_new == 0:
             same_html_streak += 1
         else:
             same_html_streak = 0
         prev_hash = h
-        if same_html_streak >= 2:
-            break
+
+        # # 완전 중복 페이지가 여러 번 반복되면 탈출
+        # if same_html_streak >= 3:
+        #     break
+        print(f"dicovery_links 실행")
         rand_sleep(LIST_DELAY)
+
     return list(found)
 
 # ========================
