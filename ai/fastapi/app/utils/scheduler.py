@@ -1,6 +1,6 @@
 # scheduler.py
 from apscheduler.schedulers.background import BackgroundScheduler
-from crawler import run_crawl_job
+from app.crawler.crawler import run_crawl_job
 
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone="Asia/Seoul")

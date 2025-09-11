@@ -7,7 +7,7 @@ from models import News, Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from naver_crawler import discover_links, fetch_and_parse, embed_title, EMBED_MODEL_NAME
+from app.crawler.naver_crawler import discover_links, fetch_and_parse, embed_title, EMBED_MODEL_NAME
 
 # DB 연결 (환경변수에서 읽도록 변경 권장)
 DATABASE_URL = "postgresql+psycopg2://postgres:1234@localhost:5432/newsdb"

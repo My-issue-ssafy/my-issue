@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
-from scheduler import start_scheduler
-from crawler import run_crawl_job
+from app.utils.scheduler import start_scheduler
+from app.crawler.crawler import run_crawl_job
 
 app = FastAPI()
 
