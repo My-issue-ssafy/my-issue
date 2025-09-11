@@ -1,13 +1,24 @@
-package com.ioi.myssue.ui.cartoon
+package com.ioi.myssue.ui.podcast.component
 
-import android.R.attr.textColor
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,24 +35,19 @@ import java.util.Locale
 @Composable
 fun Calendar(
     modifier: Modifier = Modifier,
-    onDateSelected: (LocalDate) -> Unit = {}
+    isMonthlyView: Boolean,
+    selectedDate: LocalDate,
+    onToggleView: () -> Unit,
+    onDateSelected: (LocalDate) -> Unit
 ) {
-    var isMonthlyView by remember { mutableStateOf(false) }
     val today = LocalDate.now()
-    var selectedDate by remember { mutableStateOf(today) }
 
-    Column(
-        modifier = modifier
-            .animateContentSize() // 확장/축소 시 부드럽게
-    ) {
-        // 헤더 (클릭 시 주간/월간 토글)
+    Column(modifier = modifier.animateContentSize()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .combinedClickable(
-                    onClick = { isMonthlyView = !isMonthlyView }
-                )
+                .combinedClickable(onClick = onToggleView)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_calendar),
@@ -52,7 +58,7 @@ fun Calendar(
                 text = "${
                     today.month.getDisplayName(TextStyle.FULL, Locale.US).uppercase()
                 }, ${today.year}",
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(4.dp)
             )
@@ -64,19 +70,12 @@ fun Calendar(
             MonthCalendar(
                 currentMonth = today,
                 selectedDate = selectedDate,
-                onDateSelected = {
-                    selectedDate = it
-                    onDateSelected(it)
-                }
+                onDateSelected = onDateSelected
             )
         } else {
             WeekCalendarRow(
-                daysToShow = 5,
                 selectedDate = selectedDate,
-                onDateSelected = {
-                    selectedDate = it
-                    onDateSelected(it)
-                }
+                onDateSelected = onDateSelected
             )
         }
     }
@@ -84,7 +83,7 @@ fun Calendar(
 
 @Composable
 private fun WeekCalendarRow(
-    daysToShow: Int,
+    daysToShow: Int = 5,
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
@@ -94,9 +93,8 @@ private fun WeekCalendarRow(
     }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         dates.forEach { date ->
@@ -118,22 +116,35 @@ private fun MonthCalendar(
     onDateSelected: (LocalDate) -> Unit
 ) {
     val firstDayOfMonth = currentMonth.withDayOfMonth(1)
-    val lastDayOfMonth = currentMonth.withDayOfMonth(currentMonth.lengthOfMonth())
-    val days = (0 until lastDayOfMonth.dayOfMonth).map { firstDayOfMonth.plusDays(it.toLong()) }
+    val daysInMonth = currentMonth.lengthOfMonth()
 
-    // 🔥 7의 배수 맞추기 (마지막 줄 균등 분배)
-    val paddedDays = remember(days) {
-        val total = if (days.size % 7 == 0) days.size else days.size + (7 - days.size % 7)
-        List(total) { i -> days.getOrNull(i) }
+    val daysThisMonth = remember(firstDayOfMonth) {
+        (0 until daysInMonth).map { firstDayOfMonth.plusDays(it.toLong()) }
     }
 
+    val firstDowSundayIndex = firstDayOfMonth.dayOfWeek.value % 7
+    val leadingCount = firstDowSundayIndex
+
+    val prevMonth = currentMonth.minusMonths(1)
+    val prevLast = prevMonth.withDayOfMonth(prevMonth.lengthOfMonth())
+    val leadingDays = remember(currentMonth, leadingCount) {
+        List(leadingCount) { i -> prevLast.minusDays((leadingCount - 1 - i).toLong()) }
+    }
+
+    val totalSoFar = leadingDays.size + daysThisMonth.size
+    val trailingCount = (7 - (totalSoFar % 7)).let { if (it == 7) 0 else it }
+    val nextMonthFirst = currentMonth.plusMonths(1).withDayOfMonth(1)
+    val trailingDays = remember(currentMonth, trailingCount) {
+        List(trailingCount) { i -> nextMonthFirst.plusDays(i.toLong()) }
+    }
+
+    val fullDays = leadingDays + daysThisMonth + trailingDays
+
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp),
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        paddedDays.chunked(7).forEach { week ->
+        fullDays.chunked(7).forEach { week ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,17 +153,14 @@ private fun MonthCalendar(
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 week.forEach { date ->
-                    if (date != null) {
-                        DayBoxCell(
-                            date = date,
-                            selected = date == selectedDate,
-                            isMonthly = true, // 월간 모드
-                            onClick = { onDateSelected(date) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                    DayBoxCell(
+                        date = date,
+                        selected = date == selectedDate,
+                        isMonthly = true,
+                        isCurrentMonth = date.month == currentMonth.month,
+                        onClick = { onDateSelected(date) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -162,11 +170,12 @@ private fun MonthCalendar(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DayBoxCell(
+    modifier: Modifier = Modifier,
     date: LocalDate,
     selected: Boolean,
     isMonthly: Boolean,
+    isCurrentMonth: Boolean = true,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
 ) {
     val bg = when {
         selected -> AppColors.Primary400
@@ -174,6 +183,10 @@ private fun DayBoxCell(
         else -> Color.Transparent
     }
 
+    val dayTextColor =
+        if (selected) BackgroundColors.Background50
+        else if (!isCurrentMonth) BackgroundColors.Background400
+        else BackgroundColors.Background700
 
     Surface(
         color = bg,
@@ -188,9 +201,10 @@ private fun DayBoxCell(
         ) {
             Text(
                 text = date.dayOfMonth.toString(),
-                style = if(!isMonthly) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                style = if (!isMonthly) MaterialTheme.typography.titleLarge
+                else MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (selected) BackgroundColors.Background50 else BackgroundColors.Background700
+                color = dayTextColor
             )
             if (!isMonthly) {
                 Spacer(Modifier.height(4.dp))
