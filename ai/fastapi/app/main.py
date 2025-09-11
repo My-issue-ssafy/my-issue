@@ -1,15 +1,14 @@
 # main.py
 from fastapi import FastAPI
 from app.utils.scheduler import start_scheduler
-from app.crawler.crawler import run_crawl_job
+from app.api.endpoints.crawler import router as crawler_router
 
-app = FastAPI()
+app = FastAPI(title="News Recommendation System", version="1.0.0")
+
+# API 라우터 등록
+app.include_router(crawler_router, prefix="/api", tags=["crawler"])
 
 @app.on_event("startup")
 def startup_event():
+    """애플리케이션 시작 시 스케줄러 실행"""
     start_scheduler()
-
-@app.get("/crawl-now")
-def crawl_now():
-    run_crawl_job()
-    return {"status": "ok", "message": "Manual crawl started"}
