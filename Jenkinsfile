@@ -33,7 +33,7 @@ pipeline {
           sh '''
             bash -Eeuo pipefail -c '
               cd ai/fastapi
-              docker build -t ${IMAGE_REPO}:${TAG} -t ${IMAGE_REPO}:latest python-app
+              docker build -t ${IMAGE_REPO}:${TAG} -t ${IMAGE_REPO}:latest .
               echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
               docker push ${IMAGE_REPO}:${TAG}
               docker push ${IMAGE_REPO}:latest
