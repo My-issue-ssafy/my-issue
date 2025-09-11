@@ -1,4 +1,4 @@
-package com.ssafy.myissue.news.entity;
+package com.ssafy.myissue.news.domain;
 
 public enum NewsCategory {
     POLITICS,

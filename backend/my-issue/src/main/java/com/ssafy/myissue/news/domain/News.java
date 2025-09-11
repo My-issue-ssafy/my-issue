@@ -1,4 +1,4 @@
-package com.ssafy.myissue.news.entity;
+package com.ssafy.myissue.news.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,14 +25,10 @@ public class News {
     @Column(name = "news_id")
     private Long newsId;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false, length = 500)
-    private String summary;
-
-    @Lob // JPA에서 string을 그냥 쓰면 보통 varchar와 같이 고정 길이로 매핑. 뉴스 본문은 훨씬 길수도? -> LOB(CLOB/TEXT) 타입으로 저장해야 안전
-    @Column(nullable = false, columnDefinition="TEXT") // @Lob은 JPA 수준 의도, columnDefinition="TEXT"는 DB 수준 의도
+    @Column(columnDefinition = "jsonb")
     private String content;
 
     @Enumerated(EnumType.STRING)
@@ -51,18 +47,12 @@ public class News {
     @Column(nullable = false)
     private int views;
 
-    @Builder
-    private News(String title, String summary, String content, NewsCategory category,
-                 String author, String newspaper, LocalDateTime createdAt) {
-        this.title = title;
-        this.summary = summary;
-        this.content = content;
-        this.category = category;
-        this.author = author;
-        this.newspaper = newspaper;
-        this.createdAt = createdAt;
-        this.views = 0;
-    }
+    @Column(columnDefinition = "vector(768)")
+    private String embedding;
+
+    @Column(nullable = false)
+    private String thumbnail;
+
 
     /** 생성/삽입 직전에 createdAt이 비어 있으면 자동 세팅 */
     @PrePersist
