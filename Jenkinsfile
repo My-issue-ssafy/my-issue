@@ -32,7 +32,8 @@ pipeline {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
             bash -Eeuo pipefail -c '
-              docker build -f python-app/Dockerfile -t ${IMAGE_REPO}:${TAG} -t ${IMAGE_REPO}:latest python-app
+              cd ai/fastapi
+              docker build -t ${IMAGE_REPO}:${TAG} -t ${IMAGE_REPO}:latest python-app
               echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
               docker push ${IMAGE_REPO}:${TAG}
               docker push ${IMAGE_REPO}:latest
