@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from sqlalchemy import func
 from app.db.models.news import News
-from app.crawler.naver_crawler import (
+from app.core.crawler.naver_crawler import (
     discover_and_store, discover_links, fetch_and_parse, embed_title, EMBED_MODEL_NAME, SID1_TO_SECTION
 )
 from app.utils.config import settings

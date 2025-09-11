@@ -19,18 +19,18 @@ from google.cloud.bigquery import ScalarQueryParameter, QueryJobConfig
 from implicit.als import AlternatingLeastSquares
 
 from app.config import PROJECT_ID, DEFAULT_DATASET, LOOKBACK_DAYS
-from app.bq import get_client, get_latest_date
+from app.core.analytics.bq import get_client, get_latest_date
 
 # BigQuery 뷰 대신 events_* 테이블 직접 쿼리 사용
 # VIEW = f"`{PROJECT_ID}.{DEFAULT_DATASET}`.events_wide_v1"  # 비활성화: 뷰 대신 직접 쿼리
 
 # 모델 저장 경로 설정
-MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
+MODELS_DIR = Path(__file__).resolve().parent.parent.parent / "models"
 MODEL_PATH = MODELS_DIR / "als_model.pkl"
 METADATA_PATH = MODELS_DIR / "model_metadata.json"
 
 # 마지막 학습 날짜를 기록하는 파일 경로 (중복 학습 방지용)
-STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "last_trained.txt")
+STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "last_trained.txt")
 
 # 1) 오늘 날짜를 한국 시간 기준으로 YYYYMMDD 형태 문자열로 반환
 def today_kst_str():
@@ -451,7 +451,7 @@ def main():
     # 추출된 상호작용 데이터를 CSV로 저장 (EDA 및 추후 분석용)
     if not df.empty:
         csv_filename = f"interactions_{today_kst_str()}.csv"
-        csv_path = os.path.join(os.path.dirname(__file__), "..", "data", csv_filename)
+        csv_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", csv_filename)
         os.makedirs(os.path.dirname(csv_path), exist_ok=True)
         df.to_csv(csv_path, index=False, encoding='utf-8-sig')
         print(f"[INFO] Interactions data saved to {csv_path}")
