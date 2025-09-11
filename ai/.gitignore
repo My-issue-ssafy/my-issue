@@ -57,6 +57,7 @@ docker-compose.override.yml
 output/              # 네이버 기사 저장 JSONL 결과
 images/              # 이미지 저장 폴더(옵션)
 
+
 fastapi/service-account.json  # 서비스 계정 키 파일
 
 # ML Models and training artifacts
@@ -114,3 +115,6 @@ secrets.json
 
 # Training state files
 fastapi/last_trained.txt
+
+fastapi_env/
+
