@@ -1,8 +1,7 @@
 # database.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from utils.config import settings
 
-DATABASE_URL = "postgresql://postgres:1234@localhost:5432/newsdb"
-
-engine = create_engine(DATABASE_URL, pool_size=20, max_overflow=0)
+engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

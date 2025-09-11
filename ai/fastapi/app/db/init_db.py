@@ -1,9 +1,11 @@
 # app/init_db.py
 from sqlalchemy import create_engine
-from models import Base
+from app.db.models import Base
+from sqlalchemy.orm import sessionmaker
+from utils.config import settings
 
-DATABASE_URL = "postgresql+psycopg2://postgres:1234@localhost:5432/newsdb"
-engine = create_engine(DATABASE_URL)
+engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 모든 모델 기반 테이블 생성
 Base.metadata.create_all(engine)

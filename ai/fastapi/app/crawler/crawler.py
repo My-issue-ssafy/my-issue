@@ -3,7 +3,7 @@ import hashlib
 import random
 from datetime import datetime, timedelta, timezone
 
-from models import News, Base
+from app.db.models.news import News, Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
