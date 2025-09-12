@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.repository.NewsRepository
+import com.ioi.myssue.navigation.BottomTabRoute
+import com.ioi.myssue.navigation.Navigator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +20,8 @@ data class NewsItems(
 
 @HiltViewModel
 class NewsViewModel @Inject constructor(
-    private val fakeNewsRepository: NewsRepository
+    private val fakeNewsRepository: NewsRepository,
+    private val navigator: Navigator
 ) : ViewModel() {
     private val _state = MutableStateFlow(NewsItems())
     val state = _state.asStateFlow()
@@ -44,6 +47,12 @@ class NewsViewModel @Inject constructor(
                 }
                 .onFailure {
                 }
+        }
+    }
+
+    fun onClickSeeAll(type: NewsFeedType) {
+        viewModelScope.launch {
+            navigator.navigate(BottomTabRoute.NewsAll(type))
         }
     }
 }
