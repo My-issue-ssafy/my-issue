@@ -31,3 +31,6 @@ logging:
     org:
       springframework:
         security: DEBUG
+
+jwt:
+  secret-base64: ${JWT_SECRET_BASE64}

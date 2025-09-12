@@ -3,6 +3,8 @@ package com.ssafy.myissue.user.domain;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+
 @Entity
 @Getter
 @Builder
@@ -18,4 +20,15 @@ public class User {
 
     @Column(name = "fcm_token")
     private String fcmToken;
+
+    private Instant lastSeen;
+
+    public static User newOf(String uuid) {
+        return User.builder()
+                .uuid(uuid)
+                .lastSeen(Instant.now())
+                .build();
+    }
+
+    public void touch() { this.lastSeen = Instant.now(); }
 }
