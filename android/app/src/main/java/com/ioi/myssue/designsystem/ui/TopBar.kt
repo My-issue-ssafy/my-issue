@@ -36,7 +36,7 @@ fun AppTopBar(
     isPlaying: Boolean = false,
     @DrawableRes logoRes: Int = R.drawable.logo,
     onBellClick: (() -> Unit)? = null,
-    containerColor: Color = Color.White,
+    containerColor: Color = BackgroundColors.Background50,
 ) {
     val topBarInsets = WindowInsets
         .safeDrawing

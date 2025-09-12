@@ -1,7 +1,5 @@
 package com.ioi.myssue.ui.podcast
 
-import android.R.attr.thumbnail
-import android.R.attr.top
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -11,6 +9,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,13 +24,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ioi.myssue.designsystem.theme.AppColors
+import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.ui.podcast.component.Calendar
 import com.ioi.myssue.ui.podcast.component.CurvedSurface
 import com.ioi.myssue.ui.podcast.component.MiniPlayer
 import com.ioi.myssue.ui.podcast.component.PlayerCard
+import com.ioi.myssue.ui.podcast.component.bottomsheetplayer.PodcastBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,40 +42,61 @@ fun PodCastScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    Column(Modifier.fillMaxSize()) {
-        Calendar(
-            isMonthlyView = state.isMonthlyView,
-            selectedDate = state.selectedDate,
-            onToggleView = { viewModel.toggleViewMode() },
-            onDateSelected = { date -> viewModel.selectDate(date) },
-            modifier = Modifier.padding(16.dp)
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        if (state.isMonthlyView) {
-            BottomPlayer(
-                title = "HOT 뉴스",
-                date = state.selectedDate.toString().replace('-', '.'),
-                thumbnail = state.episode.articleImage,
-                isPlaying = state.audio.isPlaying,
-                onPlayPause = { viewModel.toggle() }
+    Box {
+        Column(Modifier.fillMaxSize()) {
+            Calendar(
+                isMonthlyView = state.isMonthlyView,
+                selectedDate = state.selectedDate,
+                onToggleView = { viewModel.toggleViewMode() },
+                onDateSelected = { date -> viewModel.selectDate(date) },
+                modifier = Modifier.padding(16.dp)
             )
-        } else {
-            PlayerContent(
-                title = state.selectedDate.toString(),
-                imageUrl = state.episode.articleImage,
-                isPlaying = state.audio.isPlaying,
+
+            Spacer(Modifier.height(20.dp))
+
+            if (state.isMonthlyView) {
+                BottomPlayer(
+                    title = "HOT 뉴스",
+                    date = state.selectedDateString,
+                    thumbnail = state.episode.articleImage,
+                    isPlaying = state.audio.isPlaying,
+                    onPlayPause = viewModel::toggle,
+                    openBottomPlayer = viewModel::openPlayer
+                )
+            } else {
+                PlayerContent(
+                    title = state.selectedDateString,
+                    imageUrl = state.episode.articleImage,
+                    isPlaying = state.audio.isPlaying,
+                    positionMs = state.audio.position,
+                    durationMs = state.audio.duration,
+                    currentLine = state.currentLine.text,
+                    previousLine = state.previousLine.text,
+                    onPlayPause = { viewModel.toggle() },
+                    onSeekTo = { viewModel.seekTo(it) },
+                    openBottomPlayer = viewModel::openPlayer
+                )
+
+            }
+        }
+
+        if (state.showPlayer) {
+            PodcastBottomSheet(
+                thumbnailUrl = state.episode.articleImage,
+                title = "HOT 뉴스",
+                dateText = state.selectedDateString,
                 positionMs = state.audio.position,
                 durationMs = state.audio.duration,
-                currentLine = state.currentLine,
-                previousLine = state.previousLine,
-                onPlayPause = { viewModel.toggle() },
-                onSeekTo = { viewModel.seekTo(it) }
+                onPlayPause = viewModel::toggle,
+                isPlaying = state.audio.isPlaying,
+                changeDate = viewModel::changeDate,
+                onDismissRequest = viewModel::closePlayer,
+                scripts = state.episode.scripts,
+                currentIndex = state.currentIndex
             )
-
         }
     }
+
 }
 
 @Composable
@@ -81,7 +105,8 @@ private fun BottomPlayer(
     date: String,
     thumbnail: String,
     isPlaying: Boolean,
-    onPlayPause: () -> Unit
+    onPlayPause: () -> Unit,
+    openBottomPlayer: () -> Unit
 ) {
     Surface(
         modifier = Modifier
@@ -109,13 +134,14 @@ private fun BottomPlayer(
                 isPlaying = isPlaying,
                 thumbnail = thumbnail,
                 onClickPlayPause = onPlayPause,
+                openBottomPlayer = openBottomPlayer,
                 modifier = Modifier.padding(top = 8.dp)
             )
 
             Spacer(Modifier.height(32.dp))
 
             KeyWordList(
-                keywords = listOf("경제", "부동산", "주식", "코인", "금리", "대출", "경제", "부동산", "주식", "코인",),
+                keywords = listOf("경제", "부동산", "주식", "코인", "금리", "대출", "경제", "부동산", "주식", "코인"),
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -130,7 +156,7 @@ fun KeyWordList(
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement =  Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         keywords.forEach { keyword ->
             Box(
@@ -144,7 +170,7 @@ fun KeyWordList(
                 Text(
                     text = keyword,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White
+                    color = BackgroundColors.Background50
                 )
             }
         }
@@ -163,7 +189,8 @@ private fun ColumnScope.PlayerContent(
     currentLine: String,
     previousLine: String,
     onPlayPause: () -> Unit,
-    onSeekTo: (Long) -> Unit
+    onSeekTo: (Long) -> Unit,
+    openBottomPlayer: () -> Unit
 ) {
     PlayerCard(
         title = title,
@@ -181,7 +208,7 @@ private fun ColumnScope.PlayerContent(
     Spacer(Modifier.height(20.dp))
 
     CurvedSurface {
-        ScriptViewer(currentLine, previousLine)
+        ScriptViewer(currentLine, previousLine, openBottomPlayer)
     }
 }
 
@@ -189,25 +216,35 @@ private fun ColumnScope.PlayerContent(
 @Composable
 fun ScriptViewer(
     currentLine: String,
-    previousLine: String
+    previousLine: String,
+    openBottomPlayer: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 80.dp),
+            .heightIn(min = 80.dp)
+            .clickable(
+                indication = null,
+                interactionSource = interactionSource,
+            ) { openBottomPlayer() },
         verticalArrangement = Arrangement.Center
     ) {
         AnimatedContent(
             targetState = previousLine,
             transitionSpec = {
-                (slideInVertically { fullHeight -> fullHeight } + fadeIn()) togetherWith
-                        (slideOutVertically { fullHeight -> -fullHeight } + fadeOut())
+                (slideInVertically { it / 2 } + fadeIn()) togetherWith
+                        (slideOutVertically { -it / 2 } + fadeOut())
             },
+            label = "prevLine"
         ) { line ->
             Text(
                 text = line,
                 style = MaterialTheme.typography.labelLarge,
-                color = AppColors.Primary50
+                color = AppColors.Primary50,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -216,15 +253,16 @@ fun ScriptViewer(
         AnimatedContent(
             targetState = currentLine,
             transitionSpec = {
-                (slideInVertically { fullHeight -> fullHeight } + fadeIn()) togetherWith
-                        (slideOutVertically { fullHeight -> -fullHeight } + fadeOut())
+                (slideInVertically { it / 2 } + fadeIn()) togetherWith
+                        (slideOutVertically { -it / 2 } + fadeOut())
             },
+            label = "currentLine"
         ) { line ->
             Text(
                 text = line,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = BackgroundColors.Background50
             )
         }
     }

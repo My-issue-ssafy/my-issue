@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,7 +54,7 @@ fun PlayerBottomOverlay(
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold
                 ),
-                color = Color.White,
+                color = BackgroundColors.Background50,
                 modifier = Modifier.padding(horizontal = 8.dp),
                 maxLines = 1
             )
@@ -64,7 +65,7 @@ fun PlayerBottomOverlay(
                         if (isPlaying) R.drawable.ic_pause else R.drawable.ic_radio_play
                     ),
                     contentDescription = null,
-                    tint = Color.White
+                    tint = BackgroundColors.Background50
                 )
             }
         }
@@ -95,7 +96,7 @@ fun GradientProgressBar(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(fraction)
-                .background(gradient)
+                .background(brush = gradient, shape = CircleShape)
         )
     }
 }

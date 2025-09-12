@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.podcast.component
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ioi.myssue.R
+import com.ioi.myssue.designsystem.theme.BackgroundColors
 
 @Composable
 fun MiniPlayer(
@@ -22,15 +24,20 @@ fun MiniPlayer(
     thumbnail: String,
     isPlaying: Boolean,
     onClickPlayPause: () -> Unit,
+    openBottomPlayer: () -> Unit,
 ) {
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        modifier = modifier.height(72.dp)
+        colors = CardDefaults.cardColors(containerColor = BackgroundColors.Background50),
+        modifier = modifier
+            .height(72.dp)
+            .clickable { openBottomPlayer() }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp)
         ) {
             Card(
                 shape = RoundedCornerShape(8.dp),

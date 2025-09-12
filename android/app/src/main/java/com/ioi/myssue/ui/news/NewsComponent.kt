@@ -61,6 +61,7 @@ import coil.compose.AsyncImage
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.AppColors.Primary700
+import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background200
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background300
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background400
@@ -180,7 +181,7 @@ fun HotNewsSlide(
             // 카테고리
             AssistChip(
                 onClick = onClick,
-                label = { Text(news.category, color = Color.White) },
+                label = { Text(news.category, color = BackgroundColors.Background50) },
                 shape = CircleShape,
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = Primary600
@@ -196,7 +197,7 @@ fun HotNewsSlide(
             Text(
                 text = news.title,
                 style = typography.titleMedium,
-                color = Color.White,
+                color = BackgroundColors.Background50,
                 maxLines = 1,
                 minLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -298,7 +299,7 @@ fun NewsThumbnail(img: String?) {
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = BackgroundColors.Background50
         ),
         modifier = Modifier
             .size(100.dp),
