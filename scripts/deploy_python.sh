@@ -44,13 +44,21 @@ echo "👉 ACTIVE=${ACTIVE_PORT} → NEW=${NEW_PORT}"
 
 # 2) 새 컨테이너 기동
 docker rm -f "${NEW_NAME}" >/dev/null 2>&1 || true
+
 echo "🚀 run ${NEW_NAME} (host:${NEW_PORT} -> container:${CONTAINER_PORT})"
+
 docker run -d --name "${NEW_NAME}" \
   -p ${NEW_PORT}:${CONTAINER_PORT} \
-  -e DATABASE_URL="${DATABASE_URL:-}" \
-  --health-cmd="curl -fsS http://127.0.0.1:${CONTAINER_PORT}/health || exit 1" \
-  --health-interval=5s --health-retries=20 --health-timeout=3s \
+  -e "DATABASE_URL=${DATABASE_URL:?DATABASE_URL missing}" \
+  --health-cmd="python -c \"import sys,urllib.request; \
+code=urllib.request.urlopen('http://127.0.0.1:${CONTAINER_PORT}/health', timeout=2).getcode(); \
+sys.exit(0 if 200 <= code < 300 else 1)\"" \
+  --health-interval=5s \
+  --health-retries=30 \
+  --health-timeout=3s \
+  --health-start-period=60s \
   "${IMAGE}"
+
 
 # 3) 헬스체크 대기
 echo "⏳ waiting for health..."
