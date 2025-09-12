@@ -25,6 +25,15 @@ def save_news_to_db(article: dict, db):
         )
         embedding = article.get("title_embedding", {}).get("vector")
 
+
+        # ✅ 첫 번째 이미지 URL 추출
+        thumbnail_url = None
+        if isinstance(content_blocks, list):
+            for block in content_blocks:
+                if block.get("type") == "image":
+                    thumbnail_url = block.get("content")
+                    break
+
         news = News(
             title=article.get("title"),
             content=content_blocks,
@@ -34,6 +43,7 @@ def save_news_to_db(article: dict, db):
             created_at=created_at,
             views=random.randint(1000, 10000),
             embedding=embedding,
+            thumbnail=thumbnail_url
         )
         db.add(news)
         db.commit()
