@@ -50,6 +50,8 @@ echo "🚀 run ${NEW_NAME} (host:${NEW_PORT} -> container:${CONTAINER_PORT})"
 docker run -d --name "${NEW_NAME}" \
   -p ${NEW_PORT}:${CONTAINER_PORT} \
   -e "DATABASE_URL=${DATABASE_URL:?DATABASE_URL missing}" \
+  -e GOOGLE_APPLICATION_CREDENTIALS=/run/secrets/gcp.json \
+  -v /opt/sa/gcp.json:/run/secrets/gcp.json:ro \
   --health-cmd="python -c \"import sys,urllib.request; \
 code=urllib.request.urlopen('http://127.0.0.1:${CONTAINER_PORT}/health', timeout=2).getcode(); \
 sys.exit(0 if 200 <= code < 300 else 1)\"" \
