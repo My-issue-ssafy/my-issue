@@ -49,6 +49,7 @@ pipeline {
         withCredentials([
           sshUserPrivateKey(credentialsId: 'ec2-ssh-key-pem', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
           string(credentialsId: 'NGINX_HOST', variable: 'NGINX_HOST')
+          string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL')
         ]) {
           sh '''
             bash -Eeuo pipefail -c '
