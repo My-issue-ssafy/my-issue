@@ -63,12 +63,9 @@ done
 [[ "${ok:-0}" -eq 1 ]] || { echo "❌ health FAILED"; docker logs --tail=200 "${NEW_NAME}" || true; exit 1; }
 
 # 4) nginx upstream 포인터 교체 (upstream 블록 전체)
-sudo mkdir -p /etc/nginx/upstreams
 sudo tee "${UPSTREAM_FILE}" >/dev/null <<EOF
-upstream python_app {
-    server 127.0.0.1:${NEW_PORT} max_fails=3 fail_timeout=5s;
-    # server 127.0.0.1:${ACTIVE_PORT} backup max_fails=3 fail_timeout=5s;
-}
+server 127.0.0.1:${NEW_PORT} max_fails=3 fail_timeout=5s;
+server 127.0.0.1:${ACTIVE_PORT} backup max_fails=3 fail_timeout=5s;
 EOF
 
 sudo nginx -t && sudo systemctl reload nginx
