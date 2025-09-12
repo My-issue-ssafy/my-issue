@@ -1,6 +1,6 @@
-package com.ssafy.myissue.news.repository;
+package com.ssafy.myissue.news.infrastructure;
 
-import com.ssafy.myissue.news.entity.News;
+import com.ssafy.myissue.news.domain.News;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /** 기본 CRUD + 커스텀(QueryDSL) 혼합 */
