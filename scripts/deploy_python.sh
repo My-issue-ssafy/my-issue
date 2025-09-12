@@ -47,6 +47,7 @@ docker rm -f "${NEW_NAME}" >/dev/null 2>&1 || true
 echo "🚀 run ${NEW_NAME} (host:${NEW_PORT} -> container:${CONTAINER_PORT})"
 docker run -d --name "${NEW_NAME}" \
   -p ${NEW_PORT}:${CONTAINER_PORT} \
+  -e DATABASE_URL="${DATABASE_URL:-}" \
   --health-cmd="curl -fsS http://127.0.0.1:${CONTAINER_PORT}/health || exit 1" \
   --health-interval=5s --health-retries=20 --health-timeout=3s \
   "${IMAGE}"
