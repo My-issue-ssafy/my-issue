@@ -25,7 +25,9 @@ public class NewsScrapService {
         this.scrapRepository = scrapRepository;
     }
 
-    /** 스크랩/해제 토글 */
+    /**
+     * 스크랩/해제 토글
+     */
     @Transactional
     public ScrapToggleResponse toggle(Long userId, long newsId) {
         Optional<NewsScrap> existing = newsRepository.findScrapByUserIdAndNewsId(userId, newsId);
@@ -46,7 +48,9 @@ public class NewsScrapService {
         }
     }
 
-    /** 내가 저장한 뉴스: /news/bookmarks?lastId&size  (lastId = scrapId) */
+    /**
+     * 내가 저장한 뉴스: /news/bookmarks?lastId&size  (lastId = scrapId)
+     */
     public CursorPage<NewsCardResponse> list(Long userId, Integer size, Long lastId) {
         int pageSize = (size == null || size <= 0) ? 20 : size;
 
@@ -80,35 +84,4 @@ public class NewsScrapService {
         return new CursorPage<>(items, null, hasNext);
     }
 
-    /** 여러 뉴스의 이미지를 배치 로딩 → newsId -> [image...] (N+1 방지) */
-//    private Map<Long, List<String>> batchImages(List<News> rows) {
-//        if (rows == null || rows.isEmpty()) {
-//            return Map.of();
-//        }
-//
-//        List<Long> ids = rows.stream()
-//                .map(News::getNewsId)
-//                .toList();
-//
-//        return newsRepository.findImagesByNewsIds(ids).stream()
-//                .collect(Collectors.groupingBy(
-//                        img -> img.getNews().getNewsId(),
-//                        Collectors.mapping(i -> i.getImage(), Collectors.toList())
-//                ));
-//    }
-//
-//    /** 본문에서 앞 n자 미리보기: 태그 제거, 공백 정리, 코드포인트 안전 절단 */
-//    private String preview(String content, int maxChars) {
-//        if (content == null || content.isBlank()) return "";
-//
-//        String noTags = content.replaceAll("<[^>]+>", " ");
-//        String text = noTags.replaceAll("\\s+", " ").trim();
-//        if (text.isEmpty()) return "";
-//
-//        int cpCount = text.codePointCount(0, text.length());
-//        if (cpCount <= maxChars) return text;
-//
-//        int endIndex = text.offsetByCodePoints(0, maxChars);
-//        return text.substring(0, endIndex) + "…";
-//    }
 }

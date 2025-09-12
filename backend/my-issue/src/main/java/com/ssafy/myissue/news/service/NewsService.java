@@ -11,7 +11,6 @@ import com.ssafy.myissue.news.dto.NewsDetailResponse;
 import com.ssafy.myissue.news.dto.NewsHomeResponse;
 import com.ssafy.myissue.news.dto.ContentBlock;                    // [NEW]
 import com.ssafy.myissue.news.domain.News;
-import com.ssafy.myissue.news.domain.NewsCategory;
 // import com.ssafy.myissue.news.entity.NewsImage;                 // [REMOVED]
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import org.springframework.stereotype.Service;
@@ -88,7 +87,7 @@ public class NewsService {
     }
 
     /** 카테고리 최신(무한 스크롤, cursor 기반) */
-    public CursorPage<NewsCardResponse> getByCategory(NewsCategory category, String cursor, int size) {
+    public CursorPage<NewsCardResponse> getByCategory(String category, String cursor, int size) {
         LatestCursor c = null;
         if (cursor != null && !cursor.isBlank()) {
             c = CursorCodec.decode(cursor, LatestCursor.class);
@@ -131,7 +130,7 @@ public class NewsService {
      * 뉴스 전체 조회(검색/카테고리) — /news?keyword&category&size&lastId
      *  - 커서는 쓰지 않고 lastId 기준으로 페이징
      */
-    public CursorPage<NewsCardResponse> search(String keyword, NewsCategory category, Integer size, Long lastId) {
+    public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, Long lastId) {
         int pageSize = (size == null || size <= 0) ? 20 : size;
 
         LocalDateTime lastAt = null;

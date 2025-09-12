@@ -3,7 +3,6 @@ package com.ssafy.myissue.news.infrastructure;
 import com.querydsl.core.BooleanBuilder; // 동적 where 조건을 필요할 때만 붙이고 싶을 때 쓰는 조건 조립기
 import com.querydsl.jpa.impl.JPAQueryFactory; // QueryDSL 쿼리를 시작하는 팩토리. 내부적으로 JPA의 EntityManager를 사용해 SQL 실행.
 import com.ssafy.myissue.news.domain.News;
-import com.ssafy.myissue.news.domain.NewsCategory;
 import com.ssafy.myissue.news.domain.NewsScrap;
 import org.springframework.stereotype.Repository;
 
@@ -83,7 +82,7 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
         (100, 2025-09-01, 10)은 걸러져서 사라짐(둘 다 같으니 < 조건에 안 걸림).*/
 
     @Override
-    public List<News> findCategoryLatestPage(NewsCategory category, LocalDateTime lastCreatedAt, Long lastNewsId, int size) {
+    public List<News> findCategoryLatestPage(String category, LocalDateTime lastCreatedAt, Long lastNewsId, int size) {
         // 카테고리별 최신 기사
         var where = new BooleanBuilder().and(news.category.eq(category));
         if (lastCreatedAt != null && lastNewsId != null) {
@@ -98,7 +97,7 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
     }
 
     @Override
-    public List<News> searchPage(String keyword, NewsCategory category,
+    public List<News> searchPage(String keyword, String category,
                                  LocalDateTime lastCreatedAt, Long lastNewsId, int size) {
         BooleanBuilder where = new BooleanBuilder();
 

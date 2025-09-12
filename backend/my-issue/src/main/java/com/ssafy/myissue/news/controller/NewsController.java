@@ -5,7 +5,6 @@ import com.ssafy.myissue.news.dto.NewsCardResponse;
 import com.ssafy.myissue.news.dto.NewsDetailResponse;
 import com.ssafy.myissue.news.dto.NewsHomeResponse;
 import com.ssafy.myissue.news.dto.ScrapToggleResponse;
-import com.ssafy.myissue.news.domain.NewsCategory;
 import com.ssafy.myissue.news.service.NewsScrapService;
 import com.ssafy.myissue.news.service.NewsService;
 import org.springframework.http.HttpStatus;
@@ -74,7 +73,7 @@ public class NewsController {
     @GetMapping
     public CursorPage<NewsCardResponse> search(
             @RequestParam(value = "keyword", required = false) String keyword,
-            @RequestParam(value = "category", required = false) NewsCategory category,
+            @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "size", required = false, defaultValue = "20") Integer size,
             @RequestParam(value = "lastId", required = false) Long lastId
     ) {

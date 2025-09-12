@@ -36,9 +36,8 @@ public class News {
     @Column(columnDefinition = "text")
     private String content;
 
-    @Enumerated(EnumType.STRING)
     @Column
-    private NewsCategory category;
+    private String category;
 
     private String author;
 

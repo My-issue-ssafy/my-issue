@@ -1,6 +1,5 @@
 package com.ssafy.myissue.news.dto;
 
-import com.ssafy.myissue.news.domain.NewsCategory;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -9,7 +8,7 @@ public record NewsDetailResponse(
         long newsId,
         String title,
         List<ContentBlock> content,
-        NewsCategory category,
+        String category,
         String author,
         String newspaper,
         LocalDateTime createdAt,
