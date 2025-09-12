@@ -43,10 +43,18 @@ class PodcastViewModel @Inject constructor(
         selectDate(LocalDate.now())
     }
 
-    fun toggleViewMode() {
+    fun toggleCalendarViewType() {
         _state.value = _state.value.copy(
             isMonthlyView = !_state.value.isMonthlyView
         )
+    }
+
+    fun toggleContentType() {
+        val toggledContentType = when(_state.value.contentType) {
+            PodcastContentType.SCRIPT -> PodcastContentType.NEWS
+            PodcastContentType.NEWS -> PodcastContentType.SCRIPT
+        }
+        _state.value = _state.value.copy(contentType = toggledContentType)
     }
 
     fun selectDate(date: LocalDate) {

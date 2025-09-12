@@ -47,7 +47,7 @@ fun PodCastScreen(
             Calendar(
                 isMonthlyView = state.isMonthlyView,
                 selectedDate = state.selectedDate,
-                onToggleView = { viewModel.toggleViewMode() },
+                onToggleView = { viewModel.toggleCalendarViewType() },
                 onDateSelected = { date -> viewModel.selectDate(date) },
                 modifier = Modifier.padding(16.dp)
             )
@@ -92,7 +92,9 @@ fun PodCastScreen(
                 changeDate = viewModel::changeDate,
                 onDismissRequest = viewModel::closePlayer,
                 scripts = state.episode.scripts,
-                currentIndex = state.currentIndex
+                currentIndex = state.currentIndex,
+                toggleContentType = viewModel::toggleContentType,
+                contentType = state.contentType
             )
         }
     }

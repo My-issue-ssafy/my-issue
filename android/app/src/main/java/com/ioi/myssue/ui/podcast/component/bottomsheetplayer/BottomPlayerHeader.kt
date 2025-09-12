@@ -30,7 +30,8 @@ import com.ioi.myssue.designsystem.theme.BackgroundColors
 fun BottomPlayerHeader(
     thumbnailUrl: String,
     title: String,
-    dateText: String
+    dateText: String,
+    toggleContentType: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -67,7 +68,7 @@ fun BottomPlayerHeader(
             )
         }
 
-        IconButton(onClick = { /* TODO: 메뉴 */ }) {
+        IconButton(onClick = toggleContentType) {
             Icon(
                 painterResource(R.drawable.ic_podcast_list),
                 contentDescription = null,

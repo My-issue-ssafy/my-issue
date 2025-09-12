@@ -29,9 +29,10 @@ fun BottomControls(
     durationMs: Long,
     changeDate: (Int) -> Unit,
     onPlayPause: () -> Unit,
-    isPlaying: Boolean
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp)) {
+    Column(modifier = modifier.padding(vertical = 20.dp)) {
         GradientProgressBar(
             positionMs = positionMs,
             durationMs = durationMs,

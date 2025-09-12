@@ -5,17 +5,22 @@ import java.time.LocalDate
 
 data class PodcastUiState(
     val isMonthlyView: Boolean = false,
+    val showPlayer: Boolean = false,
+    val contentType: PodcastContentType = PodcastContentType.SCRIPT,
     val selectedDate: LocalDate = LocalDate.now(),
     val audio: AudioState = AudioState(),
+    val episode: PodcastEpisode = PodcastEpisode(),
     val currentIndex: Int = 0,
     val currentLine: ScriptLine = ScriptLine(),
     val previousLine: ScriptLine = ScriptLine(),
-    val showPlayer: Boolean = false,
-    val episode: PodcastEpisode = PodcastEpisode()
 ) {
     val selectedDateString get() = selectedDate.toString().replace('-', '.')
 }
 
+enum class PodcastContentType {
+    SCRIPT,
+    NEWS
+}
 data class PodcastEpisode(
     val audioUrl: String = "",
     val scripts: List<ScriptLine> = emptyList(),
