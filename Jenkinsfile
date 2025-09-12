@@ -4,15 +4,14 @@ pipeline {
 
   environment {
     IMAGE_REPO = 'xioz19/my-issue-py'
-    TAG = 'manual'
+    TAG = 'manual' // Checkout에서 커밋 SHA로 덮어씀
   }
 
   triggers {
     gitlab(
       triggerOnPush: true,
       branchFilterType: 'NameBasedFilter',
-      includeBranchesSpec: 'dev/data',
-      targetBranchRegex: 'dev/data'
+      includeBranchesSpec: 'dev/data'
     )
   }
 
@@ -30,16 +29,16 @@ pipeline {
     stage('Docker Build & Push') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          sh '''
-            bash -Eeuo pipefail -c '
-              cd ai/fastapi
+          dir('ai/fastapi') {
+            sh '''
+              set -Eeuo pipefail
               docker build -t ${IMAGE_REPO}:${TAG} -t ${IMAGE_REPO}:latest .
               echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
               docker push ${IMAGE_REPO}:${TAG}
               docker push ${IMAGE_REPO}:latest
               docker logout || true
-            '
-          '''
+            '''
+          }
         }
       }
     }
@@ -52,13 +51,16 @@ pipeline {
           string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL')
         ]) {
           sh '''
-              bash -Eeuo pipefail -c '
-                echo "🚀 Deploy Python ${IMAGE_REPO}:${TAG}"
-                scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy_python.sh "$SSH_USER@$NGINX_HOST:~/deploy_python.sh"
-                ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \
-                  "DATABASE_URL=\\"$DATABASE_URL\\" chmod +x ~/deploy_python.sh && sudo -E ~/deploy_python.sh ${TAG}"
-              '
-            '''
+            set -Eeuo pipefail
+            echo "🚀 Deploy Python ${IMAGE_REPO}:${TAG}"
+            scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy_python.sh "$SSH_USER@$NGINX_HOST:~/deploy_python.sh"
+
+            ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "\
+              export DATABASE_URL=$(printf %q \"$DATABASE_URL\"); \
+              chmod +x ~/deploy_python.sh; \
+              sudo --preserve-env=DATABASE_URL -E ~/deploy_python.sh ${TAG} \
+            "
+          '''
         }
       }
     }
@@ -66,6 +68,6 @@ pipeline {
 
   post {
     success { echo "✅ Deployed ${IMAGE_REPO}:${TAG}" }
-    always  { sh "bash -lc 'docker image prune -f || true'" }
+    always  { sh 'docker image prune -f || true' }
   }
 }
