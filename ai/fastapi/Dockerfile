@@ -1,5 +1,10 @@
 FROM python:3.11-slim
 
+# OpenMP 런타임(필수) + 표준 C++ 런타임
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgomp1 libstdc++6 && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 # 종속성 설치
