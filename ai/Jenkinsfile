@@ -66,7 +66,7 @@ pipeline {
 
 								# SA 파일 서버로 복사
 								ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "sudo mkdir -p /opt/sa && sudo chown $SSH_USER /opt/sa"
-								scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "GOOGLE_APPLICATION_CREDENTIALS" "$SSH_USER@$NGINX_HOST:/opt/sa/gcp.json"
+								scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$GOOGLE_APPLICATION_CREDENTIALS" "$SSH_USER@$NGINX_HOST:/opt/sa/gcp.json"
 								ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "sudo chmod 600 /opt/sa/gcp.json"
 
 								# 배포 스크립트 실행
