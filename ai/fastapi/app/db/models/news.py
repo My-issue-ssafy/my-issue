@@ -17,3 +17,4 @@ class News(Base):
     created_at = Column(DateTime) # 발행일
     views = Column(Integer, default=0)
     embedding = Column(Vector(768))  # pgvector 확장
+    thumbnail = Column(String)
