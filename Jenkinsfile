@@ -1,14 +1,14 @@
 pipeline {
-  agent any
+	agent any
   options { timestamps(); disableConcurrentBuilds() }
 
   environment {
-    IMAGE_REPO = 'xioz19/my-issue-py'
+		IMAGE_REPO = 'xioz19/my-issue-py'
     TAG = 'manual' // Checkout에서 커밋 SHA로 덮어씀
   }
 
   triggers {
-    gitlab(
+		gitlab(
       triggerOnPush: true,
       branchFilterType: 'NameBasedFilter',
       includeBranchesSpec: 'dev/data'
@@ -16,21 +16,21 @@ pipeline {
   }
 
   stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
+		stage('Checkout') {
+			steps {
+				checkout scm
         script {
-          env.TAG = sh(returnStdout: true, script: "bash -lc 'git rev-parse --short=7 HEAD'").trim()
+					env.TAG = sh(returnStdout: true, script: "bash -lc 'git rev-parse --short=7 HEAD'").trim()
           echo "COMMIT_SHA=${env.TAG}"
         }
       }
     }
 
     stage('Docker Build & Push') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-          dir('ai/fastapi') {
-            sh '''
+			steps {
+				withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+					dir('ai/fastapi') {
+						sh '''
               bash -lc '
                 set -Eeuo pipefail
                 docker build -t ${IMAGE_REPO}:${TAG} -t ${IMAGE_REPO}:latest .
@@ -46,13 +46,13 @@ pipeline {
     }
 
     stage('Deploy (Blue/Green)') {
-      steps {
-        withCredentials([
+			steps {
+				withCredentials([
           sshUserPrivateKey(credentialsId: 'ec2-ssh-key-pem', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
           string(credentialsId: 'NGINX_HOST', variable: 'NGINX_HOST'),
           string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL')
         ]) {
-          sh '''
+					sh '''
             bash -lc '
               set -Eeuo pipefail
               echo "🚀 Deploy Python ${IMAGE_REPO}:${TAG}"
@@ -71,7 +71,7 @@ pipeline {
   }
 
   post {
-    success { echo "✅ Deployed ${IMAGE_REPO}:${TAG}" }
+		success { echo "✅ Deployed ${IMAGE_REPO}:${TAG}" }
     always  { sh "bash -lc 'docker image prune -f || true'" }
   }
 }
