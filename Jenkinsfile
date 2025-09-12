@@ -52,12 +52,13 @@ pipeline {
           string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL')
         ]) {
           sh '''
-            bash -Eeuo pipefail -c '
-              echo "🚀 Deploy Python ${IMAGE_REPO}:${TAG}"
-              scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy_python.sh "$SSH_USER@$NGINX_HOST:~/deploy_python.sh"
-              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "chmod +x ~/deploy_python.sh && sudo -E ~/deploy_python.sh ${TAG}"
-            '
-          '''
+              bash -Eeuo pipefail -c '
+                echo "🚀 Deploy Python ${IMAGE_REPO}:${TAG}"
+                scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy_python.sh "$SSH_USER@$NGINX_HOST:~/deploy_python.sh"
+                ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \
+                  "DATABASE_URL=\\"$DATABASE_URL\\" chmod +x ~/deploy_python.sh && sudo -E ~/deploy_python.sh ${TAG}"
+              '
+            '''
         }
       }
     }
