@@ -68,7 +68,7 @@ public class NewsScrapService {
                         n.getNewsId(),
                         n.getTitle(),
                         n.getAuthor(),     // ← 3번째는 author
-                        n.getNewspaper(),
+                        n.getNewsPaper(),
                         n.getCreatedAt(),
                         n.getViews(),
                         n.getCategory(),   // ← 7번째가 category

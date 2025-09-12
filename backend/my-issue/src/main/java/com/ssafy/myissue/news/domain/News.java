@@ -4,17 +4,21 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 파라미터 없는 생성자를 protected로 만들어라
 @Entity
 @Table(
         name = "news",
         indexes = {
-                @Index(name = "idx_news_created_at", columnList = "created_at, news_id"),
+                @Index(name = "idx_news_created_at", columnList = "created_at, id"),
                 // 최신 뉴스 전체 조회 무한 스크롤 ㄱㄴ
-                @Index(name = "idx_news_views_created", columnList = "views, created_at, news_id"),
+                @Index(name = "idx_news_views_created", columnList = "views, created_at, id"),
                 // HOT 뉴스 전체 조회 무한 스크롤 ㄱㄴ
-                @Index(name = "idx_news_category_cursor", columnList = "category, news_id")
+                @Index(name = "idx_news_category_cursor", columnList = "category, id")
                 // 카테고리별 뉴스 전체 조회 무한 스크롤 ㄱㄴ
         }
 )
@@ -22,35 +26,36 @@ public class News {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // PK 값을 DB가 자동으로 생성하도록 지정하는 JPA 어노테이션. DB auto-increment
-    @Column(name = "news_id")
+    @Column(name = "id")
     private Long newsId;
 
-    @Column(nullable = false)
+    @Column
     private String title;
 
-    @Column(columnDefinition = "jsonb")
+//    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "text")
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column
     private NewsCategory category;
 
-    @Column(nullable = false, length = 80)
     private String author;
 
-    @Column(nullable = false, length = 80)
-    private String newspaper;
+    @Column
+    private String newsPaper;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column
     private int views;
 
-    @Column(columnDefinition = "vector(768)")
+//    @Column(columnDefinition = "vector(768)")
+    @Formula("embedding::text")
     private String embedding;
 
-    @Column(nullable = false)
+    @Column
     private String thumbnail;
 
 

@@ -4,7 +4,6 @@ import com.querydsl.core.BooleanBuilder; // 동적 where 조건을 필요할 때
 import com.querydsl.jpa.impl.JPAQueryFactory; // QueryDSL 쿼리를 시작하는 팩토리. 내부적으로 JPA의 EntityManager를 사용해 SQL 실행.
 import com.ssafy.myissue.news.domain.News;
 import com.ssafy.myissue.news.domain.NewsCategory;
-//import com.ssafy.myissue.news.domain.NewsImage;
 import com.ssafy.myissue.news.domain.NewsScrap;
 import org.springframework.stereotype.Repository;
 

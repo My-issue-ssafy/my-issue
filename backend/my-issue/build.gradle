@@ -53,9 +53,9 @@ tasks.withType(JavaCompile).configureEach {
     options.annotationProcessorPath = configurations.annotationProcessor
 }
 
-sourceSets {
-    main.java.srcDirs += file("$buildDir/generated/sources/annotationProcessor/java/main")
-}
+//sourceSets {
+//    main.java.srcDirs += file("$buildDir/generated/sources/annotationProcessor/java/main")
+//}
 
 
 tasks.named('test') {

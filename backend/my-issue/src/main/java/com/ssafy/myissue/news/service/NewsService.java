@@ -121,7 +121,7 @@ public class NewsService {
                 blocks,
                 n.getCategory(),
                 n.getAuthor(),
-                n.getNewspaper(),
+                n.getNewsPaper(),
                 n.getCreatedAt(),
                 n.getViews()
         );
@@ -196,7 +196,7 @@ public class NewsService {
                 n.getNewsId(),
                 n.getTitle(),
                 n.getAuthor(),
-                n.getNewspaper(),
+                n.getNewsPaper(),
                 n.getCreatedAt(),
                 n.getViews(),
                 n.getCategory(),
