@@ -47,6 +47,7 @@ docker rm -f "${NEW_NAME}" >/dev/null 2>&1 || true
 echo "🚀 run ${NEW_NAME} (host:${NEW_PORT} -> container:${CONTAINER_PORT})"
 docker run -d --name "${NEW_NAME}" \
   -p ${NEW_PORT}:${CONTAINER_PORT} \
+  -e DATABASE_URL="${DATABASE_URL:-}" \
   --health-cmd="curl -fsS http://127.0.0.1:${CONTAINER_PORT}/health || exit 1" \
   --health-interval=5s --health-retries=20 --health-timeout=3s \
   "${IMAGE}"
@@ -63,12 +64,9 @@ done
 [[ "${ok:-0}" -eq 1 ]] || { echo "❌ health FAILED"; docker logs --tail=200 "${NEW_NAME}" || true; exit 1; }
 
 # 4) nginx upstream 포인터 교체 (upstream 블록 전체)
-sudo mkdir -p /etc/nginx/upstreams
 sudo tee "${UPSTREAM_FILE}" >/dev/null <<EOF
-upstream python_app {
-    server 127.0.0.1:${NEW_PORT} max_fails=3 fail_timeout=5s;
-    # server 127.0.0.1:${ACTIVE_PORT} backup max_fails=3 fail_timeout=5s;
-}
+server 127.0.0.1:${NEW_PORT} max_fails=3 fail_timeout=5s;
+server 127.0.0.1:${ACTIVE_PORT} backup max_fails=3 fail_timeout=5s;
 EOF
 
 sudo nginx -t && sudo systemctl reload nginx
