@@ -1,4 +1,6 @@
 package com.ioi.myssue.domain.model
 
-class NewsPage {
-}
+data class NewsPage(
+    val items: List<News> = emptyList(),
+    val nextCursor: String? = null
+)

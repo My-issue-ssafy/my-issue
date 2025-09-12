@@ -14,6 +14,7 @@ data class NewsContentDto(
 
 @Serializable
 data class NewsResponse(
+    val id : Int,
     val title: String,
     val content: List<NewsContentDto>,
     val url: String,
@@ -27,6 +28,7 @@ data class NewsResponse(
 )
 
 fun NewsResponse.toDomain(time: TimeConverter) = News(
+    id = id,
     title = title,
     content = content.toDomainBlocks(),
     url = url,

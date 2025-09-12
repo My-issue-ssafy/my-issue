@@ -2,6 +2,7 @@ package com.ioi.myssue.ui.news
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ioi.myssue.domain.model.MainNewsList
 import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.repository.NewsRepository
 import com.ioi.myssue.navigation.BottomTabRoute
@@ -12,18 +13,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class NewsItems(
-    val hot: List<News> = emptyList(),
-    val recommend: List<News> = emptyList(),
-    val recent: List<News> = emptyList()
-)
-
 @HiltViewModel
-class NewsViewModel @Inject constructor(
+class NewsMainViewModel @Inject constructor(
     private val fakeNewsRepository: NewsRepository,
     private val navigator: Navigator
 ) : ViewModel() {
-    private val _state = MutableStateFlow(NewsItems())
+    private val _state = MutableStateFlow(MainNewsList())
     val state = _state.asStateFlow()
 
     init {
@@ -32,17 +27,10 @@ class NewsViewModel @Inject constructor(
 
     fun getNews() {
         viewModelScope.launch {
-            runCatching {
-                val hotNews = fakeNewsRepository.getHotNews()
-                val recommendedNews = fakeNewsRepository.getRecommendedNews()
-                val recentNews = fakeNewsRepository.getRecentNews()
-                Triple(hotNews, recommendedNews, recentNews)
-            }
-                .onSuccess { (hot, recommend, recent) ->
-                    _state.value = _state.value.copy(
-                        hot = hot,
-                        recommend = recommend,
-                        recent = recent
+            runCatching { fakeNewsRepository.getMainNews() }
+                .onSuccess { main ->
+                    _state.value = MainNewsList(
+                        hot = main.hot, recommend = main.recommend, recent = main.recent
                     )
                 }
                 .onFailure {

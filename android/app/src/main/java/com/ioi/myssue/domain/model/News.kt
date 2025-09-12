@@ -1,6 +1,7 @@
 package com.ioi.myssue.domain.model
 
 data class News(
+    val id : Int,
     val title: String,
     val content: List<NewsBlock> = emptyList(),
     val url: String,

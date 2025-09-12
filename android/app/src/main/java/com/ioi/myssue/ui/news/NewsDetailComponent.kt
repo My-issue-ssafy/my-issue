@@ -1,7 +1,10 @@
 package com.ioi.myssue.ui.news
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +28,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,25 +39,44 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background500
 import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.model.NewsBlock
+import com.ioi.myssue.ui.common.clickableNoRipple
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsDetail(
-    news: News,
+    newsId: Int,
     sheetState: SheetState,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    viewModel: NewsDetailViewModel = hiltViewModel()
 ) {
+    LaunchedEffect(newsId) { viewModel.getNewsDetail(newsId) }
+    val state = viewModel.uiState.collectAsState().value
+
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.effect.collectLatest { effect ->
+            when (effect) {
+                is NewsDetailEffect.Toast ->
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -60,7 +84,15 @@ fun NewsDetail(
         containerColor = Color.White,
         dragHandle = { SheetDragHandle() },
     ) {
-        NewsDetailSheet(news)
+        NewsDetailSheet(
+            title = state.title,
+            author = state.author,
+            newspaper = state.newspaper,
+            createdAt = state.createdAt,
+            blocks = state.blocks,
+            isBookmarked = state.isBookmarked,
+            onToggleBookmark = { viewModel.toggleBookmark() }
+        )
     }
 }
 
@@ -92,7 +124,13 @@ private fun rememberBlockSheetDragConnection(): NestedScrollConnection {
 // 기사 바텀 시트
 @Composable
 fun NewsDetailSheet(
-    news: News,
+    title: String,
+    author: String,
+    newspaper: String,
+    createdAt: String,
+    blocks: List<NewsBlock>,
+    isBookmarked: Boolean,
+    onToggleBookmark: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -102,14 +140,16 @@ fun NewsDetailSheet(
         horizontalAlignment = Alignment.Start
     ) {
         NewsDetailHeader(
-            news.title,
-            news.author,
-            news.newspaper,
-            news.createdAt
+            title = title,
+            author = author,
+            newspaper = newspaper,
+            createdAt = createdAt,
+            isBookmarked = isBookmarked,
+            onToggleBookmark = onToggleBookmark
         )
         Spacer(Modifier.height(12.dp))
         NewsDetailBody(
-            news.content
+            blocks
         )
     }
 }
@@ -140,7 +180,9 @@ fun NewsDetailHeader(
     title: String,
     author: String,
     newspaper: String,
-    createdAt: String
+    createdAt: String,
+    isBookmarked: Boolean,
+    onToggleBookmark: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -188,9 +230,14 @@ fun NewsDetailHeader(
                 )
                 Spacer(Modifier.width(12.dp))
                 Image(
-                    painter = painterResource(R.drawable.ic_bookmark),
+                    painter = painterResource(
+                        if (isBookmarked) R.drawable.ic_bookmark_pressed
+                        else R.drawable.ic_bookmark
+                    ),
                     contentDescription = null,
-                    modifier = Modifier.size(32.dp),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clickableNoRipple { onToggleBookmark() }
                 )
             }
         }

@@ -57,12 +57,13 @@ import com.ioi.myssue.designsystem.theme.AppColors.Primary700
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background300
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background400
 import com.ioi.myssue.domain.model.News
+import com.ioi.myssue.ui.common.clickableNoRipple
 
 @Composable
 fun NewsSectionHeader(
     title: String,
-//    onMore: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAllClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
@@ -73,12 +74,14 @@ fun NewsSectionHeader(
         Text(
             title, style = typography.titleLarge
         )
-        Spacer(Modifier.weight(1f))
-        Text(
-            text = stringResource(R.string.see_all),
-            style = typography.labelLarge,
-            color = Primary700,
-            modifier = Modifier.clickable { })
+        if (onAllClick != null) {
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = stringResource(R.string.see_all),
+                style = typography.labelLarge,
+                color = Primary700,
+                modifier = Modifier.clickableNoRipple { onAllClick() })
+        }
     }
 }
 
@@ -247,7 +250,7 @@ fun NewsItem(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .padding(16.dp, 8.dp)
-            .clickable { onClick(news) }) {
+            .clickableNoRipple { onClick(news) }) {
         NewsThumbnail(img = news.img)
 
         Spacer(Modifier.width(12.dp))

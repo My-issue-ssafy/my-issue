@@ -1,4 +1,74 @@
 package com.ioi.myssue.ui.news
 
-class NewsDetailViewModel {
+import android.util.Log
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ioi.myssue.domain.model.News
+import com.ioi.myssue.domain.repository.NewsRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+sealed interface NewsDetailEffect {
+    data class Toast(val message: String): NewsDetailEffect
+}
+@HiltViewModel
+class NewsDetailViewModel @Inject constructor(
+    private val repository: NewsRepository,
+) : ViewModel() {
+    private val _uiState = MutableStateFlow(NewsDetailUiState())
+    val uiState = _uiState.asStateFlow()
+
+    private val _effect = MutableSharedFlow<NewsDetailEffect>()
+    val effect = _effect.asSharedFlow()
+
+    fun getNewsDetail(newsId: Int) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(loading = true, error = null) }
+            runCatching { repository.getNewsById(newsId) }
+                .onSuccess { news ->
+                    val bookmarked = repository.isBookmarked(news.id)
+                    _uiState.update {
+                        it.copy(
+                            loading = false,
+                            newsId = news.id,
+                            title = news.title,
+                            author = news.author,
+                            newspaper = news.newspaper,
+                            createdAt = news.createdAt,
+                            blocks = news.content,
+                            isBookmarked = bookmarked
+                        )
+                    }
+                }
+                .onFailure { }
+        }
+    }
+
+    fun toggleBookmark() {
+        val id = _uiState.value.newsId ?: return
+        val before = _uiState.value.isBookmarked
+        val next = !before
+
+        _uiState.update { it.copy(isBookmarked = next) }
+
+        viewModelScope.launch {
+            runCatching { repository.setBookmarked(id, next) }
+                .onSuccess { confirmed ->
+                    _uiState.update { it.copy(isBookmarked = confirmed) }
+                    _effect.emit(
+                        NewsDetailEffect.Toast(
+                            if (confirmed) "뉴스를 스크랩 했어요" else "스크랩을 해제했어요"
+                        )
+                    )
+                }
+                .onFailure { }
+        }
+    }
 }
