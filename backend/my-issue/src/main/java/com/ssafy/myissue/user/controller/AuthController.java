@@ -7,6 +7,7 @@ import com.ssafy.myissue.user.dto.TokenPairResponse;
 import com.ssafy.myissue.user.service.AuthService;
 import com.ssafy.myissue.user.token.JwtIssuer;
 import com.ssafy.myissue.user.token.RefreshStore;
+import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +36,7 @@ public class AuthController {
     }
 
     @PostMapping("/reissue")
-    public ResponseEntity<Void> rotateRefresh(@CookieValue("refreshToken") String refresh, HttpServletResponse response) {
+    public ResponseEntity<Void> rotateRefresh(@Parameter(hidden = true) @CookieValue("refreshToken") String refresh, HttpServletResponse response) {
         log.debug("[Refresh 재발급 - CookieValue] refreshToken: {}", refresh);
 
         TokenPairResponse tokenPairResponse = authService.rotateRefresh(refresh);
