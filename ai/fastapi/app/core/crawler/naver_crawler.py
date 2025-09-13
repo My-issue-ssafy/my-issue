@@ -307,6 +307,12 @@ def build_body_blocks(soup: BeautifulSoup, base_url: str) -> list[dict]:
         cls = " ".join(node.get("class") or [])
         if any(key in cls for key in ["_VOD_PLAYER_WRAP", "as_addinfo", "media_end_linked", "promotion"]):
             return
+        if "_VOD_PLAYER_WRAP" in cls:
+            thumb_url = node.get("data-cover-image-thumbnail-url")
+            if thumb_url:
+                flush_buf()
+                blocks.append({"type": "image", "content": thumb_url})
+            return
         for child in node.children:
             walk(child)
         if name in ("p", "div", "li", "section", "article", "blockquote"):
