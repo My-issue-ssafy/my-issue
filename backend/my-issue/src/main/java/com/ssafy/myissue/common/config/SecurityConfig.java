@@ -44,7 +44,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // 공개 엔드포인트
-                        .requestMatchers(HttpMethod.POST, "/auth/device", "/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/device", "/auth/reissue").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
