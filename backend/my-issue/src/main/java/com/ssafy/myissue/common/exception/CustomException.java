@@ -9,10 +9,11 @@ public class CustomException extends RuntimeException {
     private final String errorCode;
     private final String errorMessage;
 
-    public CustomException(ErrorDto errorDto) {
-        super(errorDto.message());
-        this.status = errorDto.httpStatus();
-        this.errorCode = errorDto.code();
-        this.errorMessage = errorDto.message();
+    public CustomException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.status = errorCode.getHttpStatus();
+        this.errorCode = errorCode.getCode();
+        this.errorMessage = errorCode.getMessage();
     }
+
 }

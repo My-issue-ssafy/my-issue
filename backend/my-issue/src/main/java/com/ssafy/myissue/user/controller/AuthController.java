@@ -39,7 +39,7 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/refresh")
+    @PostMapping("/reissue")
     public ResponseEntity<Void> rotateRefresh(@CookieValue("refreshToken") String refresh, HttpServletResponse response) {
         log.debug("[Refresh 재발급 - CookieValue] refreshToken: {}", refresh);
 

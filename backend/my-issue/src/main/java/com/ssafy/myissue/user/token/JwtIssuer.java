@@ -48,7 +48,7 @@ public class JwtIssuer {
                 .compact();
     }
 
-    /** 파싱/검증: 서명/만료 확인 후 Claims 반환 */
+    /** 파싱/검증: 서명/만료 확인 후 Claims 반환 */ // Claims = JWT Payload(실제 데이터)
     public Claims parse(String token) throws JwtException {
         return Jwts.parserBuilder()
                 .setSigningKey(hmacKey)
