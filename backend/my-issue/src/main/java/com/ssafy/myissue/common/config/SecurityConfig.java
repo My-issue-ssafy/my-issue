@@ -1,8 +1,7 @@
 package com.ssafy.myissue.common.config;
 
-import com.ssafy.myissue.user.infrastructure.UserRepository;
+ㅌimport com.ssafy.myissue.user.token.JwtAuthenticationFilter;
 import com.ssafy.myissue.user.token.JwtIssuer;
-import com.ssafy.myissue.user.token.RefreshStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,6 +11,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -23,8 +23,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtIssuer jwtIssuer;
-    private final RefreshStore refreshStore;
-    private final UserRepository userRepository;
 
     @Bean @Order(1)
     SecurityFilterChain swagger(HttpSecurity http) throws Exception {
@@ -51,7 +49,8 @@ public class SecurityConfig {
                 )
                 .cors(c -> c.configurationSource(corsConfigurationSource))
                 .httpBasic(h -> h.disable())
-                .formLogin(f -> f.disable());
+                .formLogin(f -> f.disable())
+                .addFilterBefore(new JwtAuthenticationFilter(jwtIssuer), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

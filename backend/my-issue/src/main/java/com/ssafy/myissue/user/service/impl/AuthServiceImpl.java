@@ -33,7 +33,7 @@ public class AuthServiceImpl implements AuthService {
         // 등록되지 않은 uuid -> 등록
         if(user == null) { userRepository.save(User.newOf(deviceUuid)); }
 
-        return createJwt(deviceUuid);
+        return createJwt(user.getId());
     }
 
     @Override
@@ -44,20 +44,20 @@ public class AuthServiceImpl implements AuthService {
             claims = jwtIssuer.parse(refreshToken);
         } catch (ExpiredJwtException e) {
             // exp 지난 경우 → 만료된 Refresh Token
+            log.warn("만료된 Access Token");
             throw new CustomException(ErrorCode.EXPIRED_REFRESH_TOKEN);
         } catch (JwtException e) {
             // 형식이 아예 깨진 경우
+            log.warn("잘못된 Access Token");
             throw new CustomException(ErrorCode.MALFORMED_REFRESH_TOKEN);
         }
 
-        String subject = claims.getSubject(); // uuid
+        Long userId = claims.get("userId", Long.class);
         String jti = claims.getId();
-
-        log.debug("[refreshToken] DeviceUUID: {}", subject);
-        log.debug("[refreshToken] jti: {}", jti);
+        log.debug("[RefreshToken 확인] userId: {}, jti: {}", userId, jti);
 
         // Redis에 저장된 최신 jti 확인
-        String latest = refreshStore.findLatestJti(subject)
+        String latest = refreshStore.findLatestJti(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_REFRESH_TOKEN));
 
         // jti 불일치 → 이미 rotate 됐거나 위조됨
@@ -65,22 +65,19 @@ public class AuthServiceImpl implements AuthService {
             throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        return createJwt(subject);
+        return createJwt(userId);
     }
 
     // 토큰 발급 로직
-    private TokenPairResponse createJwt(String deviceUuid) {
+    private TokenPairResponse createJwt(Long userId) {
         // 토큰 발급
-        String access  = jwtIssuer.createAccess(deviceUuid);
-        String refresh = jwtIssuer.createRefresh(deviceUuid);
+        String access  = jwtIssuer.createAccess(userId);
+        String refresh = jwtIssuer.createRefresh(userId);
 
         // 토큰 저장
         String jti = jwtIssuer.getJti(refresh);
-        refreshStore.saveLatestJti(deviceUuid, jti, Duration.ofDays(14));
+        refreshStore.saveLatestJti(userId, jti, Duration.ofDays(14));
 
-        // 유저
-        User user = userRepository.findByUuid(deviceUuid);
-
-        return TokenPairResponse.of(access, refresh, user);
+        return TokenPairResponse.of(access, refresh, userId);
     }
 }

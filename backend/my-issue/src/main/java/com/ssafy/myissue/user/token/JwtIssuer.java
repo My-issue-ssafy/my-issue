@@ -23,24 +23,25 @@ public class JwtIssuer {
     }
 
     /** Access JWT 발급 */
-    public String createAccess(String uuid) {
-        return buildJwt(uuid, "access", Duration.ofMinutes(30));
+    public String createAccess(Long userId) {
+        return buildJwt(userId, "access", Duration.ofMinutes(30));
     }
 
     /** Refresh JWT 발급 */
-    public String createRefresh(String uuid) {
-        return buildJwt(uuid, "refresh", Duration.ofDays(14));
+    public String createRefresh(Long userId) {
+        return buildJwt(userId, "refresh", Duration.ofDays(14));
     }
 
     /** 공통 빌더: HS256 + jti + type + exp */
-    private String buildJwt(String uuid, String type, Duration ttl) {
+    private String buildJwt(Long userId, String type, Duration ttl) {
         Instant now = Instant.now();
         String jti = UUID.randomUUID().toString();
 
         return Jwts.builder()
                 .setHeaderParam("typ", "JWT")
-                .setSubject(uuid)
+                .setSubject(String.valueOf(userId))
                 .claim("type", type)
+                .claim("userId", userId)
                 .setId(jti)
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plus(ttl)))
@@ -65,20 +66,7 @@ public class JwtIssuer {
         }
     }
 
-    public String getSubject(String token) {
-        return parse(token).getSubject(); // = device uuid
-    }
-
     public String getJti(String token) {
         return parse(token).getId();
-    }
-
-    public Claims requireTypeAndParse(String token, String expectedType) {
-        Claims c = parse(token);
-        String type = c.get("type", String.class);
-        if (!expectedType.equals(type)) {
-            throw new IllegalArgumentException("토큰 타입 불일치: expected=" + expectedType + ", actual=" + type);
-        }
-        return c;
     }
 }

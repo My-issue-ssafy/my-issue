@@ -1,7 +1,6 @@
 package com.ssafy.myissue.user.controller;
 
 import com.ssafy.myissue.user.component.TokenResponseWriter;
-import com.ssafy.myissue.user.domain.User;
 import com.ssafy.myissue.user.dto.RegisterDeviceRequest;
 import com.ssafy.myissue.user.dto.RegisterDeviceResponse;
 import com.ssafy.myissue.user.dto.TokenPairResponse;
@@ -14,16 +13,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @Slf4j
 @RestController
 @AllArgsConstructor
 @RequestMapping("/auth")
 public class AuthController {
-
-    private final RefreshStore store;
-    private final JwtIssuer jwt;
 
     private final AuthService authService;
     private final TokenResponseWriter tokenResponseWriter;
@@ -37,7 +31,7 @@ public class AuthController {
         TokenPairResponse tokenPairResponse = authService.registerOrLogin(req.deviceUuid());
         tokenResponseWriter.write(tokenPairResponse, response);
 
-        return ResponseEntity.ok(RegisterDeviceResponse.from(tokenPairResponse.user().getId()));
+        return ResponseEntity.ok(RegisterDeviceResponse.from(tokenPairResponse.userId()));
     }
 
     @PostMapping("/reissue")

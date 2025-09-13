@@ -1,17 +1,27 @@
 package com.ssafy.myissue.common.config;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
-import org.springdoc.core.models.GroupedOpenApi;
 
 
 @Configuration
+@OpenAPIDefinition(
+        security = @SecurityRequirement(name = "bearerAuth") // 전역 security 스키마 적용
+)
+@SecurityScheme(
+        name = "bearerAuth",          // 스키마 이름 (Swagger 내 Reference용)
+        type = SecuritySchemeType.HTTP, // HTTP 기반 인증 연결
+        scheme = "bearer",            // Bearer 토큰 인증임을 명시
+        bearerFormat = "JWT",         // 토큰 포맷(jwt) 명시
+        in = SecuritySchemeIn.HEADER  // Authorization 헤더를 통해 전송됨
+)
 public class SwaggerConfig {
 
     @Bean
