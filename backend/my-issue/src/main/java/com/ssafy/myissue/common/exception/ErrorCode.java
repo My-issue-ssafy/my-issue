@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
-    // 401: Unauthorized | 404: Bad Request | 403 Forbidden | 404 Not Found | 409 Conflict | 410 Gone
+    // 401: Unauthorized | 400: Bad Request | 403 Forbidden | 404 Not Found | 409 Conflict | 410 Gone
 
     // Refresh Token
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN","해당 Refresh Token이 존재하지 않습니다."),
