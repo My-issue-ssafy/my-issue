@@ -78,6 +78,9 @@ public class AuthServiceImpl implements AuthService {
         String jti = jwtIssuer.getJti(refresh);
         refreshStore.saveLatestJti(deviceUuid, jti, Duration.ofDays(14));
 
-        return TokenPairResponse.of(access, refresh);
+        // 유저
+        User user = userRepository.findByUuid(deviceUuid);
+
+        return TokenPairResponse.of(access, refresh, user);
     }
 }
