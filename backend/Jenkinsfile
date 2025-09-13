@@ -10,6 +10,8 @@ pipeline {
     NGINX_HOST = credentials('NGINX_HOST')
     NGINX_USER = credentials('NGINX_USER')
     NGINX_CONF = credentials('NGINX_CONF')
+    JWT_SECRET_BASE64 = credentials('JWT_SECRET_BASE64')
+    REDIS_PASSWORD = credentials('REDIS_PASSWORD')
   }
 
   options {
@@ -106,6 +108,8 @@ pipeline {
           string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
           string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
           string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
+          string(credentialsId: 'JWT_SECRET_BASE64', variable: 'JWT_SECRET_BASE64'),
+          string(credentialsId: 'REDIS_PASSWORD', variable: 'REDIS_PASSWORD'),
           sshUserPrivateKey(
             credentialsId: 'ec2-ssh-key-pem',
             keyFileVariable: 'SSH_KEY',
@@ -118,6 +122,8 @@ pipeline {
             export SPRING_DATASOURCE_URL=${env.SPRING_DATASOURCE_URL}
             export SPRING_DATASOURCE_USERNAME=${env.SPRING_DATASOURCE_USERNAME}
             export SPRING_DATASOURCE_PASSWORD=${env.SPRING_DATASOURCE_PASSWORD}
+            export JWT_SECRET_BASE64=${env.JWT_SECRET_BASE64}
+            export REDIS_PASSWORD=${env.REDIS_PASSWORD}
             export SPRING_PROFILES_ACTIVE=prod
 
             bash -c '
@@ -128,6 +134,9 @@ pipeline {
                 "export SPRING_DATASOURCE_URL='${env.SPRING_DATASOURCE_URL}' && \\
                  export SPRING_DATASOURCE_USERNAME='${env.SPRING_DATASOURCE_USERNAME}' && \\
                  export SPRING_DATASOURCE_PASSWORD='${env.SPRING_DATASOURCE_PASSWORD}' && \\
+                 export JWT_SECRET_BASE64='${env.JWT_SECRET_BASE64}' && \\
+                 export REDIS_PASSWORD='${env.REDIS_PASSWORD}' && \\
+
                  export SPRING_PROFILES_ACTIVE=prod && \\
                  chmod +x ~/deploy.sh && \\
                  sudo -E ~/deploy.sh \$COMMIT_SHA"
