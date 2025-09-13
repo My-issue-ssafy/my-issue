@@ -38,6 +38,9 @@ logging:
     org:
       springframework:
         security: DEBUG
+    com:
+      ssafy:
+        myissue: DEBUG
 
 jwt:
   secret-base64: ${JWT_SECRET_BASE64}
