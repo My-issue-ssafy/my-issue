@@ -8,6 +8,7 @@ import java.time.Instant;
 @Entity
 @Getter
 @Builder
+@Table(name = "users")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class User {

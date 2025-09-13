@@ -9,6 +9,11 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true # SQL 쿼리 로그 출력
+  data:
+    redis:
+      host: j13d101.p.ssafy.io
+      port: 6379
+      password: ${REDIS_PASSWORD}
 
 # Spring Boot Actuator configuration ( Jenkins 에서 접근 가능하도록 설정 )
 # health: 시스템 상태 확인(헬스체크용)

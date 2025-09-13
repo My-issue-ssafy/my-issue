@@ -1,4 +1,4 @@
-package com.ssafy.myissue.config;
+package com.ssafy.myissue.common.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
