@@ -9,7 +9,7 @@ class News(Base):
     __tablename__ = "news"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    title = Column(String, nullable=False)
+    title = Column(String, nullable=False, unique=True) # 제목
     content = Column(JSONB)      # 본문
     category = Column(String)     # 섹션 (정치, 경제 등)
     author = Column(String)       # 기자
