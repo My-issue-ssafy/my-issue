@@ -24,7 +24,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info, mappings, beans
 
 springdoc:
   swagger-ui:
@@ -41,3 +41,4 @@ logging:
 
 jwt:
   secret-base64: ${JWT_SECRET_BASE64}
+
