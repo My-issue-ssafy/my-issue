@@ -1,4 +1,4 @@
-package com.ssafy.myissue.config;
+package com.ssafy.myissue.common.config;
 
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
