@@ -1,6 +1,6 @@
 package com.ssafy.myissue.common.config;
 
-ㅌimport com.ssafy.myissue.user.token.JwtAuthenticationFilter;
+import com.ssafy.myissue.user.token.JwtAuthenticationFilter;
 import com.ssafy.myissue.user.token.JwtIssuer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
