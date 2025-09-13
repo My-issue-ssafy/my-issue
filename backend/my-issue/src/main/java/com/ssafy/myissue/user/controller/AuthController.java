@@ -1,6 +1,7 @@
 package com.ssafy.myissue.user.controller;
 
 import com.ssafy.myissue.user.component.TokenResponseWriter;
+import com.ssafy.myissue.user.dto.RegisterDeviceRequest;
 import com.ssafy.myissue.user.dto.TokenPairResponse;
 import com.ssafy.myissue.user.service.AuthService;
 import com.ssafy.myissue.user.token.JwtIssuer;
@@ -26,10 +27,10 @@ public class AuthController {
     // accessToken: 헤더, refreshToken: 쿠키
     // HttpServletResponse header에 accessToken 담아야 하니 받아야 함
     @PostMapping("/device")
-    public ResponseEntity<Void> registerDevice(@RequestBody String deviceUuid, HttpServletResponse response) {
-        log.debug("[Device 등록 - RequestBody] deviceUuid: {}", deviceUuid);
+    public ResponseEntity<Void> registerDevice(@RequestBody RegisterDeviceRequest req, HttpServletResponse response) {
+        log.debug("[Device 등록 - RequestBody] deviceUuid: {}", req.deviceUuid());
 
-        TokenPairResponse tokenPairResponse = authService.registerOrLogin(deviceUuid);
+        TokenPairResponse tokenPairResponse = authService.registerOrLogin(req.deviceUuid());
         tokenResponseWriter.write(tokenPairResponse, response);
 
         return ResponseEntity.noContent().build();
