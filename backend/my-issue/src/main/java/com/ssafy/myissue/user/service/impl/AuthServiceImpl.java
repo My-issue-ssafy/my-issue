@@ -44,11 +44,11 @@ public class AuthServiceImpl implements AuthService {
             claims = jwtIssuer.parse(refreshToken);
         } catch (ExpiredJwtException e) {
             // exp 지난 경우 → 만료된 Refresh Token
-            log.warn("만료된 Access Token");
+            log.warn("만료된 Refresh Token");
             throw new CustomException(ErrorCode.EXPIRED_REFRESH_TOKEN);
         } catch (JwtException e) {
             // 형식이 아예 깨진 경우
-            log.warn("잘못된 Access Token");
+            log.warn("잘못된 Refresh Token");
             throw new CustomException(ErrorCode.MALFORMED_REFRESH_TOKEN);
         }
 
