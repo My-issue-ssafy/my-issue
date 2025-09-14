@@ -150,12 +150,33 @@ pipeline {
   // 빌드 성공/실패 후 처리
   post {
     success {
+      script {
+          def authorName = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
+          def authorEmail = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
+          mattermostSend(
+            endpoint: 'https://meeting.ssafy.com/hooks/smhi3szhdirx8mggofg3hwgoxc',
+            channel: 'D101-Webhook',
+            color: 'good',
+            message: "✅ 빌드 성공: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${authorName} (${authorEmail})\n(<${env.BUILD_URL}|Details>)"
+          )
+        }
         echo "✅ Pushed: ${IMAGE_REPO}:${COMMIT_SHA} & :latest"
         updateGitlabCommitStatus name: 'jenkins-ci', state: 'success'
     }
     failure {
+      script {
+          def authorName = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
+          def authorEmail = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
+          mattermostSend(
+            endpoint: 'https://meeting.ssafy.com/hooks/smhi3szhdirx8mggofg3hwgoxc',
+            channel: 'D101-Webhook',
+            color: 'danger',
+            message: "❌ 빌드 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${authorName} (${authorEmail})\n(<${env.BUILD_URL}|Details>)"
+          )
+        }
         updateGitlabCommitStatus name: 'jenkins-ci', state: 'failed'
     }
     always  { sh 'docker image prune -f || true' }
   }
+
 }
