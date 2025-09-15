@@ -2,7 +2,8 @@ package com.ioi.myssue.ui.news
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ioi.myssue.domain.model.NewsPage
+import com.ioi.myssue.domain.model.CursorPage
+import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.repository.NewsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,16 +13,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NewsAllViewModel @Inject constructor(
-    private val fakeNewsRepository: NewsRepository,
+    private val newsRepository: NewsRepository,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(NewsPage())
+    private val _state = MutableStateFlow(CursorPage(items = emptyList<NewsSummary>(), nextCursor = null, hasNext = false))
     val state = _state.asStateFlow()
 
     fun getAllHotNews(cursor: String? = _state.value.nextCursor, pageSize: Int = 10) =
         viewModelScope.launch {
             runCatching {
-                fakeNewsRepository.getHotNews(cursor, pageSize)
+                newsRepository.getHotNews(cursor, pageSize)
             }
                 .onSuccess { page ->
                     _state.value = _state.value.copy(
@@ -36,7 +37,7 @@ class NewsAllViewModel @Inject constructor(
     fun getAllRecommendNews(cursor: String? = _state.value.nextCursor, pageSize: Int = 10) =
         viewModelScope.launch {
             runCatching {
-                fakeNewsRepository.getRecommendNews(cursor, pageSize)
+                newsRepository.getRecommendNews(cursor, pageSize)
             }
                 .onSuccess { page ->
                     _state.value = _state.value.copy(
@@ -51,7 +52,7 @@ class NewsAllViewModel @Inject constructor(
     fun getAllRecentNews(cursor: String? = _state.value.nextCursor, size: Int = 10) =
         viewModelScope.launch {
             runCatching {
-                fakeNewsRepository.getRecentNews(cursor, size)
+                newsRepository.getTrendNews(cursor, size)
             }
                 .onSuccess { page ->
                     _state.value = _state.value.copy(

@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.news
 
+import android.R.attr.onClick
 import android.annotation.SuppressLint
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -58,6 +59,7 @@ import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background300
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background400
 import com.ioi.myssue.domain.model.News
+import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.common.clickableNoRipple
 
 @Composable
@@ -90,7 +92,7 @@ fun NewsSectionHeader(
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun HotNewsPager(
-    items: List<News>, onClick: (News) -> Unit = {}, peek: Dp = 28.dp,   // 다음 페이지 미리보기 길이
+    items: List<NewsSummary>, onClick: (NewsSummary) -> Unit = {}, peek: Dp = 28.dp,   // 다음 페이지 미리보기 길이
     pageSpacing: Dp = 18.dp
 ) {
     val config = LocalConfiguration.current
@@ -126,7 +128,7 @@ fun HotNewsPager(
 // HOT뉴스 페이저 한 슬라이드
 @Composable
 fun HotNewsSlide(
-    news: News, onClick: () -> Unit, modifier: Modifier = Modifier
+    news: NewsSummary, onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -136,7 +138,7 @@ fun HotNewsSlide(
             .clickable { onClick() },
     ) {
         Box(Modifier.fillMaxSize()) {
-            if (news.img == null) {
+            if (news.thumbnail == null) {
                 Image(
                     painter = painterResource(R.drawable.ic_empty_thumbnail),
                     contentDescription = null,
@@ -145,7 +147,7 @@ fun HotNewsSlide(
                 )
             } else {
                 AsyncImage(
-                    model = news.img,
+                    model = news.thumbnail,
                     contentDescription = news.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -243,8 +245,8 @@ fun DotsIndicator(
 @Composable
 fun NewsItem(
     modifier: Modifier = Modifier,
-    news: News,
-    onClick: (News) -> Unit = {},
+    news: NewsSummary,
+    onClick: (NewsSummary) -> Unit = {},
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -252,7 +254,7 @@ fun NewsItem(
             .clip(RoundedCornerShape(16.dp))
             .padding(16.dp, 8.dp)
             .clickableNoRipple { onClick(news) }) {
-        NewsThumbnail(img = news.img)
+        NewsThumbnail(img = news.thumbnail)
 
         Spacer(Modifier.width(12.dp))
 

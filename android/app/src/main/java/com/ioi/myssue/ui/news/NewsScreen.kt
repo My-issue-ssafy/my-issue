@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.domain.model.News
+import com.ioi.myssue.domain.model.NewsSummary
 
 val NewsFeedType.title: String
     @Composable get() = stringResource(titleRes)
@@ -44,17 +45,17 @@ fun NewsScreen(
     ) {
         NewsHOT(
             list = newsItems.value.hot,
-            onItemClick = { newsDetailViewModel.open(it.newsId) },
+            onItemClick = { newsId -> newsDetailViewModel.open(newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.HOT) }
         )
         NewsRecommend(
             list = newsItems.value.recommend,
-            onItemClick = { newsDetailViewModel.open(it.newsId) },
+            onItemClick = { newsId -> newsDetailViewModel.open(newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) }
         )
         NewsRecent(
-            list = newsItems.value.recent,
-            onItemClick = { newsDetailViewModel.open(it.newsId) },
+            list = newsItems.value.latest,
+            onItemClick = { newsId -> newsDetailViewModel.open(newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECENT) }
         )
     }
@@ -119,7 +120,7 @@ fun NewsAllScreen(
         item { NewsSectionHeader(type.title, onAllClick = null) }
         NewsAll(
             list = items,
-            onItemClick = { news -> newsDetailViewModel.open(news.newsId)}
+            onItemClick = { news -> newsDetailViewModel.open(news)}
         )
     }
 
@@ -134,20 +135,23 @@ fun NewsAllScreen(
 }
 
 fun LazyListScope.NewsHOT(
-    list: List<News>,
-    onItemClick: (News) -> Unit,
+    list: List<NewsSummary>,
+    onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
 ) {
     if (list.isEmpty()) return
     item { NewsSectionHeader(stringResource(R.string.news_feed_type_hot), onAllClick = onAllClick) }
     item {
-        HotNewsPager(items = list, onClick = onItemClick)
+        HotNewsPager(
+            items = list,
+            onClick = { news -> onItemClick(news.newsId) }
+        )
     }
 }
 
 fun LazyListScope.NewsRecommend(
-    list: List<News>,
-    onItemClick: (News) -> Unit,
+    list: List<NewsSummary>,
+    onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
 ) {
     if (list.isEmpty()) return
@@ -157,12 +161,12 @@ fun LazyListScope.NewsRecommend(
             onAllClick = onAllClick
         )
     }
-    items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item) }) }
+    items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
 }
 
 private fun LazyListScope.NewsRecent(
-    list: List<News>,
-    onItemClick: (News) -> Unit,
+    list: List<NewsSummary>,
+    onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
 ) {
     if (list.isEmpty()) return
@@ -172,17 +176,17 @@ private fun LazyListScope.NewsRecent(
             onAllClick = onAllClick
         )
     }
-    items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item) }) }
+    items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
 }
 
 private fun LazyListScope.NewsAll(
-    list: List<News>,
-    onItemClick: (News) -> Unit,
+    list: List<NewsSummary>,
+    onItemClick: (Long) -> Unit,
 ) {
     if (list.isEmpty()) return
-    items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item) }) }
+    items(list) { item ->
+        NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
 }
-
 
 enum class NewsFeedType(@StringRes val titleRes: Int) {
     HOT(R.string.news_feed_type_hot),

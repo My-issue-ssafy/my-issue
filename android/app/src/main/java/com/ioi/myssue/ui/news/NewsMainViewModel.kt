@@ -15,7 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NewsMainViewModel @Inject constructor(
-    private val fakeNewsRepository: NewsRepository,
+    private val newsRepository: NewsRepository,
     private val navigator: Navigator
 ) : ViewModel() {
     private val _state = MutableStateFlow(MainNewsList())
@@ -27,12 +27,8 @@ class NewsMainViewModel @Inject constructor(
 
     fun getNews() {
         viewModelScope.launch {
-            runCatching { fakeNewsRepository.getMainNews() }
-                .onSuccess { main ->
-                    _state.value = MainNewsList(
-                        hot = main.hot, recommend = main.recommend, recent = main.recent
-                    )
-                }
+            runCatching { newsRepository.getMainNews() }
+                .onSuccess { main -> _state.value = main }
                 .onFailure {
                 }
         }
