@@ -5,13 +5,15 @@ import com.ssafy.myissue.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "notification")
 @Getter
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class notification {
+public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -26,6 +28,9 @@ public class notification {
     private News news;
 
     private String content;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
     private boolean read;
 }
