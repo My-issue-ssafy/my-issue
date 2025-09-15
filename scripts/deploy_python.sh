@@ -22,25 +22,29 @@ UPSTREAM_FILE="/etc/nginx/upstreams/pyapp.active.conf"
 echo "▶ IMAGE=${IMAGE}"
 
 # 1) 현재 활성 포트 판정 (포인터 파일 안의 server 라인을 grep)
-if [[ -f "${UPSTREAM_FILE}" ]]; then
-  if grep -q "127.0.0.1:${BLUE_PORT}" "${UPSTREAM_FILE}"; then
-    ACTIVE_PORT=${BLUE_PORT};  ACTIVE_NAME=${BLUE_NAME}
-    NEW_PORT=${GREEN_PORT};    NEW_NAME=${GREEN_NAME}
-  elif grep -q "127.0.0.1:${GREEN_PORT}" "${UPSTREAM_FILE}"; then
-    ACTIVE_PORT=${GREEN_PORT}; ACTIVE_NAME=${GREEN_NAME}
-    NEW_PORT=${BLUE_PORT};     NEW_NAME=${BLUE_NAME}
-  else
-    # 최초 배포 등: BLUE로 시작
-    ACTIVE_PORT=${GREEN_PORT}; ACTIVE_NAME=${GREEN_NAME}
-    NEW_PORT=${BLUE_PORT};     NEW_NAME=${BLUE_NAME}
-  fi
+if [[ -r "${UPSTREAM_FILE}" ]]; then
+  FIRST_PORT="$(
+    # 첫 'server 127.0.0.1:<port> ...' 라인의 <port>만 추출
+    sed -n '/^[[:space:]]*server[[:space:]]\+127\.0\.0\.1:[0-9]\+/{ s/.*127\.0\.0\.1:\([0-9]\+\).*/\1/; p; q; }' "${UPSTREAM_FILE}"
+  )"
+
+  case "${FIRST_PORT}" in
+    "${BLUE_PORT}")
+      ACTIVE_COLOR=blue;  ACTIVE_PORT=${BLUE_PORT};  ACTIVE_NAME=${BLUE_NAME}
+      NEW_COLOR=green;    NEW_PORT=${GREEN_PORT};    NEW_NAME=${GREEN_NAME}
+      ;;
+    "${GREEN_PORT}")
+      ACTIVE_COLOR=green; ACTIVE_PORT=${GREEN_PORT}; ACTIVE_NAME=${GREEN_NAME}
+      NEW_COLOR=blue;     NEW_PORT=${BLUE_PORT};     NEW_NAME=${BLUE_NAME}
+      ;;
+    *)
+      echo "❗ 알 수 없는 첫 줄 포트(FIRST_PORT='${FIRST_PORT}') in ${UPSTREAM_FILE}"; exit 1;;
+  esac
 else
-  # 포인터 파일이 없으면 BLUE부터 시작
-  ACTIVE_PORT=${GREEN_PORT}; ACTIVE_NAME=${GREEN_NAME}
-  NEW_PORT=${BLUE_PORT};      NEW_NAME=${BLUE_NAME}
+  echo "❗ 포인터 파일을 읽을 수 없습니다: ${UPSTREAM_FILE}"; exit 1
 fi
 
-echo "👉 ACTIVE=${ACTIVE_PORT} → NEW=${NEW_PORT}"
+echo "👉 ACTIVE=${ACTIVE_COLOR}(${ACTIVE_PORT}) → NEW=${NEW_COLOR}(${NEW_PORT})"
 
 # 2) 새 컨테이너 기동
 docker rm -f "${NEW_NAME}" >/dev/null 2>&1 || true
