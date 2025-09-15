@@ -14,6 +14,7 @@ public class ToonResponse {
     private Long newsId;
     private String toonImage;
     private String summary;
+    private String title;
 
     public static ToonResponse from(Toons toon) {
         return ToonResponse.builder()
@@ -21,6 +22,7 @@ public class ToonResponse {
                 .newsId(toon.getNewsId())
                 .toonImage(toon.getToonImage())
                 .summary(toon.getSummary())
+                .title(toon.getTitle())
                 .build();
     }
 }
