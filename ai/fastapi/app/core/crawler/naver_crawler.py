@@ -566,11 +566,26 @@ def fetch_and_parse(url: str, sid1: str | None = None) -> dict | None:
         "category": [SID1_TO_SECTION.get(sid1, "기타")] if sid1 else [],
         "crawled_at": datetime.now(timezone.utc).isoformat(),
     }
+    
+    vod_cover = _extract_vod_cover(soup, base_url=(canon_url or target))
 
     if INLINE_IMAGES_MODE == "blocks":
         item["body"] = build_body_blocks(soup, base_url=item["url"])
+        
+        # VOD 커버 이미지를 body 블록 맨 앞에 추가
+        if vod_cover:
+            vod_block = {"type": "image", "content": vod_cover}
+            if isinstance(item["body"], list):
+                item["body"].insert(0, vod_block)
+            else:
+                item["body"] = [vod_block]
     else:
         item["body"] = build_body_markdown(soup, base_url=item["url"])
+        
+        # 마크다운 모드에서도 VOD 커버 추가
+        if vod_cover and isinstance(item["body"], str):
+            vod_markdown = f"![]({vod_cover})\n\n"
+            item["body"] = vod_markdown + item["body"]
 
     if DOWNLOAD_IMAGES and isinstance(item.get("body"), list):
         oid, aid = (id_tuple or ("", ""))
@@ -593,6 +608,32 @@ def fetch_and_parse(url: str, sid1: str | None = None) -> dict | None:
                     print("[IMG-ERR]", iu, e)
 
     return item
+
+
+# ========================
+# 본문 영역 밖 VOD 플레이어 커버 이미지 추출
+# ========================
+def _extract_vod_cover(soup: BeautifulSoup, base_url: str) -> str | None:
+    """
+    본문 영역 밖에 있을 수 있는 VOD 플레이어 래퍼에서
+    커버(썸네일) URL을 추출한다.
+    """
+    # class 에 "_vod_player_wrap" 포함 여부로 탐색 (대소문자 무시)
+    wrap = soup.find(
+        lambda tag: getattr(tag, "name", "").lower() == "div"
+        and any("_vod_player_wrap" in (c or "").lower() for c in (tag.get("class") or []))
+    )
+    if not wrap:
+        return None
+
+    u = wrap.get("data-cover-image-thumbnail-url") or wrap.get("data-cover-image-url")
+    if not u:
+        return None
+
+    # 기존 이미지 정규화 규칙 재사용
+    u = _normalize_img_url(u, base_url)
+    return u
+
 
 # ========================
 # 기사 링크 수집
