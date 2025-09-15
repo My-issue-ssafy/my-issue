@@ -11,7 +11,7 @@ import lombok.*;
 @Builder
 @Table(
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "toon_id"})
+                @UniqueConstraint(columnNames = {"user_id", "to on_id"})
         }
 )
 public class ToonLike {
