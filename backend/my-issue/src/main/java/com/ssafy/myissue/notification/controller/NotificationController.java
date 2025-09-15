@@ -28,9 +28,9 @@ public class NotificationController {
     @Operation(
             summary = "내 알림 전체 조회 API",
             description = """
-                    - 최신 알림 순으로 size 개수만큼 조회
-                    - lastId가 없으면 가장 최신 알림부터 size 개수만큼 조회
-                    - lastId가 있으면 lastId보다 작은 알림부터 size 개수만큼 조회
+                    ### - 최신 알림 순으로 size 개수만큼 조회
+                    ### - lastId가 없으면 가장 최신 알림부터 size 개수만큼 조회
+                    ### - lastId가 있으면 lastId보다 작은 알림부터 size 개수만큼 조회
                     """
     )
     public ResponseEntity<SliceResponseDto<NotificationsResponse>> findAllByUserId(
