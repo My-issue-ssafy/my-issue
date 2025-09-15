@@ -10,13 +10,18 @@ from app.core.ml.recommendation_service import recommendation_service
 
 router = APIRouter()
 
+class DiversityInfo(BaseModel):
+    """다양성 적용 정보"""
+    strategy: str
+    before_diversity_count: int
+    after_diversity_count: int
+
 class RecommendationResponse(BaseModel):
     """추천 응답 모델"""
     user_id: str
     total_recommendations: int
-    cf_recommendations: List[Dict]
-    cbf_recommendations: List[Dict]  
-    combined_recommendations: List[Dict]
+    recommendations: List[Dict]
+    diversity_applied: DiversityInfo
     timestamp: str
 
 class RecommendationItem(BaseModel):
@@ -31,25 +36,37 @@ class RecommendationItem(BaseModel):
 async def get_user_recommendations(
     user_id: str,
     cf_count: int = Query(50, ge=1, le=100, description="CF 추천 수 (1-100)"),
-    cbf_count: int = Query(50, ge=1, le=100, description="CBF 추천 수 (1-100)")
+    cbf_count: int = Query(50, ge=1, le=100, description="CBF 추천 수 (1-100)"),
+    strategy: str = Query("balanced", description="추천 전략: pure, balanced, diverse")
 ):
     """
-    사용자별 하이브리드 추천 (CF + CBF)
+    사용자별 하이브리드 추천 (CF + CBF + 전략 선택)
     
     - **user_id**: 추천을 받을 사용자 ID
     - **cf_count**: CF(협업 필터링) 추천 수 (기본값: 50)
     - **cbf_count**: CBF(콘텐츠 기반) 추천 수 (기본값: 50)
+    - **strategy**: 추천 전략
+        - "pure": 순수 추천 (다양성 없음, 점수 순)
+        - "balanced": 균형 추천 (카테고리 다양성 + 5% 반대 관점)
+        - "diverse": 다양성 추천 (엄격한 카테고리 제한 + 10% 반대 관점)
     
     Returns:
-        CF 50개 + CBF 50개를 결합한 총 최대 100개의 뉴스 추천
-        (중복 제거 후 실제 개수는 달라질 수 있음)
+        전략이 적용된 하이브리드 뉴스 추천 + 적용 정보
     """
     try:
-        # 하이브리드 추천 생성
+        # 전략 검증
+        if strategy not in ["pure", "balanced", "diverse"]:
+            raise HTTPException(
+                status_code=400,
+                detail="strategy는 'pure', 'balanced', 'diverse' 중 하나여야 합니다."
+            )
+        
+        # 하이브리드 추천 생성 (전략 적용)
         result = recommendation_service.get_hybrid_recommendations(
             user_id=user_id,
             cf_count=cf_count,
-            cbf_count=cbf_count
+            cbf_count=cbf_count,
+            strategy=strategy
         )
         
         if result['total_recommendations'] == 0:
