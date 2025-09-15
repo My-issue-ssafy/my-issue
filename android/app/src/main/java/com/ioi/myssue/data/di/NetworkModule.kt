@@ -1,6 +1,7 @@
 package com.ioi.myssue.data.di
 
 import android.content.Context
+import com.ioi.myssue.BuildConfig
 import com.ioi.myssue.authDataStore
 import com.ioi.myssue.data.network.AuthInterceptor
 import com.ioi.myssue.data.network.DataStoreCookieJar
@@ -75,7 +76,7 @@ object NetworkModule {
         @Named("main") okHttpClient: OkHttpClient
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("")
+            .baseUrl(BuildConfig.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(Json.asConverterFactory("application/json; charset=UTF8".toMediaType()))
             .build()
@@ -87,7 +88,7 @@ object NetworkModule {
         @Named("auth") okHttpClient: OkHttpClient
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("")
+            .baseUrl(BuildConfig.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(Json.asConverterFactory("application/json; charset=UTF8".toMediaType()))
             .build()
