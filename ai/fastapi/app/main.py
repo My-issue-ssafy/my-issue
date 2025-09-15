@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from app.utils.scheduler import start_scheduler
 from app.api.endpoints.crawler import router as crawler_router
+from app.api.endpoints.recommendation import router as recommendation_router
 
 app = FastAPI(
   title="News Recommendation System",
@@ -11,6 +12,7 @@ app = FastAPI(
 
 # API 라우터 등록
 app.include_router(crawler_router, prefix="/api", tags=["crawler"])
+app.include_router(recommendation_router, prefix="/api", tags=["recommendation"])
 
 @app.get("/health")
 def health():

@@ -115,6 +115,7 @@ secrets.json
 
 # Training state files
 fastapi/last_trained.txt
+fastapi/cbf_last_trained.txt
 
 fastapi_env/
 
