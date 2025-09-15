@@ -2,6 +2,7 @@ package com.ssafy.myissue.user.controller;
 
 import com.ssafy.myissue.user.dto.RegisterDeviceRequest;
 import com.ssafy.myissue.user.dto.RegisterDeviceResponse;
+import com.ssafy.myissue.user.dto.RegisterFcmTokenRequest;
 import com.ssafy.myissue.user.dto.TokenPairResponse;
 import com.ssafy.myissue.user.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -52,14 +54,16 @@ public class AuthController {
     )
     public ResponseEntity<Void> rotateRefresh(@Parameter(hidden = true) @CookieValue("refreshToken") String refresh, HttpServletResponse response) {
         log.debug("[Refresh 재발급 - CookieValue] refreshToken: {}", refresh);
-
-        TokenPairResponse tokenPairResponse = authService.rotateRefresh(refresh, response);
+        authService.rotateRefresh(refresh, response);
 
         return ResponseEntity.noContent().build();
     }
 
-//    @PostMapping("/fcm")
-//    public ResponseEntity<Void> registerFcmToken() {
-//        return ResponseEntity.ok().build();
-//    }
+    @PostMapping("/fcm")
+    public ResponseEntity<Void> registerFcmToken(@AuthenticationPrincipal Long userId, @RequestBody RegisterFcmTokenRequest request) {
+        log.debug("[FCM 토큰 등록 - RequestBody] fcmToken: {}", request.fcmToken());
+        authService.registerFcmToken(userId, request.fcmToken());
+
+        return ResponseEntity.noContent().build();
+    }
 }

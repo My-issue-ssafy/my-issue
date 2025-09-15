@@ -14,7 +14,6 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.antlr.v4.runtime.Token;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
@@ -43,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public TokenPairResponse rotateRefresh(String refreshToken, HttpServletResponse response) throws CustomException {
+    public void rotateRefresh(String refreshToken, HttpServletResponse response) throws CustomException {
         Claims claims;
         try {
             // 1. JWT 파싱 & 만료 확인
@@ -71,7 +70,20 @@ public class AuthServiceImpl implements AuthService {
             throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        return createJwt(userId, response);
+        createJwt(userId, response);
+    }
+
+    @Override
+    public void registerFcmToken(Long userId, String fcmToken) {
+        if(fcmToken == null || fcmToken.isBlank()) {
+            throw new CustomException(ErrorCode.EMPTY_FCM_TOKEN);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        user.updateFcmToken(fcmToken);
+        userRepository.save(user);
     }
 
     // 토큰 발급 로직

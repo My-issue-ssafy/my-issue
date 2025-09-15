@@ -6,5 +6,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
     TokenPairResponse registerOrLogin(String deviceUuid, HttpServletResponse response);
-    TokenPairResponse rotateRefresh(String refreshToken, HttpServletResponse response) throws CustomException;
+    void rotateRefresh(String refreshToken, HttpServletResponse response) throws CustomException;
+    void registerFcmToken(Long userId, String fcmToken);
 }

@@ -2,7 +2,6 @@ package com.ssafy.myissue.common.exception;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.actuate.autoconfigure.observation.ObservationProperties;
 import org.springframework.http.HttpStatus;
 
 @Getter
@@ -16,7 +15,10 @@ public enum ErrorCode {
     MALFORMED_REFRESH_TOKEN(HttpStatus.BAD_REQUEST, "MALFORMED_REFRESH_TOKEN","Refresh Token 형식이 올바르지 않습니다."),
     // Access Token
     EXPIRED_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "EXPIRED_ACCESS_TOKEN", "만료된 Access Token 입니다."),
-    MALFORMED_ACCESS_TOKEN(HttpStatus.BAD_REQUEST, "MALFORMED_ACCESS_TOKEN", "Access Token 형식이 올바르지 않습니다.");
+    MALFORMED_ACCESS_TOKEN(HttpStatus.BAD_REQUEST, "MALFORMED_ACCESS_TOKEN", "Access Token 형식이 올바르지 않습니다."),
+    // User
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "해당 유저를 찾을 수 없습니다."),
+    EMPTY_FCM_TOKEN(HttpStatus.NOT_FOUND, "FCM_TOKEN_NOT_FOUND", "FCM Token이 비어있습니다."),
     ;
 
     private final HttpStatus httpStatus;
