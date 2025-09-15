@@ -41,6 +41,7 @@ public class SecurityConfig {
                 .sessionManagement(m -> m.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         // 공개 엔드포인트
                         .requestMatchers(HttpMethod.POST, "/auth/device", "/auth/reissue").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
