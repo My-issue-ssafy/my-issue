@@ -1,5 +1,6 @@
 package com.ioi.myssue.data.network
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -24,6 +25,7 @@ class DataStoreCookieJar(
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
         val cookieStrings = cookies.map { it.toString() }.toSet()
+        Log.d("DataStoreCookieJar", "Saving cookies: $cookieStrings")
         CoroutineScope(Dispatchers.IO).launch {
             dataStore.edit { prefs ->
                 prefs[COOKIE_KEY] = cookieStrings
@@ -35,6 +37,7 @@ class DataStoreCookieJar(
         val cookieStrings = runBlocking {
             dataStore.data.first()[COOKIE_KEY] ?: emptySet()
         }
+        Log.d("DataStoreCookieJar", "Loading cookies: $cookieStrings")
         return cookieStrings.mapNotNull { Cookie.parse(url, it) }
     }
 }

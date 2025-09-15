@@ -2,18 +2,19 @@ package com.ioi.myssue.data.network
 
 import android.util.Log
 import com.ioi.myssue.data.datastore.AuthDataStore
+import com.ioi.myssue.data.network.api.AddUserRequest
 import com.ioi.myssue.data.network.api.AuthApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.util.UUID
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
-import kotlin.text.removePrefix
+import java.util.UUID
 
 class AuthManager @Inject constructor(
     private val authDataStore: AuthDataStore,
     private val authApi: AuthApi,
-    applicationScope: CoroutineScope
+    private val applicationScope: CoroutineScope
 ) {
     @Volatile
     private var cachedAccessToken: String? = null
@@ -26,78 +27,87 @@ class AuthManager @Inject constructor(
 
     init {
         applicationScope.launch {
+            // 캐시 업데이트
             launch {
                 authDataStore.accessTokenFlow.collect { token ->
-                    Log.d("Init AuthManager access token", "$token")
                     cachedAccessToken = token
+                    Log.d("AuthManager", "Init access token: $token")
                 }
             }
 
             launch {
                 authDataStore.userIdFlow.collect { id ->
-                    Log.d("Init AuthManager user id", "$id")
                     cachedUserId = id
+                    Log.d("AuthManager", "Init userId: $id")
                 }
             }
 
             launch {
                 authDataStore.uuidFlow.collect { id ->
-                    Log.d("Init AuthManager user id", "$id")
                     cachedUUID = id
-
-                    if (id == null) {
-                        val newId = UUID.randomUUID().toString()
-                        Log.d("AuthManager", "Generated new UUID: $newId")
-                        saveUUID(newId)
-
-                        val response = authApi.addUser(newId)
-                        if (response.isSuccessful) {
-                            val accessToken =
-                                response.headers()["Authorization"]?.removePrefix("Bearer ")?.trim()
-
-                            accessToken?.let {
-                                Log.d("AuthManager", "Received access token from server")
-                                saveToken(it)
-                            }
-                            response.body()?.let {
-                                saveUserId(it.userId)
-                            }
-                        }
-                    }
+                    Log.d("AuthManager", "Init uuid: $id")
                 }
             }
         }
     }
 
+    suspend fun registerNewDeviceIfNeeded(): Boolean {
+        val existingUserId = authDataStore.userIdFlow.first()
+        if (existingUserId != null) {
+            Log.d("AuthManager", "Device already registered: $existingUserId")
+            return true
+        }
+
+        val newId = UUID.randomUUID().toString()
+        Log.d("AuthManager", "Generated new UUID: $newId")
+        saveUUID(newId)
+
+        return try {
+            val response = authApi.addUser(
+                AddUserRequest(newId))
+            if (response.isSuccessful) {
+                val accessToken =
+                    response.headers()["Authorization"]?.removePrefix("Bearer ")?.trim()
+                accessToken?.let {
+                    Log.d("AuthManager", "Received access token from server")
+                    saveToken(it)
+                }
+
+                response.body()?.let {
+                    saveUserId(it.userId)
+                }
+                true
+            } else {
+                Log.e("AuthManager", "Failed to add user: ${response.code()}")
+                false
+            }
+        } catch (e: Exception) {
+            Log.e("AuthManager", "Device registration error", e)
+            false
+        }
+    }
+
     fun getAccessToken(): String? = cachedAccessToken
-
     fun getUserId(): Long? = cachedUserId
-
     fun getUUID(): String? = cachedUUID
 
     fun saveToken(accessToken: String) {
-        Log.d("AuthManager", "save token")
         cachedAccessToken = accessToken
-
-        CoroutineScope(Dispatchers.IO).launch {
+        applicationScope.launch(Dispatchers.IO) {
             authDataStore.saveAccessToken(accessToken)
         }
     }
 
     fun saveUserId(userId: Long) {
-        Log.d("AuthManager", "save userId")
         cachedUserId = userId
-
-        CoroutineScope(Dispatchers.IO).launch {
+        applicationScope.launch(Dispatchers.IO) {
             authDataStore.saveUserId(userId)
         }
     }
 
     fun saveUUID(uuid: String) {
-        Log.d("AuthManager", "save userInfo")
         cachedUUID = uuid
-
-        CoroutineScope(Dispatchers.IO).launch {
+        applicationScope.launch(Dispatchers.IO) {
             authDataStore.saveUUID(uuid)
         }
     }
