@@ -6,6 +6,7 @@ import com.ioi.myssue.domain.repository.CartoonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.abs
@@ -42,6 +43,18 @@ class CartoonViewModel @Inject constructor(
             isSwiping = isSwiping,
             exitTrigger = abs(_state.value.exitTrigger) + 1
         )
+
+        viewModelScope.launch {
+            _state.value.currentToonId?.let {
+                runCatching { cartoonRepository.likeCartoon(it) }
+                    .onFailure {
+                        _state.update { it.copy(
+                            currentCartoonIndex = it.currentCartoonIndex - 1
+                        ) }
+                    }
+            }
+
+        }
     }
 
     fun onHatePressed(isSwiping: Boolean = false) {
@@ -52,6 +65,16 @@ class CartoonViewModel @Inject constructor(
             isSwiping = isSwiping,
             exitTrigger = (abs(_state.value.exitTrigger) + 1) * -1
         )
+
+        viewModelScope.launch {
+            _state.value.currentToonId?.let {
+                runCatching { cartoonRepository.hateCartoon(it) }
+                    .onFailure {
+
+                    }
+            }
+
+        }
     }
 
     fun onExitFinished() {

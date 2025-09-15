@@ -13,6 +13,12 @@ data class CartoonUiState(
     val isLoading: Boolean = false,
     val error: String? = null
 ) {
+    val currentToonId : Long?
+        get() = cartoonNewsList.getOrNull(currentCartoonIndex)?.toonId
+
+    val currentNewsId : Long?
+        get() = cartoonNewsList.getOrNull(currentCartoonIndex)?.newsId
+
     val isEmpty: Boolean
         get() = cartoonNewsList.isEmpty() || currentCartoonIndex == cartoonNewsList.size
 

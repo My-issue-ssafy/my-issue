@@ -1,5 +1,6 @@
 package com.ioi.myssue.data.di
 
+import com.ioi.myssue.data.repository.CartoonRepositoryImpl
 import com.ioi.myssue.data.repository.fake.FakeCartoonRepositoryImpl
 import com.ioi.myssue.data.repository.FakeNewsRepositoryImpl
 import com.ioi.myssue.domain.repository.AuthRepository
@@ -21,6 +22,6 @@ interface RepositoryModule {
 
     @Singleton
     @Binds
-    fun bindCartoonRepository(repository: FakeCartoonRepositoryImpl): CartoonRepository
+    fun bindCartoonRepository(repository: CartoonRepositoryImpl): CartoonRepository
 
 }
