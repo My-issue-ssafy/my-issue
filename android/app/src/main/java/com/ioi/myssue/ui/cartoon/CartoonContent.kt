@@ -47,6 +47,7 @@ import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background100
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background50
@@ -189,6 +190,14 @@ private fun CartoonCard(
         label = "flip"
     )
     val showFront = flip <= 90f
+
+    val analyticsLogger = LocalAnalytics.current
+
+    LaunchedEffect(flipped) {
+        if(flipped) {
+            analyticsLogger.logToonClick(cartoon.newsId)
+        }
+    }
 
     LaunchedEffect(isExiting) {
         if (isExiting) {

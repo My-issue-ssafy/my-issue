@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.main
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.analytics.AnalyticsLogger
@@ -20,6 +21,7 @@ class SplashViewModel @Inject constructor(
 
             if (ok) {
                 authManager.getUserId()?.let { id ->
+                    Log.d("Splash Set UserID", "Set User ID: $id")
                     logger.setUserId(id)
                 }
                 onReady()

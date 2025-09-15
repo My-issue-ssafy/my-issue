@@ -2,6 +2,7 @@ package com.ioi.myssue.ui.cartoon
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.domain.repository.CartoonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,8 @@ import kotlin.math.abs
 
 @HiltViewModel
 class CartoonViewModel @Inject constructor(
-    private val cartoonRepository: CartoonRepository
+    private val cartoonRepository: CartoonRepository,
+    private val analyticsLogger: AnalyticsLogger
 ) : ViewModel() {
 
     private var _state = MutableStateFlow(CartoonUiState())
@@ -51,10 +53,10 @@ class CartoonViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
-            _state.value.currentToonId?.let {
-                runCatching { cartoonRepository.likeCartoon(it) }
-                    .onFailure {
-
+            _state.value.currentToonId?.let { toonId ->
+                runCatching { cartoonRepository.likeCartoon(toonId) }
+                    .onSuccess {
+                        analyticsLogger.logToonPositive(toonId)
                     }
             }
 
@@ -71,10 +73,10 @@ class CartoonViewModel @Inject constructor(
         )
 
         viewModelScope.launch {
-            _state.value.currentToonId?.let {
-                runCatching { cartoonRepository.hateCartoon(it) }
-                    .onFailure {
-
+            _state.value.currentToonId?.let { toonId ->
+                runCatching { cartoonRepository.hateCartoon(toonId) }
+                    .onSuccess {
+                        analyticsLogger.logToonNegative(toonId)
                     }
             }
 

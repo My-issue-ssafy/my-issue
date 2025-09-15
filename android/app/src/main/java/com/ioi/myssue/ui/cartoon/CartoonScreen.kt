@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -43,6 +42,7 @@ fun CartoonScreen(
     val uiState by viewModel.state.collectAsStateWithLifecycle()
     var showingNewsId by remember { mutableLongStateOf(-1L) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val analytics = LocalAnalytics.current
 
     DisposableEffect(Unit) {
         onDispose {
@@ -50,16 +50,6 @@ fun CartoonScreen(
         }
     }
 
-    val anayltics = LocalAnalytics.current
-
-    LaunchedEffect(uiState.currentCartoonIndex) {
-        if(uiState.currentCartoonIndex >= 0) {
-            uiState.currentToonId?.let {
-                Log.d("CartoonScreen", "GA logToonImpression toonId: $it")
-                anayltics.logToonImpression(it)
-            }
-        }
-    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -122,7 +112,8 @@ fun CartoonScreen(
                         onHatePressed = viewModel::onHatePressed,
                         onShowDetail = {
                             Log.d("CartoonScreen", "it: $it")
-                            showingNewsId = it },
+                            showingNewsId = it
+                            analytics.logToonExpandNews(it) },
                         modifier = Modifier.fillMaxWidth()
                     )
 
