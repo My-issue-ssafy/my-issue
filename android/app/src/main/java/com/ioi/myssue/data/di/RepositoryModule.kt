@@ -22,6 +22,6 @@ interface RepositoryModule {
 
     @Singleton
     @Binds
-    fun bindCartoonRepository(repository: CartoonRepositoryImpl): CartoonRepository
+    fun bindCartoonRepository(repository: FakeCartoonRepositoryImpl): CartoonRepository
 
 }

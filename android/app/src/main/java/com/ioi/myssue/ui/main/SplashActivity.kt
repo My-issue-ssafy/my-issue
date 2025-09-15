@@ -18,7 +18,6 @@ class SplashActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val deviceId = UUID.randomUUID().toString() // 앱 설치 후 최초 실행 시 생성
         viewModel.initApp(
             onReady = {
                 startActivity(Intent(this, MainActivity::class.java))

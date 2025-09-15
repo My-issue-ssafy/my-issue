@@ -10,19 +10,15 @@ import kotlinx.serialization.Serializable
 data class ToonResponse(
     val toonId: Long,
     val newsId: Long,
-//    val title: String,
+    val title: String,
     @SerialName("summary") val description: String,
-//    val newsContent: String,
     @SerialName("toonImage") val toonImageUrl: String,
-//    val newsImageUrl: String,
 )
 
 fun ToonResponse.toDomain() = CartoonNews(
     toonId = toonId ,
     newsId = newsId,
-    newsTitle = "title",
+    newsTitle = title,
     newsDescription = description,
-    newsFullContent = "newsContent",
-    newsImageUrl = "newsImageUrl",
     toonImageUrl = toonImageUrl
 )

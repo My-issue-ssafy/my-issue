@@ -2,7 +2,7 @@ package com.ioi.myssue.data.network
 
 import android.util.Log
 import com.ioi.myssue.data.datastore.AuthDataStore
-import com.ioi.myssue.data.network.api.AddUserRequest
+import com.ioi.myssue.data.dto.request.AddUserRequest
 import com.ioi.myssue.data.network.api.AuthApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -64,7 +64,8 @@ class AuthManager @Inject constructor(
 
         return try {
             val response = authApi.addUser(
-                AddUserRequest(newId))
+                AddUserRequest(newId)
+            )
             if (response.isSuccessful) {
                 val accessToken =
                     response.headers()["Authorization"]?.removePrefix("Bearer ")?.trim()
@@ -72,7 +73,6 @@ class AuthManager @Inject constructor(
                     Log.d("AuthManager", "Received access token from server")
                     saveToken(it)
                 }
-
                 response.body()?.let {
                     saveUserId(it.userId)
                 }

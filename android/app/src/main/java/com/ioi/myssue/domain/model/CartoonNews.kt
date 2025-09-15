@@ -5,7 +5,5 @@ data class CartoonNews(
     val newsId: Long = -1L,
     val newsTitle: String = "",
     val newsDescription: String = "",
-    val newsFullContent: String = "",
-    val newsImageUrl: String = "",
     val toonImageUrl: String = ""
 )

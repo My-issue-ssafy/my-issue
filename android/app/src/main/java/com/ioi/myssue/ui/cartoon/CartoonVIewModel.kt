@@ -24,14 +24,20 @@ class CartoonViewModel @Inject constructor(
     }
 
     private fun loadCartoon() = viewModelScope.launch {
-        _state.value = _state.value.copy(isLoading = true, error = null)
+        _state.update {
+            it.copy(isLoading = true, error = null)
+        }
 
         runCatching { cartoonRepository.getCartoonNews() }
             .onSuccess { cartoonNews ->
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    cartoonNewsList = cartoonNews
-                )
+                _state.update {
+                    it.copy(isLoading = false, cartoonNewsList = cartoonNews)
+                }
+            }
+            .onFailure {
+                _state.update {
+                    it.copy(isLoading = false, error = "문제가 발생했습니다.\n다시 시도해주세요.")
+                }
             }
     }
 
@@ -48,9 +54,7 @@ class CartoonViewModel @Inject constructor(
             _state.value.currentToonId?.let {
                 runCatching { cartoonRepository.likeCartoon(it) }
                     .onFailure {
-                        _state.update { it.copy(
-                            currentCartoonIndex = it.currentCartoonIndex - 1
-                        ) }
+
                     }
             }
 

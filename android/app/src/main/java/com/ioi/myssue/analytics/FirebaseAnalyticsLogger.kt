@@ -11,8 +11,8 @@ class FirebaseAnalyticsLogger(
      * 현재 사용자 ID를 설정
      * - 로그인 시점에 호출
      */
-    override fun setUserId(userId: String?) {
-        fa.setUserId(userId)
+    override fun setUserId(userId: Long) {
+        fa.setUserId(userId.toString())
     }
 
     /**
@@ -81,6 +81,47 @@ class FirebaseAnalyticsLogger(
             putString("action", action)
         }
         fa.logEvent("news_bookmark", params)
+    }
+
+    // 1. 툰 노출 (toon_impression)
+    override fun logToonImpression(newsId: Long) {
+        val params = Bundle().apply {
+            putLong("news_id", newsId)
+        }
+        fa.logEvent("toon_impression", params)
+    }
+
+
+    // 2. 툰 터치 → 관련 뉴스 요약 보기 (toon_click)
+    override fun logToonClick(newsId: Long) {
+        val params = Bundle().apply {
+            putLong("news_id", newsId)
+        }
+        fa.logEvent("toon_click", params)
+    }
+
+    // 3. 툰 오른쪽 슬라이드 → 관심 있음/좋다 (toon_positive)
+    override fun logToonPositive(newsId: Long) {
+        val params = Bundle().apply {
+            putLong("news_id", newsId)
+        }
+        fa.logEvent("toon_positive", params)
+    }
+
+    // 4. 툰 왼쪽 슬라이드 → 관심 없음/싫다 (toon_negative)
+    override fun logToonNegative(newsId: Long) {
+        val params = Bundle().apply {
+            putLong("news_id", newsId)
+        }
+        fa.logEvent("toon_negative", params)
+    }
+
+    // 5. 툰 위로 슬라이드 → 관련 뉴스 전체보기 (toon_expand_news)
+    override fun logToonExpandNews(newsId: Long) {
+        val params = Bundle().apply {
+            putLong("news_id", newsId)
+        }
+        fa.logEvent("toon_expand_news", params)
     }
 
     private inline fun FirebaseAnalytics.logEvent(
