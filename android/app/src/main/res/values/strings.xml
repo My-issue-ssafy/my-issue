@@ -2,4 +2,8 @@
     <string name="app_name">Myssue</string>
     <string name="charging_news">뉴스 충전 중...</string>
     <string name="empty_cartoon_news_description">내일의 네컷뉴스를 기다려주세요!</string>
+    <string name="see_all">전체보기</string>
+    <string name="news_feed_type_hot">HOT 뉴스</string>
+    <string name="news_feed_type_recommend">맞춤 뉴스</string>
+    <string name="news_feed_type_recent">최신 뉴스</string>
 </resources>

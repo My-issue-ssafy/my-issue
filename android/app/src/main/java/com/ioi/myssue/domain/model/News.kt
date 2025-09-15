@@ -1,11 +1,15 @@
 package com.ioi.myssue.domain.model
 
 data class News(
+    val newsId: Long,
     val title: String,
-    val content: String,
+    val content: List<NewsBlock> = emptyList(),
     val url: String,
-    val img: String,
     val category: String,
+    val newspaper: String,
     val createdAt: String,
-    val views: Int
+    val relativeTime: String,
+    val views: Int,
+    val img: String?,
+    val author: String,
 )

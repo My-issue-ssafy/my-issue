@@ -1,7 +1,5 @@
 package com.ioi.myssue.ui.news
 
-import android.R.attr.bottom
-import android.R.attr.onClick
 import android.annotation.SuppressLint
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -17,7 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,14 +31,10 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CardElevation
-import androidx.compose.material3.FloatingActionButtonDefaults.elevation
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -48,11 +42,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -62,17 +55,16 @@ import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.AppColors.Primary700
 import com.ioi.myssue.designsystem.theme.BackgroundColors
-import com.ioi.myssue.designsystem.theme.BackgroundColors.Background200
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background300
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background400
 import com.ioi.myssue.domain.model.News
-import java.sql.Time
+import com.ioi.myssue.ui.common.clickableNoRipple
 
 @Composable
 fun NewsSectionHeader(
     title: String,
-//    onMore: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAllClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
@@ -81,16 +73,16 @@ fun NewsSectionHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            title,
-            style = typography.titleLarge
+            title, style = typography.titleLarge
         )
-        Spacer(Modifier.weight(1f))
-        Text(
-            text = "전체보기",
-            style = typography.labelLarge,
-            color = Primary700,
-            modifier = Modifier.clickable { }
-        )
+        if (onAllClick != null) {
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = stringResource(R.string.see_all),
+                style = typography.labelLarge,
+                color = Primary700,
+                modifier = Modifier.clickableNoRipple { onAllClick() })
+        }
     }
 }
 
@@ -98,9 +90,7 @@ fun NewsSectionHeader(
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun HotNewsPager(
-    items: List<News>,
-    onClick: (News) -> Unit = {},
-    peek: Dp = 28.dp,   // 다음 페이지 미리보기 길이
+    items: List<News>, onClick: (News) -> Unit = {}, peek: Dp = 28.dp,   // 다음 페이지 미리보기 길이
     pageSpacing: Dp = 18.dp
 ) {
     val config = LocalConfiguration.current
@@ -123,8 +113,7 @@ fun HotNewsPager(
             HotNewsSlide(
                 news = items[page],
                 onClick = { onClick(items[page]) },
-                modifier = Modifier
-                    .width(pageWidth)
+                modifier = Modifier.width(pageWidth)
             )
         }
         DotsIndicator(
@@ -137,9 +126,7 @@ fun HotNewsPager(
 // HOT뉴스 페이저 한 슬라이드
 @Composable
 fun HotNewsSlide(
-    news: News,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    news: News, onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -149,7 +136,7 @@ fun HotNewsSlide(
             .clickable { onClick() },
     ) {
         Box(Modifier.fillMaxSize()) {
-            if (news.img.isBlank()) {
+            if (news.img == null) {
                 Image(
                     painter = painterResource(R.drawable.ic_empty_thumbnail),
                     contentDescription = null,
@@ -196,14 +183,15 @@ fun HotNewsSlide(
             // 기사 제목
             Text(
                 text = news.title,
-                style = typography.titleMedium,
+                style = typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
                 color = BackgroundColors.Background50,
                 maxLines = 1,
                 minLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start= 16.dp, bottom = 8.dp)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
             )
         }
     }
@@ -225,20 +213,16 @@ fun DotsIndicator(
         repeat(count) { index ->
             val active = current == index
             val width by animateDpAsState(
-                targetValue = if (active) activeDotWidth else dotSize,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = 3000f
-                ),
-                label = "dotWidth"
+                targetValue = if (active) activeDotWidth else dotSize, animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 3000f
+                ), label = "dotWidth"
             )
             val color: Color by animateColorAsState(
                 targetValue = if (active) {
                     Primary700
                 } else {
                     Background300
-                },
-                animationSpec = tween(
+                }, animationSpec = tween(
                     durationMillis = 300,
                 )
             )
@@ -267,8 +251,7 @@ fun NewsItem(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .padding(16.dp, 8.dp)
-            .clickable { onClick(news) }
-    ) {
+            .clickableNoRipple { onClick(news) }) {
         NewsThumbnail(img = news.img)
 
         Spacer(Modifier.width(12.dp))
@@ -286,7 +269,7 @@ fun NewsItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                NewsCreatedAt(createdAt = news.createdAt)
+                NewsCreatedAt(relativeTime = news.relativeTime)
                 NewsViews(views = news.views)
             }
         }
@@ -301,13 +284,17 @@ fun NewsThumbnail(img: String?) {
         colors = CardDefaults.cardColors(
             containerColor = BackgroundColors.Background50
         ),
-        modifier = Modifier
-            .size(100.dp),
+        modifier = Modifier.size(100.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Image(
-            painter = painterResource(R.drawable.ic_empty_thumbnail),
+        AsyncImage(
+            model = img,
             contentDescription = null,
+            placeholder = painterResource(R.drawable.ic_empty_thumbnail),
+            error = painterResource(R.drawable.ic_empty_thumbnail),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
         )
     }
 }
@@ -339,7 +326,7 @@ fun NewsTitle(title: String) {
 
 @Composable
 // 뉴스 시간
-fun NewsCreatedAt(createdAt: String) {
+fun NewsCreatedAt(relativeTime: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Image(
             painter = painterResource(R.drawable.ic_time),
@@ -347,7 +334,7 @@ fun NewsCreatedAt(createdAt: String) {
             modifier = Modifier.size(18.dp),
         )
         Text(
-            text = createdAt,
+            text = relativeTime,
             style = typography.labelLarge,
             fontWeight = FontWeight.Bold,
             color = Background400,
@@ -363,7 +350,7 @@ fun NewsViews(views: Int) {
         Icon(
             painter = painterResource(R.drawable.ic_eye),
             contentDescription = null,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(16.dp),
             tint = Background400
         )
         Text(

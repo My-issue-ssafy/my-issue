@@ -15,6 +15,7 @@ import javax.inject.Singleton
 class TimeConverter @Inject constructor(
     private val zone: ZoneId
 ) {
+    // 상대 시간으로 변환
     /** 입력 문자열 -> 상대시간 문자열 */
     fun toRelative(createdAtRaw: String, now: Instant = Instant.now()): String {
         val published = parseToInstant(createdAtRaw) ?: return createdAtRaw
@@ -61,5 +62,15 @@ class TimeConverter @Inject constructor(
             } catch (_: DateTimeParseException) {}
         }
         return null
+    }
+
+    // 화면 표시용 시간으로 변환
+    private val DISPLAY_DATE_TIME =
+        DateTimeFormatter.ofPattern("yyyy.MM.dd. HH:mm").withZone(zone)
+
+    /** 입력 문자열 -> "yyyy.MM.dd. HH:mm" */
+    fun toDisplay(createdAtRaw: String): String {
+        val instant = parseToInstant(createdAtRaw) ?: return createdAtRaw
+        return DISPLAY_DATE_TIME.format(instant)
     }
 }
