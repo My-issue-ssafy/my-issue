@@ -21,6 +21,9 @@ public class User {
     @Column(name = "fcm_token")
     private String fcmToken;
 
+    @Column(name = "notification_enabled")
+    private boolean notificationEnabled;
+
     private Instant lastSeen;
 
     public static User newOf(String uuid) {
