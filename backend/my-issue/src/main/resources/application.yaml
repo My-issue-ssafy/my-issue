@@ -32,12 +32,11 @@ springdoc:
     path: /swagger-ui
   api-docs:
     path: /v3/api-docs
-  group-configs:
-    - group: news
-      packages-to-scan: com.ssafy.myissue.news
-    - group: toons
-      packages-to-scan: com.ssafy.myissue.toons
-
+#  group-configs:
+#    - group: news
+#      packages-to-scan: com.ssafy.myissue.news
+#    - group: toons
+#      packages-to-scan: com.ssafy.myissue.toons
 logging:
   level:
     org:
