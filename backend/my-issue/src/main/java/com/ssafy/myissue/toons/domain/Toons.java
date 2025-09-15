@@ -23,4 +23,7 @@ public class Toons {
 
     @Column(columnDefinition = "text")
     private String summary;
+
+    @Column(nullable = false)
+    private String title;
 }

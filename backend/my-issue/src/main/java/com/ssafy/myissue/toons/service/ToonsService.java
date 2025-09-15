@@ -1,5 +1,6 @@
 package com.ssafy.myissue.toons.service;
 
+import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import com.ssafy.myissue.toons.domain.ToonLike;
 import com.ssafy.myissue.toons.domain.Toons;
 import com.ssafy.myissue.toons.dto.ToonResponse;
@@ -20,6 +21,7 @@ public class ToonsService {
 
     private final ToonsRepository toonsRepository;
     private final ToonLikeRepository toonLikeRepository;
+    private final NewsRepository newsRepository;
 
     // 네컷뉴스 전체 조회
     public List<ToonResponse> getToons() {
