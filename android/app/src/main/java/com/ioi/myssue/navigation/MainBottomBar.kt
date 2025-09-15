@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
+import com.ioi.myssue.designsystem.theme.BackgroundColors
 
 @Composable
 internal fun MainBottomBar(
@@ -35,7 +36,7 @@ internal fun MainBottomBar(
     onTabSelected: (MainTab) -> Unit,
 ) {
     val (backgroundColor, iconTint) =
-        Color.White to MaterialTheme.colorScheme.onSurface
+        BackgroundColors.Background50 to MaterialTheme.colorScheme.onSurface
 
     Box(modifier = Modifier.background(backgroundColor)) {
         Column {
