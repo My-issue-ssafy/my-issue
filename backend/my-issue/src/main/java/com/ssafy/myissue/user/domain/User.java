@@ -30,5 +30,7 @@ public class User {
                 .build();
     }
 
-    public void touch() { this.lastSeen = Instant.now(); }
+    public void updateFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
 }
