@@ -281,11 +281,16 @@ def build_body_blocks(soup: BeautifulSoup, base_url: str) -> list[dict]:
             return
         if not isinstance(node, Tag):
             return
+
         name = (node.name or "").lower()
         if name in ("style", "script", "noscript", "iframe"):
             return
+
+        # 줄바꿈 처리
         if name in ("br",):
             buf.append("\n")
+
+        # 일반 이미지 처리
         if name in ("img",):
             u = node.get("data-src") or node.get("src") or node.get("data-origin")
             u = _normalize_img_url(u, base_url)
@@ -293,38 +298,51 @@ def build_body_blocks(soup: BeautifulSoup, base_url: str) -> list[dict]:
                 flush_buf()
                 blocks.append({"type": "image", "content": u})
             return
+
+        # 이미지 설명 처리
         if name == "em" and "img_desc" in (node.get("class") or []):
             desc = node.get_text(" ", strip=True)
             if desc:
                 flush_buf()
                 blocks.append({"type": "img_desc", "content": desc})
             return
-        
+
+        # figure/picture 태그 내부 순회
         if name in ("picture", "figure"):
             for child in node.children:
                 walk(child)
             return
+
+        # 클래스 기반 필터링
         cls = " ".join(node.get("class") or [])
-        if any(key in cls for key in ["_VOD_PLAYER_WRAP", "as_addinfo", "media_end_linked", "promotion"]):
+        if any(key in cls for key in ["as_addinfo", "media_end_linked", "promotion"]):
             return
+
+        # 🎯 영상 기사 썸네일 처리
         if "_VOD_PLAYER_WRAP" in cls:
             thumb_url = (
                 node.get("data-cover-image-thumbnail-url")
-                or node.get("data-cover-image-url")  # fallback
+                or node.get("data-cover-image-url")   # fallback
             )
             if thumb_url:
                 flush_buf()
                 blocks.append({"type": "image", "content": thumb_url})
             return
+
+        # 재귀적으로 하위 노드 순회
         for child in node.children:
             walk(child)
+
+        # 문단/블록 태그 끝나면 줄바꿈 추가
         if name in ("p", "div", "li", "section", "article", "blockquote"):
             buf.append("\n")
 
+    # root의 자식부터 순회
     for child in root.children:
         walk(child)
     flush_buf()
 
+    # 텍스트 정리
     cleaned = []
     for b in blocks:
         if b["type"] == "text":
@@ -334,6 +352,7 @@ def build_body_blocks(soup: BeautifulSoup, base_url: str) -> list[dict]:
             cleaned.append({"type": "text", "content": t})
         else:
             cleaned.append(b)
+
     return cleaned
 
 def build_body_markdown(soup: BeautifulSoup, base_url: str) -> str | None:
