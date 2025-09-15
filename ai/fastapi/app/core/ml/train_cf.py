@@ -59,6 +59,55 @@ def mark_trained_today():
     with open(STATE_PATH, "w", encoding="utf-8") as f:
         f.write(today_kst_str())
 
+def cleanup_old_csv_files(data_dir: str, days_to_keep: int = 14):
+    """
+    2주 이상 된 interactions_*.csv 파일들을 자동 삭제
+    
+    Args:
+        data_dir: 데이터 디렉토리 경로
+        days_to_keep: 보관할 일수 (기본값: 14일)
+    """
+    import glob
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    
+    # interactions_YYYYMMDD.csv 패턴의 파일들 찾기
+    csv_pattern = os.path.join(data_dir, "interactions_*.csv")
+    csv_files = glob.glob(csv_pattern)
+    
+    if not csv_files:
+        return
+    
+    # 기준 날짜 계산 (오늘부터 days_to_keep일 전)
+    cutoff_date = datetime.now().date() - timedelta(days=days_to_keep)
+    deleted_count = 0
+    
+    print(f"[INFO] {days_to_keep}일 이전 CSV 파일 정리 중 (기준: {cutoff_date})")
+    
+    for csv_file in csv_files:
+        try:
+            # 파일명에서 날짜 추출 (interactions_YYYYMMDD.csv)
+            filename = Path(csv_file).stem
+            if filename.startswith("interactions_") and len(filename) == 21:  # interactions_ + 8자리 날짜
+                date_str = filename.split("_")[1]  # YYYYMMDD 부분
+                if len(date_str) == 8 and date_str.isdigit():
+                    file_date = datetime.strptime(date_str, "%Y%m%d").date()
+                    
+                    # 기준 날짜보다 오래된 파일 삭제
+                    if file_date < cutoff_date:
+                        os.remove(csv_file)
+                        file_size = Path(csv_file).stat().st_size / (1024*1024) if Path(csv_file).exists() else 0
+                        print(f"[INFO] 삭제됨: {Path(csv_file).name} ({file_date}, {file_size:.1f}MB)")
+                        deleted_count += 1
+                        
+        except (ValueError, OSError) as e:
+            print(f"[WARNING] 파일 처리 실패: {Path(csv_file).name} - {e}")
+    
+    if deleted_count > 0:
+        print(f"[INFO] {deleted_count}개 오래된 CSV 파일 정리 완료")
+    else:
+        print(f"[INFO] 삭제할 오래된 CSV 파일 없음")
+
 # 4) 협업 필터링 모델 학습을 위한 사용자-뉴스 상호작용 데이터 추출
 def fetch_interactions(client: bigquery.Client) -> pd.DataFrame:
     """
@@ -451,8 +500,13 @@ def main():
     # 추출된 상호작용 데이터를 CSV로 저장 (EDA 및 추후 분석용)
     if not df.empty:
         csv_filename = f"interactions_{today_kst_str()}.csv"
-        csv_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data", csv_filename)
-        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+        data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data")
+        csv_path = os.path.join(data_dir, csv_filename)
+        os.makedirs(data_dir, exist_ok=True)
+        
+        # 2주 이전 CSV 파일들 정리
+        cleanup_old_csv_files(data_dir, days_to_keep=14)
+        
         df.to_csv(csv_path, index=False, encoding='utf-8-sig')
         print(f"[INFO] Interactions data saved to {csv_path}")
 
