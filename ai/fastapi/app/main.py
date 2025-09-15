@@ -3,7 +3,11 @@ from fastapi import FastAPI
 from app.utils.scheduler import start_scheduler
 from app.api.endpoints.crawler import router as crawler_router
 
-app = FastAPI(title="News Recommendation System", version="1.0.0")
+app = FastAPI(
+  title="News Recommendation System",
+  version="1.0.0"
+  root_path="/fastapi",
+)
 
 # API 라우터 등록
 app.include_router(crawler_router, prefix="/api", tags=["crawler"])
