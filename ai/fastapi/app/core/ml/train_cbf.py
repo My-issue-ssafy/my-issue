@@ -6,6 +6,7 @@ import pickle
 import json
 import numpy as np
 import pandas as pd
+import psutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
@@ -13,10 +14,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import normalize
+from tqdm import tqdm
 
 from app.config import PROJECT_ID, DEFAULT_DATASET, LOOKBACK_DAYS
 from app.core.analytics.bq import get_client, get_latest_date
-from app.core.ml.train_cf import fetch_interactions, today_kst_str, already_trained_today as cf_already_trained_today
+from app.core.ml.train_cf import today_kst_str, already_trained_today as cf_already_trained_today
 from app.db.models.news import News
 from app.utils.config import settings
 
@@ -59,172 +61,184 @@ def load_news_embeddings() -> Tuple[pd.DataFrame, np.ndarray]:
     
     db = SessionLocal()
     try:
-        # 24시간 이내 뉴스만 조회 (한국 시간 기준)
+        # 24시간 이내의 임베딩이 있는 뉴스 조회
         kst = ZoneInfo("Asia/Seoul")
-        now = datetime.now(kst)
-        yesterday = now - timedelta(days=1)
-        
-        print(f"[INFO] Loading news from {yesterday.strftime('%Y-%m-%d %H:%M')} to {now.strftime('%Y-%m-%d %H:%M')} (KST)")
-        
-        # 임베딩이 있고 24시간 이내 작성된 뉴스만 조회
+        now_kst = datetime.now(kst)
+        yesterday_kst = now_kst - timedelta(hours=24)
+
+        print(f"[INFO] 최근 24시간 임베딩 뉴스 로드 중 ({yesterday_kst.strftime('%Y-%m-%d %H:%M')} ~ {now_kst.strftime('%Y-%m-%d %H:%M')})")
+
+        # 24시간 이내 + 임베딩이 있는 뉴스 조회
         news_query = db.query(News).filter(
             News.embedding.isnot(None),
-            News.created_at >= yesterday,
-            News.created_at <= now
-        ).all()
+            News.created_at >= yesterday_kst
+        ).order_by(News.created_at.desc()).all()
         
         if not news_query:
-            print("[WARNING] No recent news with embeddings found in database")
-            print(f"[DEBUG] Trying to load any news with embeddings for testing...")
-            
-            # 24시간 제한 없이 최신 1000개만 조회 (테스트용)
-            news_query = db.query(News).filter(
-                News.embedding.isnot(None)
-            ).order_by(News.created_at.desc()).limit(1000).all()
-            
-            if not news_query:
-                print("[ERROR] No news with embeddings found at all")
-                return pd.DataFrame(), np.array([])
-            else:
-                print(f"[INFO] Loaded latest {len(news_query)} news for testing")
+            print("[ERROR] 임베딩이 있는 뉴스를 찾을 수 없습니다")
+            return pd.DataFrame(), np.array([])
         
-        # 뉴스 메타데이터 DataFrame 생성
-        news_data = []
-        embeddings = []
-        
-        for news in news_query:
-            news_data.append({
+        # 뉴스 메타데이터 DataFrame 생성 (최적화된 방식)
+        print(f"[INFO] {len(news_query)}개 뉴스 임베딩 처리 중 (최적화됨)...")
+
+        # 리스트 컴프리헨션으로 한 번에 처리 (메모리 효율성 개선)
+        news_data = [
+            {
                 'news_id': news.id,
                 'title': news.title,
                 'category': news.category,
                 'news_paper': news.news_paper,
                 'created_at': news.created_at,
                 'views': news.views
-            })
-            embeddings.append(news.embedding)
-        
+            }
+            for news in news_query
+        ]
+
+        # 임베딩도 한 번에 추출 (tqdm 제거로 오버헤드 감소)
+        embeddings = [news.embedding for news in news_query]
+
         news_df = pd.DataFrame(news_data)
         embeddings_matrix = np.array(embeddings)
         
-        print(f"[INFO] Loaded {len(news_df)} news with embeddings")
-        print(f"[INFO] Embedding dimension: {embeddings_matrix.shape[1] if len(embeddings_matrix) > 0 else 0}")
-        print(f"[INFO] Date range: {news_df['created_at'].min()} ~ {news_df['created_at'].max()}")
+        print(f"[INFO] {len(news_df)}개 임베딩 뉴스 로드 완료")
+        print(f"[INFO] 임베딩 차원: {embeddings_matrix.shape[1] if len(embeddings_matrix) > 0 else 0}")
+        print(f"[INFO] 날짜 범위: {news_df['created_at'].min()} ~ {news_df['created_at'].max()}")
+
+        # 메모리 사용량 출력
+        memory_mb = embeddings_matrix.nbytes / (1024 * 1024)
+        print(f"[INFO] 임베딩 행렬 메모리 사용량: {memory_mb:.1f}MB")
+        process = psutil.Process()
+        total_memory_mb = process.memory_info().rss / (1024 * 1024)
+        print(f"[INFO] 현재 프로세스 총 메모리: {total_memory_mb:.1f}MB")
         
         return news_df, embeddings_matrix
         
     except Exception as e:
-        print(f"[ERROR] Failed to load news embeddings: {e}")
+        print(f"[ERROR] 뉴스 임베딩 로드 실패: {e}")
         return pd.DataFrame(), np.array([])
     finally:
         db.close()
 
-def create_user_profiles(interactions_df: pd.DataFrame, news_df: pd.DataFrame, 
+def create_user_profiles(interactions_df: pd.DataFrame, news_df: pd.DataFrame,
                         embeddings_matrix: np.ndarray) -> Tuple[Dict, Dict]:
     """
-    사용자별 프로필 벡터 생성 (상호작용한 뉴스들의 가중 평균 임베딩)
-    
+    사용자별 프로필 벡터 생성 (최적화된 가중 평균 임베딩)
+
     Args:
         interactions_df: 사용자-뉴스 상호작용 데이터
         news_df: 뉴스 메타데이터
         embeddings_matrix: 뉴스 임베딩 행렬
-        
+
     Returns:
         user_profiles: {user_id: profile_vector}
         user_stats: {user_id: {'total_interactions': int, 'avg_strength': float}}
     """
     if embeddings_matrix.size == 0:
         return {}, {}
-    
+
     # 뉴스 ID를 인덱스로 매핑
     news_id_to_idx = {news_id: idx for idx, news_id in enumerate(news_df['news_id'].values)}
-    
+
+    # 상호작용 데이터에 임베딩 인덱스 추가 (벡터화를 위한 전처리)
+    print(f"[INFO] 벡터화를 위한 상호작용 데이터 전처리 중...")
+    interactions_df_copy = interactions_df.copy()
+    interactions_df_copy['embedding_idx'] = interactions_df_copy['news_id'].map(news_id_to_idx)
+
+    # 임베딩이 없는 뉴스 제거
+    valid_interactions = interactions_df_copy.dropna(subset=['embedding_idx'])
+    valid_interactions['embedding_idx'] = valid_interactions['embedding_idx'].astype(int)
+
     user_profiles = {}
     user_stats = {}
-    
-    for user_id in interactions_df['user_id'].unique():
-        user_interactions = interactions_df[interactions_df['user_id'] == user_id]
-        
-        # 해당 사용자가 상호작용한 뉴스들의 임베딩과 강도
-        user_embeddings = []
-        user_weights = []
-        
-        for _, row in user_interactions.iterrows():
-            news_id = row['news_id']
-            strength = row['strength']
-            
-            if news_id in news_id_to_idx:
-                idx = news_id_to_idx[news_id]
-                user_embeddings.append(embeddings_matrix[idx])
-                user_weights.append(strength)
-        
-        if user_embeddings:
-            user_embeddings = np.array(user_embeddings)
-            user_weights = np.array(user_weights)
-            
+
+    unique_users = valid_interactions['user_id'].unique()
+    print(f"[INFO] {len(unique_users)}명 사용자 프로필 생성 중 (최적화됨)...")
+
+    # 사용자별로 그룹화하여 한번에 처리
+    grouped = valid_interactions.groupby('user_id')
+
+    for user_id, user_data in tqdm(grouped, desc="Creating user profiles"):
+        # 해당 사용자의 모든 임베딩과 가중치를 한 번에 추출
+        embedding_indices = user_data['embedding_idx'].values
+        weights = user_data['strength'].values
+
+        if len(embedding_indices) > 0:
+            # 벡터화된 임베딩 추출 (fancy indexing)
+            user_embeddings = embeddings_matrix[embedding_indices]
+
             # 가중 평균으로 사용자 프로필 생성
-            profile_vector = np.average(user_embeddings, axis=0, weights=user_weights)
-            
+            profile_vector = np.average(user_embeddings, axis=0, weights=weights)
+
             # 정규화
             profile_vector = normalize([profile_vector])[0]
-            
+
             user_profiles[user_id] = profile_vector
             user_stats[user_id] = {
-                'total_interactions': len(user_interactions),
-                'avg_strength': user_interactions['strength'].mean(),
-                'interacted_news_count': len(user_embeddings)
+                'total_interactions': len(user_data),
+                'avg_strength': user_data['strength'].mean(),
+                'interacted_news_count': len(embedding_indices)
             }
-    
-    print(f"[INFO] Created profiles for {len(user_profiles)} users")
+
+    print(f"[INFO] {len(user_profiles)}명 사용자 프로필 생성 완료")
     return user_profiles, user_stats
 
-def generate_recommendations(user_profiles: Dict, news_df: pd.DataFrame, 
+def generate_recommendations(user_profiles: Dict, news_df: pd.DataFrame,
                            embeddings_matrix: np.ndarray, top_k: int = 50) -> Dict:
     """
-    사용자별 CBF 추천 생성 (코사인 유사도 기반)
-    
+    사용자별 CBF 추천 생성 (벡터화 연산으로 최적화된 코사인 유사도 기반)
+
     Args:
         user_profiles: 사용자 프로필 벡터들
         news_df: 뉴스 메타데이터
         embeddings_matrix: 뉴스 임베딩 행렬
         top_k: 사용자별 추천할 뉴스 수
-        
+
     Returns:
         recommendations: {user_id: [{'news_id': int, 'score': float, 'title': str}, ...]}
     """
     if embeddings_matrix.size == 0:
         return {}
-    
-    recommendations = {}
-    
-    # 뉴스 임베딩 정규화 (코사인 유사도 계산 최적화)
+
+    # 뉴스 임베딩 정규화 (한 번만 수행)
+    print(f"[INFO] 임베딩 행렬 정규화 중 ({embeddings_matrix.shape})...")
     normalized_embeddings = normalize(embeddings_matrix)
-    
-    for user_id, profile_vector in user_profiles.items():
-        # 사용자 프로필과 모든 뉴스 간의 코사인 유사도 계산
-        similarities = cosine_similarity([profile_vector], normalized_embeddings)[0]
-        
+
+    # 사용자 프로필을 행렬로 변환 (벡터화 연산을 위해)
+    user_ids = list(user_profiles.keys())
+    user_profiles_matrix = np.array(list(user_profiles.values()))
+
+    print(f"[INFO] {len(user_profiles)}명 사용자 추천 생성 중 (벡터화 연산)...")
+
+    # 모든 사용자-뉴스 간 유사도를 한 번에 계산 (벡터화 연산)
+    all_similarities = cosine_similarity(user_profiles_matrix, normalized_embeddings)
+
+    # 각 사용자별로 추천 결과 생성
+    recommendations = {}
+    for i, user_id in enumerate(tqdm(user_ids, desc="Processing user recommendations")):
+        similarities = all_similarities[i]
+
         # 유사도 순으로 정렬
         similar_indices = np.argsort(-similarities)[:top_k]
-        
+
         user_recommendations = []
         for idx in similar_indices:
             news_id = news_df.iloc[idx]['news_id']
             score = similarities[idx]
             title = news_df.iloc[idx]['title']
             category = news_df.iloc[idx]['category']
-            
+
             user_recommendations.append({
                 'news_id': int(news_id),
                 'score': float(score),
                 'title': title,
                 'category': category
             })
-        
+
         recommendations[user_id] = user_recommendations
-    
-    print(f"[INFO] Generated recommendations for {len(recommendations)} users")
-    print(f"[INFO] Average recommendations per user: {top_k}")
-    
+
+    print(f"[INFO] {len(recommendations)}명 사용자 추천 생성 완료")
+    print(f"[INFO] 사용자당 평균 추천 수: {top_k}개")
+
     return recommendations
 
 def save_cbf_model(recommendations: Dict, user_profiles: Dict, user_stats: Dict, 
@@ -266,19 +280,90 @@ def save_cbf_model(recommendations: Dict, user_profiles: Dict, user_stats: Dict,
     metadata = {
         'trained_at': cbf_model_data['trained_at'].isoformat(),
         'train_date': cbf_model_data['train_date'],
-        'total_users': len(user_profiles),
-        'total_news': news_count,
-        'embedding_dim': embedding_dim,
+        'total_users': int(len(user_profiles)),
+        'total_news': int(news_count),
+        'embedding_dim': int(embedding_dim),
         'model_file': str(CBF_MODEL_PATH.name),
-        'sample_users': list(recommendations.keys())[:5] if recommendations else []
+        'sample_users': [int(uid) for uid in list(recommendations.keys())[:5]] if recommendations else []
     }
     
     with open(CBF_METADATA_PATH, 'w', encoding='utf-8') as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
     
-    print(f"[INFO] CBF model saved to {CBF_MODEL_PATH}")
-    print(f"[INFO] CBF metadata saved to {CBF_METADATA_PATH}")
-    print(f"[INFO] Users: {len(user_profiles)}, News: {news_count}")
+    print(f"[INFO] CBF 모델 저장 완료: {CBF_MODEL_PATH}")
+    print(f"[INFO] CBF 메타데이터 저장 완료: {CBF_METADATA_PATH}")
+    print(f"[INFO] 사용자: {len(user_profiles)}명, 뉴스: {news_count}개")
+
+def load_interactions_from_csv() -> pd.DataFrame:
+    """
+    data/ 디렉토리의 interactions_*.csv 파일들을 모두 읽어서 통합된 상호작용 데이터 반환
+    
+    Returns:
+        interactions_df: 사용자-뉴스 상호작용 DataFrame (user_id, news_id, strength)
+    """
+    import glob
+    
+    # data 디렉토리의 모든 interactions_*.csv 파일 찾기
+    data_dir = Path(__file__).resolve().parent.parent.parent.parent / "data"
+    csv_pattern = str(data_dir / "interactions_*.csv")
+    csv_files = glob.glob(csv_pattern)
+    
+    # 14일치 → 1일치로 변경: 가장 최신 파일만 사용
+    if csv_files:
+        # 파일명으로 정렬해서 가장 최신 파일 하나만 선택 (interactions_YYYYMMDD.csv 형식)
+        csv_files = [sorted(csv_files)[-1]]
+        print(f"[INFO] 최신 CSV 파일 1개만 사용 (1일치 데이터)")
+    
+    if not csv_files:
+        print(f"[ERROR] {data_dir}에서 상호작용 CSV 파일을 찾을 수 없습니다")
+        return pd.DataFrame()
+    
+    print(f"[INFO] {len(csv_files)}개 상호작용 CSV 파일 발견:")
+    for f in sorted(csv_files):
+        file_size = Path(f).stat().st_size / (1024*1024)  # MB
+        print(f"  - {Path(f).name} ({file_size:.1f}MB)")
+    
+    # 모든 CSV 파일을 읽어서 통합
+    dfs = []
+    total_rows = 0
+    
+    print(f"[INFO] CSV 파일 로드 중...")
+    for csv_file in tqdm(sorted(csv_files), desc="Loading CSV files"):
+        try:
+            print(f"  Loading {Path(csv_file).name}... ", end="")
+            df = pd.read_csv(csv_file, encoding='utf-8-sig')
+            # 컬럼명 정리 (BOM 제거)
+            df.columns = df.columns.str.strip()
+            
+            if not df.empty and all(col in df.columns for col in ['user_id', 'news_id', 'strength']):
+                dfs.append(df)
+                total_rows += len(df)
+                print(f"OK ({len(df):,} interactions)")
+            else:
+                print(f"ERROR - Missing required columns")
+                
+        except Exception as e:
+            print(f"ERROR - {e}")
+    
+    if not dfs:
+        print("[ERROR] CSV 파일에서 유효한 상호작용 데이터를 로드할 수 없습니다")
+        return pd.DataFrame()
+    
+    # 모든 데이터를 통합하고 중복 제거
+    print(f"[INFO] 데이터 통합 및 중복 제거 중...")
+    combined_df = pd.concat(dfs, ignore_index=True)
+    
+    # 같은 user_id, news_id 조합이 있으면 strength 값을 합계 (상호작용 누적)
+    print(f"[INFO] user_id와 news_id로 그룹화 중...")
+    combined_df = combined_df.groupby(['user_id', 'news_id'], as_index=False)['strength'].sum()
+    
+    print(f"[INFO] 총 상호작용 로드: {total_rows:,}개")
+    print(f"[INFO] 중복 제거 후: {len(combined_df):,}개")
+    print(f"[INFO] 고유 사용자: {combined_df['user_id'].nunique():,}명")
+    print(f"[INFO] 고유 뉴스: {combined_df['news_id'].nunique():,}개")
+    print(f"[INFO] 상호작용 강도 범위: {combined_df['strength'].min():.2f} ~ {combined_df['strength'].max():.2f}")
+    
+    return combined_df
 
 def test_cbf_recommendations(recommendations: Dict, user_stats: Dict, interactions_df: pd.DataFrame, num_test_users: int = 3):
     """
@@ -291,7 +376,7 @@ def test_cbf_recommendations(recommendations: Dict, user_stats: Dict, interactio
         num_test_users: 테스트할 사용자 수
     """
     if not recommendations:
-        print("[WARNING] No recommendations to test")
+        print("[WARNING] 테스트할 추천 결과가 없습니다")
         return
     
     print(f"\n{'='*60}")
@@ -369,42 +454,41 @@ def main():
     
     # 1. 이미 오늘 CBF 학습을 완료했는지 확인
     if already_trained_cbf_today():
-        print("[SKIP] CBF model already trained today.")
+        print("[SKIP] 오늘 이미 CBF 모델 학습을 완료했습니다.")
         return
     
-    # 2. BigQuery에서 사용자 상호작용 데이터 로드 (CF와 동일한 데이터 사용)
+    # 2. CSV 파일에서 사용자 상호작용 데이터 로드
     try:
-        client = get_client()
-        interactions_df = fetch_interactions(client)
-        print(f"[INFO] Loaded {len(interactions_df)} user interactions")
+        interactions_df = load_interactions_from_csv()
+        print(f"[INFO] CSV 파일에서 {len(interactions_df)}개 사용자 상호작용 로드 완룼")
         
         if interactions_df.empty:
-            print("[SKIP] No interaction data available for CBF training")
+            print("[SKIP] CBF 학습에 사용할 상호작용 데이터가 없습니다")
             return
             
     except Exception as e:
-        print(f"[ERROR] Failed to load interaction data: {e}")
+        print(f"[ERROR] CSV에서 상호작용 데이터 로드 실패: {e}")
         return
     
     # 3. PostgreSQL에서 뉴스 임베딩 데이터 로드
     news_df, embeddings_matrix = load_news_embeddings()
     
     if news_df.empty or embeddings_matrix.size == 0:
-        print("[SKIP] No news embeddings available for CBF training")
+        print("[SKIP] CBF 학습에 사용할 뉴스 임베딩이 없습니다")
         return
     
     # 4. 사용자별 프로필 벡터 생성
     user_profiles, user_stats = create_user_profiles(interactions_df, news_df, embeddings_matrix)
     
     if not user_profiles:
-        print("[SKIP] No user profiles created for CBF training")
+        print("[SKIP] CBF 학습을 위한 사용자 프로필이 생성되지 않았습니다")
         return
     
     # 5. CBF 추천 생성
     recommendations = generate_recommendations(user_profiles, news_df, embeddings_matrix, top_k=50)
     
     if not recommendations:
-        print("[SKIP] No recommendations generated")
+        print("[SKIP] 추천 결과가 생성되지 않았습니다")
         return
     
     # 6. CBF 모델 저장
