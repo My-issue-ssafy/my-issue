@@ -5,7 +5,7 @@ from app.api.endpoints.crawler import router as crawler_router
 
 app = FastAPI(
   title="News Recommendation System",
-  version="1.0.0"
+  version="1.0.0",
   root_path="/fastapi",
 )
 
