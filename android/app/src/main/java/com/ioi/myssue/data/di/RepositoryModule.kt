@@ -1,6 +1,5 @@
 package com.ioi.myssue.data.di
 
-import com.ioi.myssue.data.repository.AuthRepositoryImpl
 import com.ioi.myssue.data.repository.fake.FakeCartoonRepositoryImpl
 import com.ioi.myssue.data.repository.FakeNewsRepositoryImpl
 import com.ioi.myssue.domain.repository.AuthRepository
@@ -15,10 +14,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 interface RepositoryModule {
-
-    @Singleton
-    @Binds
-    fun bindAuthRepository(repository: AuthRepositoryImpl): AuthRepository
 
     @Singleton
     @Binds
