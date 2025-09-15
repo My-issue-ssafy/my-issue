@@ -59,7 +59,17 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+
     @PostMapping("/fcm")
+    @Operation(
+            summary = "유저 FCM 토큰 등록 API",
+            description = """
+                    ### - FCM 토큰을 등록
+                    ### - 헤더의 AccessToken을 통해 사용자 인증
+                    ### - 요청 바디에 FCM 토큰 전달
+                    ### - 성공 시 204 No Content 응답
+                """
+    )
     public ResponseEntity<Void> registerFcmToken(@AuthenticationPrincipal Long userId, @RequestBody RegisterFcmTokenRequest request) {
         log.debug("[FCM 토큰 등록 - RequestBody] fcmToken: {}", request.fcmToken());
         authService.registerFcmToken(userId, request.fcmToken());
