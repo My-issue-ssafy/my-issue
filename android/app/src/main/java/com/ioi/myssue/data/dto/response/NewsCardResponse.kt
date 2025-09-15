@@ -7,41 +7,41 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-data class NewsContentDto(
+data class NewsContentResponse(
     val type: String,
     val content: String
 )
 
 @Serializable
-data class NewsResponse(
-    val id : Int,
+data class NewsCardResponse(
+    val newsId : Long,
     val title: String,
-    val content: List<NewsContentDto>,
-    val url: String,
-    val img: String,
+    val content: List<NewsContentResponse>,
     val category: String,
+    val author: String,
+    val newspaper: String,
     val createdAt: String,
     val relativeTime: String,
     val views: Int,
-    val author: String,
-    val newspaper: String,
+    val url: String,
+    val img: String?,
 )
 
-fun NewsResponse.toDomain(time: TimeConverter) = News(
-    id = id,
+fun NewsCardResponse.toDomain(time: TimeConverter) = News(
+    newsId = newsId,
     title = title,
     content = content.toDomainBlocks(),
-    url = url,
-    img = img,
     category = category,
+    author = author,
+    newspaper = newspaper,
     createdAt = time.toDisplay(createdAt),
     relativeTime = time.toRelative(createdAt),
     views = views,
-    author = author,
-    newspaper = newspaper,
+    url = url,
+    img = img,
 )
 
-private fun List<NewsContentDto>.toDomainBlocks(): List<NewsBlock> =
+private fun List<NewsContentResponse>.toDomainBlocks(): List<NewsBlock> =
     mapNotNull { dto ->
         when (dto.type.lowercase()) {
             "image" -> NewsBlock.Image(dto.content)

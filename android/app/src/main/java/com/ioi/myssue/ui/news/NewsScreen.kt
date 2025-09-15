@@ -1,6 +1,5 @@
 package com.ioi.myssue.ui.news
 
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,16 +15,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ioi.myssue.R
-import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.domain.model.News
 
@@ -37,38 +32,39 @@ val NewsFeedType.title: String
 @Composable
 fun NewsScreen(
     viewModel: NewsMainViewModel = hiltViewModel(),
+    newsDetailViewModel: NewsDetailViewModel = hiltViewModel()
 ) {
-    val items = viewModel.state.collectAsState()
-    var selected by rememberSaveable { mutableStateOf<News?>(null) }
+    val newsItems = viewModel.state.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val detailState by newsDetailViewModel.uiState.collectAsState()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(4.dp)
     ) {
         NewsHOT(
-            list = items.value.hot,
-            onItemClick = { selected = it },
+            list = newsItems.value.hot,
+            onItemClick = { newsDetailViewModel.open(it.newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.HOT) }
         )
         NewsRecommend(
-            list = items.value.recommend,
-            onItemClick = { selected = it },
+            list = newsItems.value.recommend,
+            onItemClick = { newsDetailViewModel.open(it.newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) }
         )
         NewsRecent(
-            list = items.value.recent,
-            onItemClick = { selected = it },
+            list = newsItems.value.recent,
+            onItemClick = { newsDetailViewModel.open(it.newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECENT) }
         )
     }
 
     // 바텀시트
-    if (selected != null) {
+    if (detailState.isOpen) {
         NewsDetail(
-            newsId = selected!!.id,
+            newsId = detailState.newsId,
             sheetState = sheetState,
-            onDismiss = { selected = null }
+            onDismiss = { newsDetailViewModel.close() }
         )
     }
 }
@@ -78,7 +74,8 @@ fun NewsScreen(
 @Composable
 fun NewsAllScreen(
     type: NewsFeedType,
-    viewModel: NewsAllViewModel = hiltViewModel()
+    viewModel: NewsAllViewModel = hiltViewModel(),
+    newsDetailViewModel: NewsDetailViewModel = hiltViewModel()
 ) {
     LaunchedEffect(type) {
         when (type) {
@@ -91,7 +88,7 @@ fun NewsAllScreen(
     val page by viewModel.state.collectAsState()
     val items = page.items
 
-    var selected by rememberSaveable { mutableStateOf<News?>(null) }
+    val detailState by newsDetailViewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // 바닥에서 스크롤 시 다음 뉴스 로딩
@@ -114,22 +111,24 @@ fun NewsAllScreen(
 
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize().background(BackgroundColors.Background50),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundColors.Background50),
         contentPadding = PaddingValues(4.dp)
     ) {
         item { NewsSectionHeader(type.title, onAllClick = null) }
         NewsAll(
             list = items,
-            onItemClick = { selected = it }
+            onItemClick = { news -> newsDetailViewModel.open(news.newsId)}
         )
     }
 
     // 바텀시트
-    if (selected != null) {
+    if (detailState.isOpen) {
         NewsDetail(
-            newsId = selected!!.id,
+            newsId = detailState.newsId,
             sheetState = sheetState,
-            onDismiss = { selected = null }
+            onDismiss = { newsDetailViewModel.close() }
         )
     }
 }

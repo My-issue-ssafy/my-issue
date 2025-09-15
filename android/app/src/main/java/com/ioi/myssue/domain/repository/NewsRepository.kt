@@ -9,7 +9,7 @@ interface NewsRepository {
     suspend fun getHotNews(cursor: String? = null, pageSize: Int = 20): NewsPage
     suspend fun getRecommendNews(cursor: String? = null, pageSize: Int = 20): NewsPage
     suspend fun getRecentNews(cursor: String? = null, pageSize: Int = 20): NewsPage
-    suspend fun getNewsById(id: Int): News
-    suspend fun isBookmarked(newsId: Int): Boolean
-    suspend fun setBookmarked(newsId: Int, target: Boolean): Boolean
+    suspend fun getNewsById(newsId: Long): News
+    suspend fun isBookmarked(newsId: Long): Boolean
+    suspend fun setBookmarked(newsId: Long, target: Boolean): Boolean
 }

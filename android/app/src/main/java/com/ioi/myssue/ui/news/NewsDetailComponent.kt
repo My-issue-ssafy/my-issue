@@ -1,10 +1,8 @@
 package com.ioi.myssue.ui.news
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalBottomSheet
@@ -50,7 +47,6 @@ import coil.compose.AsyncImage
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background500
-import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.model.NewsBlock
 import com.ioi.myssue.ui.common.clickableNoRipple
 import kotlinx.coroutines.flow.collectLatest
@@ -58,7 +54,7 @@ import kotlinx.coroutines.flow.collectLatest
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsDetail(
-    newsId: Int,
+    newsId: Long?,
     sheetState: SheetState,
     onDismiss: () -> Unit,
     viewModel: NewsDetailViewModel = hiltViewModel()

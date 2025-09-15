@@ -1,6 +1,5 @@
 package com.ioi.myssue.data.repository
 
-import android.util.Log
 import com.ioi.myssue.common.util.TimeConverter
 import com.ioi.myssue.domain.model.MainNewsList
 import com.ioi.myssue.domain.model.News
@@ -51,17 +50,17 @@ class FakeNewsRepositoryImpl @Inject constructor(
 
     // 기사 id 생성용
     private companion object {
-        const val HOT_ID_START = 10_000
-        const val RECOMMEND_ID_START = 20_000
-        const val RECENT_ID_START = 30_000
+        const val HOT_ID_START: Long = 10_000
+        const val RECOMMEND_ID_START: Long  = 20_000
+        const val RECENT_ID_START: Long  = 30_000
     }
 
     // 더미 데이터 뉴스 생성
-    private fun makeNews(idStart: Int, count: Int, content: List<NewsBlock>): List<News> =
+    private fun makeNews(newsId: Long, count: Int, content: List<NewsBlock>): List<News> =
         List(count) { idx ->
-            val id = idStart + idx
+            val id = newsId + idx
             News(
-                id = id,
+                newsId = id,
                 title = "$idx 갈 곳도, 볼 것도, 사랑도 없다”…절벽으로 내몰리는 노인들",
                 content = content,
                 url = "https://example.com/$idx",
@@ -105,19 +104,19 @@ class FakeNewsRepositoryImpl @Inject constructor(
     override suspend fun getRecentNews(cursor: String?, pageSize: Int): NewsPage =
         page(recentAll, cursor, pageSize)
 
-    override suspend fun getNewsById(id: Int): News {
+    override suspend fun getNewsById(newsId: Long): News {
         return (hotAll + recommendAll + recentAll)
-            .firstOrNull { it.id == id }
-            ?: throw NoSuchElementException("News(id=$id) not found")
+            .firstOrNull { it.newsId == newsId }
+            ?: throw NoSuchElementException("News not found")
     }
 
-    private val bookmarkedIds = MutableStateFlow<Set<Int>>(emptySet())
+    private val bookmarkedIds = MutableStateFlow<Set<Long>>(emptySet())
 
-    override suspend fun isBookmarked(newsId: Int): Boolean {
+    override suspend fun isBookmarked(newsId: Long): Boolean {
         return newsId in bookmarkedIds.value
     }
 
-    override suspend fun setBookmarked(newsId: Int, target: Boolean): Boolean {
+    override suspend fun setBookmarked(newsId: Long, target: Boolean): Boolean {
         bookmarkedIds.update { old ->
             if (target) old + newsId else old - newsId
         }

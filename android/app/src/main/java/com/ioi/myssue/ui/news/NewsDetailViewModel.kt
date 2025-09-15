@@ -1,10 +1,7 @@
 package com.ioi.myssue.ui.news
 
-import android.util.Log
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.repository.NewsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -28,16 +25,26 @@ class NewsDetailViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<NewsDetailEffect>()
     val effect = _effect.asSharedFlow()
 
-    fun getNewsDetail(newsId: Int) {
+    fun open(newsId: Long) {
+        _uiState.update { it.copy(newsId = newsId, isOpen = true) }
+        getNewsDetail(newsId)
+    }
+
+    fun close() {
+        _uiState.update { it.copy(isOpen = false) }
+    }
+
+    fun getNewsDetail(newsId: Long?) {
+        if(newsId == null) return
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
             runCatching { repository.getNewsById(newsId) }
                 .onSuccess { news ->
-                    val bookmarked = repository.isBookmarked(news.id)
+                    val bookmarked = repository.isBookmarked(news.newsId)
                     _uiState.update {
                         it.copy(
                             loading = false,
-                            newsId = news.id,
+                            newsId = news.newsId,
                             title = news.title,
                             author = news.author,
                             newspaper = news.newspaper,

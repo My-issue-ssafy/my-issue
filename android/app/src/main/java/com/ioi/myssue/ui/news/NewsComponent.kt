@@ -135,7 +135,7 @@ fun HotNewsSlide(
             .clickable { onClick() },
     ) {
         Box(Modifier.fillMaxSize()) {
-            if (news.img.isBlank()) {
+            if (news.img == null) {
                 Image(
                     painter = painterResource(R.drawable.ic_empty_thumbnail),
                     contentDescription = null,

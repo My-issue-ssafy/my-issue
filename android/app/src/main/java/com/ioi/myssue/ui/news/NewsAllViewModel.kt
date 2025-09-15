@@ -48,10 +48,10 @@ class NewsAllViewModel @Inject constructor(
                 }
         }
 
-    fun getAllRecentNews(cursor: String? = _state.value.nextCursor, pageSize: Int = 10) =
+    fun getAllRecentNews(cursor: String? = _state.value.nextCursor, size: Int = 10) =
         viewModelScope.launch {
             runCatching {
-                fakeNewsRepository.getRecentNews(cursor, pageSize)
+                fakeNewsRepository.getRecentNews(cursor, size)
             }
                 .onSuccess { page ->
                     _state.value = _state.value.copy(
