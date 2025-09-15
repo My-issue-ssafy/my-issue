@@ -24,7 +24,7 @@ public class JwtIssuer {
 
     /** Access JWT 발급 */
     public String createAccess(Long userId) {
-        return buildJwt(userId, "access", Duration.ofMinutes(30));
+        return buildJwt(userId, "access", Duration.ofMinutes(1));
     }
 
     /** Refresh JWT 발급 */
@@ -56,14 +56,6 @@ public class JwtIssuer {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-    }
-
-    public boolean isRefresh(String token) {
-        try {
-            return "refresh".equals(parse(token).get("type", String.class));
-        } catch (JwtException e) {
-            return false;
-        }
     }
 
     public String getJti(String token) {
