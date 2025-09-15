@@ -319,10 +319,11 @@ def build_body_blocks(soup: BeautifulSoup, base_url: str) -> list[dict]:
             return
 
         # 🎯 영상 기사 썸네일 처리
-        if "_VOD_PLAYER_WRAP" in cls:
+        cls = " ".join(node.get("class") or [])
+        if "_vod_player_wrap" in cls.lower():
             thumb_url = (
                 node.get("data-cover-image-thumbnail-url")
-                or node.get("data-cover-image-url")   # fallback
+                or node.get("data-cover-image-url")
             )
             if thumb_url:
                 flush_buf()
