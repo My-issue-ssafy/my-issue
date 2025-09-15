@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @AllArgsConstructor
 @RequestMapping("/auth")
-@Tag(name = "Auth", description = "인증/인가(Auth) API")
+@Tag(name = "Auth", description = "인증/인가(Auth) API - 시은")
 public class AuthController {
 
     private final AuthService authService;
@@ -62,12 +62,12 @@ public class AuthController {
 
     @PostMapping("/fcm")
     @Operation(
-            summary = "유저 FCM 토큰 등록 API",
-            description = """
-                    ### - FCM 토큰을 등록
-                    ### - 헤더의 AccessToken을 통해 사용자 인증
-                    ### - 요청 바디에 FCM 토큰 전달
-                    ### - 성공 시 204 No Content 응답
+        summary = "유저 FCM 토큰 등록 API",
+        description = """
+                ### - FCM 토큰을 등록
+                ### - 헤더의 AccessToken을 통해 사용자 인증
+                ### - 요청 바디에 FCM 토큰 전달
+                ### - 성공 시 204 No Content 응답
                 """
     )
     public ResponseEntity<Void> registerFcmToken(@AuthenticationPrincipal Long userId, @RequestBody RegisterFcmTokenRequest request) {

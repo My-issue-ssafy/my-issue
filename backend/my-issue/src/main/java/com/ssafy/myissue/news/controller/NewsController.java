@@ -9,12 +9,14 @@ import com.ssafy.myissue.news.service.NewsScrapService;
 import com.ssafy.myissue.news.service.NewsService;
 import com.ssafy.myissue.common.exception.CustomException;
 import com.ssafy.myissue.common.exception.ErrorCode;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/news")
+@Tag(name = "News", description = "뉴스 API - 진현")
 public class NewsController {
 
     private final NewsService newsService;
