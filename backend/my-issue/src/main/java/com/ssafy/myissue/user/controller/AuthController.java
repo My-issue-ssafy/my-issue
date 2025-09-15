@@ -1,6 +1,5 @@
 package com.ssafy.myissue.user.controller;
 
-import com.ssafy.myissue.user.component.TokenResponseWriter;
 import com.ssafy.myissue.user.dto.RegisterDeviceRequest;
 import com.ssafy.myissue.user.dto.RegisterDeviceResponse;
 import com.ssafy.myissue.user.dto.TokenPairResponse;
@@ -22,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final TokenResponseWriter tokenResponseWriter;
 
     // accessToken: 헤더, refreshToken: 쿠키
     // HttpServletResponse header에 accessToken 담아야 하니 받아야 함
@@ -37,8 +35,7 @@ public class AuthController {
     public ResponseEntity<RegisterDeviceResponse> registerDevice(@RequestBody RegisterDeviceRequest req, HttpServletResponse response) {
         log.debug("[Device 등록 - RequestBody] deviceUuid: {}", req.deviceUuid());
 
-        TokenPairResponse tokenPairResponse = authService.registerOrLogin(req.deviceUuid());
-        tokenResponseWriter.write(tokenPairResponse, response);
+        TokenPairResponse tokenPairResponse = authService.registerOrLogin(req.deviceUuid(), response);
 
         return ResponseEntity.ok(RegisterDeviceResponse.from(tokenPairResponse.userId()));
     }
@@ -56,9 +53,13 @@ public class AuthController {
     public ResponseEntity<Void> rotateRefresh(@Parameter(hidden = true) @CookieValue("refreshToken") String refresh, HttpServletResponse response) {
         log.debug("[Refresh 재발급 - CookieValue] refreshToken: {}", refresh);
 
-        TokenPairResponse tokenPairResponse = authService.rotateRefresh(refresh);
-        tokenResponseWriter.write(tokenPairResponse, response);
+        TokenPairResponse tokenPairResponse = authService.rotateRefresh(refresh, response);
 
         return ResponseEntity.noContent().build();
     }
+
+//    @PostMapping("/fcm")
+//    public ResponseEntity<Void> registerFcmToken() {
+//        return ResponseEntity.ok().build();
+//    }
 }

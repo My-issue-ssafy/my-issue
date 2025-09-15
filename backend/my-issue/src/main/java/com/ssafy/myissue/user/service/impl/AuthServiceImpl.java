@@ -11,8 +11,12 @@ import com.ssafy.myissue.user.token.RefreshStore;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.antlr.v4.runtime.Token;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -27,7 +31,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshStore refreshStore;
 
     @Override
-    public TokenPairResponse registerOrLogin(String deviceUuid) {
+    public TokenPairResponse registerOrLogin(String deviceUuid, HttpServletResponse response) {
         User user = userRepository.findByUuid(deviceUuid);
 
         // 등록되지 않은 uuid -> 등록
@@ -35,11 +39,11 @@ public class AuthServiceImpl implements AuthService {
             user = userRepository.save(User.newOf(deviceUuid));
         }
 
-        return createJwt(user.getId());
+        return createJwt(user.getId(), response);
     }
 
     @Override
-    public TokenPairResponse rotateRefresh(String refreshToken) throws CustomException {
+    public TokenPairResponse rotateRefresh(String refreshToken, HttpServletResponse response) throws CustomException {
         Claims claims;
         try {
             // 1. JWT 파싱 & 만료 확인
@@ -67,11 +71,11 @@ public class AuthServiceImpl implements AuthService {
             throw new CustomException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
-        return createJwt(userId);
+        return createJwt(userId, response);
     }
 
     // 토큰 발급 로직
-    private TokenPairResponse createJwt(Long userId) {
+    private TokenPairResponse createJwt(Long userId, HttpServletResponse response) {
         // 토큰 발급
         String access  = jwtIssuer.createAccess(userId);
         String refresh = jwtIssuer.createRefresh(userId);
@@ -80,6 +84,22 @@ public class AuthServiceImpl implements AuthService {
         String jti = jwtIssuer.getJti(refresh);
         refreshStore.saveLatestJti(userId, jti, Duration.ofDays(14));
 
-        return TokenPairResponse.of(access, refresh, userId);
+        TokenPairResponse tokenPairResponse = TokenPairResponse.of(access, refresh, userId);
+        write(tokenPairResponse, response);
+
+        return tokenPairResponse;
+    }
+
+    // 헤더 및 쿠키에 토큰 심기
+    public void write(TokenPairResponse tokens, HttpServletResponse resp) {
+        String bearer = "Bearer " + tokens.accessToken();
+        resp.setHeader(HttpHeaders.AUTHORIZATION, bearer);
+        resp.setHeader("X-Access-Token", tokens.accessToken());
+        resp.addHeader("Access-Control-Expose-Headers", "Authorization, X-Access-Token");
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", tokens.refreshToken())
+                .httpOnly(true).secure(true).path("/").maxAge(Duration.ofDays(14)).sameSite("Strict")
+                .build();
+        resp.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 }
