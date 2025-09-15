@@ -1,9 +1,12 @@
 package com.ioi.myssue.ui.main
 
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -22,6 +25,7 @@ import com.ioi.myssue.navigation.MainBottomBar
 import com.ioi.myssue.navigation.MainTab
 import com.ioi.myssue.ui.cartoon.CartoonScreen
 import com.ioi.myssue.ui.mypage.MyPageScreen
+import com.ioi.myssue.ui.news.NewsAllScreen
 import com.ioi.myssue.ui.news.NewsScreen
 import com.ioi.myssue.ui.podcast.PodCastScreen
 import com.ioi.myssue.ui.search.SearchScreen
@@ -63,22 +67,13 @@ fun MainScreen(
             ),
             backStack = navBackStack,
             onBack = { navBackStack.removeLastOrNull() },
-            transitionSpec = {
-                ContentTransform(
-                    fadeIn(animationSpec = tween(0)),
-                    fadeOut(animationSpec = tween(0)),
-                )
-            },
-            popTransitionSpec = {
-                ContentTransform(
-                    fadeIn(animationSpec = tween(0)),
-                    fadeOut(animationSpec = tween(0)),
-                )
-            },
+            transitionSpec = {noAnim()},
+            popTransitionSpec = {noAnim()},
             modifier = Modifier.padding(innerPadding),
             entryProvider = { key ->
                 when (key) {
-                    BottomTabRoute.News -> NavEntry(key) {
+                    BottomTabRoute.News -> NavEntry(key,
+                        ) {
                         NewsScreen()
                     }
 
@@ -98,10 +93,30 @@ fun MainScreen(
                         MyPageScreen()
                     }
 
+                    is BottomTabRoute.NewsAll -> NavEntry(key,
+                        metadata =
+                            NavDisplay.transitionSpec {
+                                slideIntoContainer(
+                                    AnimatedContentTransitionScope.SlideDirection.Left,
+                                    animationSpec = tween(400)
+                                ) togetherWith slideOutOfContainer(
+                                    AnimatedContentTransitionScope.SlideDirection.Left,
+                                    animationSpec = tween(400)
+                                )
+                            } + NavDisplay.popTransitionSpec {
+                                fadeIn(animationSpec = tween(0)) togetherWith slideOutOfContainer(
+                                    AnimatedContentTransitionScope.SlideDirection.Right,
+                                    animationSpec = tween(400)
+                                )
+                            }) {
+                        NewsAllScreen(type = key.type)
+                    }
+
                     else -> NavEntry(key) { Unit }
                 }
             },
         )
     }
-
 }
+private fun noAnim() =
+    fadeIn(animationSpec = tween(0)) togetherWith fadeOut(animationSpec = tween(0))
