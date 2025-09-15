@@ -1,7 +1,7 @@
 package com.ssafy.myissue.news.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;               // [NEW]
-import com.fasterxml.jackson.databind.ObjectMapper;                // [NEW]
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.myissue.news.dto.CursorCodec;
 import com.ssafy.myissue.news.dto.CursorPage;
 import com.ssafy.myissue.news.dto.HotCursor;
@@ -9,26 +9,25 @@ import com.ssafy.myissue.news.dto.LatestCursor;
 import com.ssafy.myissue.news.dto.NewsCardResponse;
 import com.ssafy.myissue.news.dto.NewsDetailResponse;
 import com.ssafy.myissue.news.dto.NewsHomeResponse;
-import com.ssafy.myissue.news.dto.ContentBlock;                    // [NEW]
+import com.ssafy.myissue.news.dto.ContentBlock;
 import com.ssafy.myissue.news.domain.News;
-// import com.ssafy.myissue.news.entity.NewsImage;                 // [REMOVED]
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
+import com.ssafy.myissue.common.exception.CustomException;      // [ADDED]
+import com.ssafy.myissue.common.exception.ErrorCode;          // [ADDED]
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Collections;                                       // [NEW]
+import java.util.Collections;
 import java.util.List;
-// import java.util.Map;                                           // [REMOVED]
-// import java.util.stream.Collectors;                              // [REMOVED]
 
 @Service
 @Transactional(readOnly = true)
 public class NewsService {
 
     private final NewsRepository newsRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();  // [NEW] content(jsonb) 파싱용
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public NewsService(NewsRepository newsRepository) {
         this.newsRepository = newsRepository;
@@ -108,10 +107,9 @@ public class NewsService {
     @Transactional
     public NewsDetailResponse getDetailAndIncreaseView(long newsId) {
         News n = newsRepository.findById(newsId)
-                .orElseThrow(() -> new IllegalArgumentException("news not found: " + newsId));
-        n.increaseViews(); // 더티 체킹으로 UPDATE
+                .orElseThrow(() -> new CustomException(ErrorCode.NEWS_NOT_FOUND)); // [CHANGED]
+        n.increaseViews();
 
-        // [CHANGED] 이미지 테이블 대신 content(jsonb)를 파싱해서 내려줌
         var blocks = parseBlocks(n.getContent());
 
         return new NewsDetailResponse(
@@ -137,7 +135,7 @@ public class NewsService {
         Long lastNewsId = null;
         if (lastId != null) {
             News base = newsRepository.findById(lastId)
-                    .orElseThrow(() -> new IllegalArgumentException("lastId not found: " + lastId));
+                    .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PARAMETER)); // [CHANGED]
             lastAt = base.getCreatedAt();
             lastNewsId = base.getNewsId();
         }
@@ -150,16 +148,14 @@ public class NewsService {
         }
 
         List<NewsCardResponse> items = toCards(rows);
-        return new CursorPage<>(items, null, hasNext); // lastId 방식이므로 nextCursor 없음
+        return new CursorPage<>(items, null, hasNext);
     }
 
     // ================= 내부 공통 =================
 
     private CursorPage<NewsCardResponse> toCursorPageLatest(List<News> rows, int size) {
         boolean hasNext = rows.size() > size;
-        if (hasNext) {
-            rows = rows.subList(0, size);
-        }
+        if (hasNext) rows = rows.subList(0, size);
 
         List<NewsCardResponse> items = toCards(rows);
 
@@ -174,9 +170,7 @@ public class NewsService {
 
     private CursorPage<NewsCardResponse> toCursorPageHot(List<News> rows, int size) {
         boolean hasNext = rows.size() > size;
-        if (hasNext) {
-            rows = rows.subList(0, size);
-        }
+        if (hasNext) rows = rows.subList(0, size);
 
         List<NewsCardResponse> items = toCards(rows);
 
@@ -199,7 +193,7 @@ public class NewsService {
                 n.getCreatedAt(),
                 n.getViews(),
                 n.getCategory(),
-                n.getThumbnail()// [CHANGED] 카드 이미지는 thumbnail 필드만
+                n.getThumbnail()
         )).toList();
     }
 
@@ -212,6 +206,4 @@ public class NewsService {
             return Collections.emptyList();
         }
     }
-
-    // [REMOVED] 이미지 N+1 방지 배치 로딩/preview 유틸 전부 삭제
 }

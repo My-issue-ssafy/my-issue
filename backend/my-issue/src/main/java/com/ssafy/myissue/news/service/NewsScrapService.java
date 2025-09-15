@@ -7,6 +7,8 @@ import com.ssafy.myissue.news.domain.News;
 import com.ssafy.myissue.news.domain.NewsScrap;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import com.ssafy.myissue.news.infrastructure.NewsScrapRepository;
+import com.ssafy.myissue.common.exception.CustomException;   // [ADDED]
+import com.ssafy.myissue.common.exception.ErrorCode;       // [ADDED]
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +39,7 @@ public class NewsScrapService {
             return new ScrapToggleResponse(false, null);
         } else {
             News news = newsRepository.findById(newsId)
-                    .orElseThrow(() -> new IllegalArgumentException("news not found: " + newsId));
+                    .orElseThrow(() -> new CustomException(ErrorCode.NEWS_NOT_FOUND)); // [CHANGED]
             NewsScrap saved = scrapRepository.save(
                     NewsScrap.builder()
                             .userId(userId)
@@ -65,23 +67,19 @@ public class NewsScrapService {
                 .map(NewsScrap::getNews)
                 .toList();
 
-//        Map<Long, List<String>> images = batchImages(newsList);
-
         List<NewsCardResponse> items = newsList.stream()
                 .map(n -> new NewsCardResponse(
                         n.getNewsId(),
                         n.getTitle(),
-                        n.getAuthor(),     // ← 3번째는 author
+                        n.getAuthor(),
                         n.getNewsPaper(),
                         n.getCreatedAt(),
                         n.getViews(),
-                        n.getCategory(),   // ← 7번째가 category
+                        n.getCategory(),
                         n.getThumbnail()
                 ))
                 .toList();
 
-        // lastId 방식이므로 nextCursor는 null
         return new CursorPage<>(items, null, hasNext);
     }
-
 }
