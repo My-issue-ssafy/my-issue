@@ -21,6 +21,9 @@ public class User {
     @Column(name = "fcm_token")
     private String fcmToken;
 
+    @Column(name = "notification_enabled")
+    private boolean notificationEnabled = false;
+
     private Instant lastSeen;
 
     public static User newOf(String uuid) {
@@ -32,5 +35,9 @@ public class User {
 
     public void updateFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
+    }
+
+    public void updateNotificationEnabled() {
+        this.notificationEnabled = !this.notificationEnabled;
     }
 }
