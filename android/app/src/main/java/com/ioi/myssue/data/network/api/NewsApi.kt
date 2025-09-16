@@ -8,7 +8,7 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-interface NewsApiService {
+interface NewsApi {
 
     // HOT 뉴스 전체 조회
     @GET("news/hot")

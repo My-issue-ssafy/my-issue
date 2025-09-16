@@ -4,7 +4,7 @@ import com.ioi.myssue.common.util.TimeConverter
 import com.ioi.myssue.data.dto.response.NewsDetailResponse
 import com.ioi.myssue.data.dto.response.NewsMainResponse
 import com.ioi.myssue.data.dto.response.toDomain
-import com.ioi.myssue.data.network.api.NewsApiService
+import com.ioi.myssue.data.network.api.NewsApi
 import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.model.MainNewsList
 import com.ioi.myssue.domain.model.News
@@ -15,12 +15,12 @@ import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
 class NewsRepositoryImpl @Inject constructor(
-    private val newsApiService: NewsApiService,
+    private val newsApi: NewsApi,
     private val time: TimeConverter
 ) : NewsRepository {
 
     override suspend fun getMainNews(): MainNewsList {
-        val res: NewsMainResponse = newsApiService.getMainNews()
+        val res: NewsMainResponse = newsApi.getMainNews()
         return MainNewsList(
             hot = res.hot.map { it.toDomain(time) },
             recommend = res.recommend.map { it.toDomain(time) },
@@ -32,22 +32,22 @@ class NewsRepositoryImpl @Inject constructor(
         cursor: String?,
         size: Int
     ): CursorPage<NewsSummary> {
-        val res = newsApiService.getHotNews(cursor = cursor, size = size)
+        val res = newsApi.getHotNews(cursor = cursor, size = size)
         return res.toDomain(time)
     }
 
     override suspend fun getRecommendNews(cursor: String?, size: Int): CursorPage<NewsSummary> {
-        val res = newsApiService.getRecommendNews(cursor = cursor, size = size)
+        val res = newsApi.getRecommendNews(cursor = cursor, size = size)
         return res.toDomain(time)
     }
 
     override suspend fun getTrendNews(cursor: String?, size: Int): CursorPage<NewsSummary> {
-        val res = newsApiService.getTrendNews(cursor = cursor, size = size)
+        val res = newsApi.getTrendNews(cursor = cursor, size = size)
         return res.toDomain(time)
     }
 
     override suspend fun getNewsDetail(newsId: Long): News {
-        val res: NewsDetailResponse = newsApiService.getNewsDetail(newsId)
+        val res: NewsDetailResponse = newsApi.getNewsDetail(newsId)
         return res.toDomain(time)
     }
 
