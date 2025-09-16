@@ -22,7 +22,7 @@ public class User {
     private String fcmToken;
 
     @Column(name = "notification_enabled")
-    private boolean notificationEnabled;
+    private boolean notificationEnabled = false;
 
     private Instant lastSeen;
 

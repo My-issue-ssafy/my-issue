@@ -42,4 +42,20 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.findAllByUserId(userId, lastId, size));
     }
 
+    @GetMapping("/unread")
+    @Operation(
+            summary = "내 알림 중 읽지 않은 알림 존재 여부 조회 API",
+            description = "### - 읽지 않은 알림이 하나라도 있으면 true, 없으면 false 반환"
+    )
+    public ResponseEntity<Boolean> findUnreadNotification(@AuthenticationPrincipal Long userId) {
+        log.debug("[findUnreadNotification] userId: {}", userId);
+        return ResponseEntity.ok(notificationService.findUnreadNotification(userId));
+    }
+
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<Void> deleteNotification(@AuthenticationPrincipal Long userId, @PathVariable Long notificationId) {
+
+        return ResponseEntity.ok().build();
+    }
+
 }

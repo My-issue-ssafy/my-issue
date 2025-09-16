@@ -43,4 +43,20 @@ public class NotificationServiceImpl implements NotificationService {
 
         return SliceResponseDto.of(responseList, hasNext);
     }
+
+    @Override
+    public Boolean findUnreadNotification(Long userId) {
+        return notificationRepository.existsByUser_IdAndReadIsFalse(userId);
+    }
+
+    @Override
+    public Void deleteNotification(Long userId, Long notificationId) {
+
+        return null;
+    }
+
+    @Override
+    public Void deleteNotifications(Long userId) {
+        return null;
+    }
 }

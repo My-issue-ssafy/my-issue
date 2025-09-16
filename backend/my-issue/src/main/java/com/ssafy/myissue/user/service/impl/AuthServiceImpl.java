@@ -37,7 +37,6 @@ public class AuthServiceImpl implements AuthService {
         if(user == null) {
             user = userRepository.save(User.newOf(deviceUuid));
         } else {
-            user.touch();
             userRepository.save(user);
         }
 
