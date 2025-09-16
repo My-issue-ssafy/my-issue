@@ -111,7 +111,7 @@ class FakeNewsRepositoryImpl @Inject constructor(
 
     /* ---------- NewsRepository ---------- */
 
-    override suspend fun getMainNews(userId: Int?): MainNewsList {
+    override suspend fun getMainNews(): MainNewsList {
         return MainNewsList(
             hot = hotAll.take(5).map { it.toSummary() },
             recommend = recommendAll.take(5).map { it.toSummary() },

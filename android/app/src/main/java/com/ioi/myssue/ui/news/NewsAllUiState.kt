@@ -7,5 +7,6 @@ data class NewsAllUiState(
     val nextCursor: String? = null,
     val hasNext: Boolean = false,
 
+    val selectedId: Long? = null,
     val isInitialLoading: Boolean = false
 )

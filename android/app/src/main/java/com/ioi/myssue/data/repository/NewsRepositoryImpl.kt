@@ -19,7 +19,7 @@ class NewsRepositoryImpl @Inject constructor(
     private val time: TimeConverter
 ) : NewsRepository {
 
-    override suspend fun getMainNews(userId: Int?): MainNewsList {
+    override suspend fun getMainNews(): MainNewsList {
         val res: NewsMainResponse = newsApiService.getMainNews()
         return MainNewsList(
             hot = res.hot.map { it.toDomain(time) },

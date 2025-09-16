@@ -6,7 +6,7 @@ import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.model.NewsSummary
 
 interface NewsRepository {
-    suspend fun getMainNews(userId: Int? = null): MainNewsList
+    suspend fun getMainNews(): MainNewsList
 
     suspend fun getHotNews(cursor: String? = null, size: Int = 20): CursorPage<NewsSummary>
 

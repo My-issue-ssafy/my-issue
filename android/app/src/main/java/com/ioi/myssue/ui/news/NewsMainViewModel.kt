@@ -11,6 +11,7 @@ import com.ioi.myssue.navigation.Navigator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -44,6 +45,14 @@ class NewsMainViewModel @Inject constructor(
                     if (firstPage) _state.value = _state.value.copy(isInitialLoading = false)
                 }
         }
+    }
+
+    fun onItemClick(id: Long) {
+        _state.update { it.copy(selectedId = id) }
+    }
+
+    fun onItemClose() {
+        _state.update { it.copy(selectedId = null) }
     }
 
     fun onClickSeeAll(type: NewsFeedType) = viewModelScope.launch {
