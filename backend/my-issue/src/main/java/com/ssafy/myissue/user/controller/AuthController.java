@@ -1,8 +1,8 @@
 package com.ssafy.myissue.user.controller;
 
-import com.ssafy.myissue.user.component.TokenResponseWriter;
 import com.ssafy.myissue.user.dto.RegisterDeviceRequest;
 import com.ssafy.myissue.user.dto.RegisterDeviceResponse;
+import com.ssafy.myissue.user.dto.RegisterFcmTokenRequest;
 import com.ssafy.myissue.user.dto.TokenPairResponse;
 import com.ssafy.myissue.user.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,17 +12,17 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
 @AllArgsConstructor
 @RequestMapping("/auth")
-@Tag(name = "Auth", description = "인증/인가(Auth) API")
+@Tag(name = "Auth", description = "인증/인가(Auth) API - 시은")
 public class AuthController {
 
     private final AuthService authService;
-    private final TokenResponseWriter tokenResponseWriter;
 
     // accessToken: 헤더, refreshToken: 쿠키
     // HttpServletResponse header에 accessToken 담아야 하니 받아야 함
@@ -37,8 +37,7 @@ public class AuthController {
     public ResponseEntity<RegisterDeviceResponse> registerDevice(@RequestBody RegisterDeviceRequest req, HttpServletResponse response) {
         log.debug("[Device 등록 - RequestBody] deviceUuid: {}", req.deviceUuid());
 
-        TokenPairResponse tokenPairResponse = authService.registerOrLogin(req.deviceUuid());
-        tokenResponseWriter.write(tokenPairResponse, response);
+        TokenPairResponse tokenPairResponse = authService.registerOrLogin(req.deviceUuid(), response);
 
         return ResponseEntity.ok(RegisterDeviceResponse.from(tokenPairResponse.userId()));
     }
@@ -55,9 +54,25 @@ public class AuthController {
     )
     public ResponseEntity<Void> rotateRefresh(@Parameter(hidden = true) @CookieValue("refreshToken") String refresh, HttpServletResponse response) {
         log.debug("[Refresh 재발급 - CookieValue] refreshToken: {}", refresh);
+        authService.rotateRefresh(refresh, response);
 
-        TokenPairResponse tokenPairResponse = authService.rotateRefresh(refresh);
-        tokenResponseWriter.write(tokenPairResponse, response);
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @PostMapping("/fcm")
+    @Operation(
+        summary = "유저 FCM 토큰 등록 API",
+        description = """
+                ### - FCM 토큰을 등록
+                ### - 헤더의 AccessToken을 통해 사용자 인증
+                ### - 요청 바디에 FCM 토큰 전달
+                ### - 성공 시 204 No Content 응답
+                """
+    )
+    public ResponseEntity<Void> registerFcmToken(@AuthenticationPrincipal Long userId, @RequestBody RegisterFcmTokenRequest request) {
+        log.debug("[FCM 토큰 등록 - RequestBody] fcmToken: {}", request.fcmToken());
+        authService.registerFcmToken(userId, request.fcmToken());
 
         return ResponseEntity.noContent().build();
     }

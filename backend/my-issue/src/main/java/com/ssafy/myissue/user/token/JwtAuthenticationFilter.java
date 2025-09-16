@@ -9,12 +9,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -28,10 +30,11 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtIssuer jwtIssuer;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
 
     private final RequestMatcher skipMatcher = new OrRequestMatcher(
             new AntPathRequestMatcher("/auth/device", "POST"),
-            new AntPathRequestMatcher("/auth/refresh", "POST"),
+            new AntPathRequestMatcher("/auth/reissue", "POST"),
             new AntPathRequestMatcher("/actuator/**")
     );
 
@@ -47,26 +50,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Authorization 헤더 없으면 패스
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            try {
-                Claims claims = jwtIssuer.parse(token);
-                Long userId = claims.get("userId", Long.class);
 
-                // Authentication 객체 생성
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, null, List.of());
+        if (header == null || !header.startsWith("Bearer ")) {
+            SecurityContextHolder.clearContext();
+            throw new CustomException(ErrorCode.MALFORMED_ACCESS_TOKEN);
+        }
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+        String token = header.substring(7);
+        try {
+            Claims claims = jwtIssuer.parse(token);
+            Long userId = claims.get("userId", Long.class);
 
-                log.debug("JWT 인증 성공 - userId: {}", userId);
-            } catch (ExpiredJwtException e) {
-                log.warn("만료된 Access Token");
-                throw new CustomException(ErrorCode.EXPIRED_REFRESH_TOKEN);
-            } catch (JwtException e) {
-                log.warn("잘못된 Access Token");
-                throw new CustomException(ErrorCode.MALFORMED_REFRESH_TOKEN);
-            }
+            // Authentication 객체 생성
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(userId, null, List.of());
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            log.debug("JWT 인증 성공 - userId: {}", userId);
+        } catch (ExpiredJwtException e) {
+            log.warn("만료된 Access Token");
+            SecurityContextHolder.clearContext();
+            authenticationEntryPoint.commence(
+                    request, response,
+                    new InsufficientAuthenticationException("EXPIRED_ACCESS_TOKEN", e)
+            );
+            return;
+        } catch (JwtException e) {
+            log.warn("잘못된 Access Token");
+            SecurityContextHolder.clearContext();
+            authenticationEntryPoint.commence(
+                    request, response,
+                    new BadCredentialsException("INVALID_ACCESS_TOKEN", e)
+            );
+            return;
         }
 
         filterChain.doFilter(request, response);
