@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.ssafy.myissue.common.exception.CustomException;
+import com.ssafy.myissue.common.exception.ErrorCode;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -21,7 +24,6 @@ public class ToonsService {
 
     private final ToonsRepository toonsRepository;
     private final ToonLikeRepository toonLikeRepository;
-    private final NewsRepository newsRepository;
 
     // 네컷뉴스 전체 조회
     public List<ToonResponse> getToons() {
@@ -34,7 +36,7 @@ public class ToonsService {
     // 좋아요
     public void likeToon(Long userId, Long toonId) {
         Toons toon = toonsRepository.findById(toonId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 네컷뉴스 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.TOON_NOT_FOUND));
 
         Optional<ToonLike> likeOpt = toonLikeRepository.findByUserIdAndToon(userId, toon);
 
@@ -54,7 +56,7 @@ public class ToonsService {
     // 싫어요
     public void hateToon(Long userId, Long toonId) {
         Toons toon = toonsRepository.findById(toonId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 네컷뉴스 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.TOON_NOT_FOUND));;
 
         Optional<ToonLike> likeOpt = toonLikeRepository.findByUserIdAndToon(userId, toon);
 
@@ -74,10 +76,10 @@ public class ToonsService {
     // 좋아요/싫어요 취소
     public void cancelLike(Long userId, Long toonId) {
         Toons toon = toonsRepository.findById(toonId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 네컷뉴스 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.TOON_NOT_FOUND));
 
         ToonLike like = toonLikeRepository.findByUserIdAndToon(userId, toon)
-                .orElseThrow(() -> new IllegalArgumentException("좋아요/싫어요 기록 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.TOON_LIKE_NOT_FOUND));
 
         toonLikeRepository.delete(like); // DB에서 삭제 처리
     }

@@ -24,7 +24,7 @@ public class JwtIssuer {
 
     /** Access JWT 발급 */
     public String createAccess(Long userId) {
-        return buildJwt(userId, "access", Duration.ofMinutes(1));
+        return buildJwt(userId, "access", Duration.ofMinutes(15));
     }
 
     /** Refresh JWT 발급 */
