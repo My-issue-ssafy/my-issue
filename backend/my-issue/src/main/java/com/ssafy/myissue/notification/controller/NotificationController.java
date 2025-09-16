@@ -53,10 +53,26 @@ public class NotificationController {
     }
 
     @DeleteMapping("/{notificationId}")
+    @Operation(
+            summary = "내 알림 개별 삭제 API",
+            description = "### - notificationId에 해당하는 알림을 삭제"
+    )
     public ResponseEntity<Void> deleteNotification(@AuthenticationPrincipal Long userId, @PathVariable Long notificationId) {
         log.debug("[deleteNotification] userId: {}, notificationId: {}", userId, notificationId);
         notificationService.deleteNotification(userId, notificationId);
 
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping
+    @Operation(
+            summary = "내 알림 전체 삭제 API",
+            description = "### - 내 모든 알림을 삭제"
+    )
+    public ResponseEntity<Void> deleteNotifications(@AuthenticationPrincipal Long userId) {
+        log.debug("[deleteNotifications] userId: {}", userId);
+
+        notificationService.deleteNotifications(userId);
         return ResponseEntity.noContent().build();
     }
 
