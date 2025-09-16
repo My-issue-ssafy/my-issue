@@ -24,7 +24,10 @@ public enum ErrorCode {
     NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, "NEWS_NOT_FOUND", "존재하지 않는 뉴스입니다."),                 // 상세/스크랩 시 대상 없음
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "SCRAP_NOT_FOUND", "존재하지 않는 스크랩입니다."),            // 필요 시 사용
     UNAUTHORIZED_ACCESS(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED_ACCESS", "인증이 필요합니다."),          // 인증 정보 없음
-    INVALID_PARAMETER(HttpStatus.BAD_REQUEST, "INVALID_PARAMETER", "요청 파라미터가 유효하지 않습니다."); // 잘못된 쿼리/커서/size 등
+    INVALID_PARAMETER(HttpStatus.BAD_REQUEST, "INVALID_PARAMETER", "요청 파라미터가 유효하지 않습니다."), // 잘못된 쿼리/커서/size 등
+
+    TOON_NOT_FOUND(HttpStatus.NOT_FOUND, "TOON_NOT_FOUND", "존재하지 않는 네컷뉴스입니다."),              // [ADDED]
+    TOON_LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "TOON_LIKE_NOT_FOUND", "좋아요/싫어요 기록이 없습니다.");     // [ADDED]
     ;
 
     private final HttpStatus httpStatus;
