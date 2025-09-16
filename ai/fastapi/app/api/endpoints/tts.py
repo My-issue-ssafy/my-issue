@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse, Response
-from models.schemas import TTSRequest, TTSResponse, VoiceType
-from models.tts_models import tts_manager, TTSModelName
-from models.edge_tts_engine import edge_tts_engine
-from utils.file_utils import get_temp_audio_path, cleanup_old_files
+from app.models.schemas import TTSRequest, TTSResponse, VoiceType
+from app.models.tts_models import tts_manager, TTSModelName
+from app.models.edge_tts_engine import edge_tts_engine
+from app.utils.file_utils import get_temp_audio_path, cleanup_old_files
 import os
 import shutil
 from typing import Optional
