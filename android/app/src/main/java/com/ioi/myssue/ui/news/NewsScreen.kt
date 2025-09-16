@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.news
 
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,26 +36,32 @@ fun NewsScreen(
     viewModel: NewsMainViewModel = hiltViewModel(),
     newsDetailViewModel: NewsDetailViewModel = hiltViewModel()
 ) {
-    val newsItems = viewModel.state.collectAsState()
+    val newsItems by viewModel.state.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val detailState by newsDetailViewModel.uiState.collectAsState()
+
+    // 뉴스 로딩
+    if (newsItems.isInitialLoading) {
+        FullscreenLoading()
+        return
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(4.dp)
     ) {
         NewsHOT(
-            list = newsItems.value.hot,
+            list = newsItems.main.hot,
             onItemClick = { newsId -> newsDetailViewModel.open(newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.HOT) }
         )
         NewsRecommend(
-            list = newsItems.value.recommend,
+            list = newsItems.main.recommend,
             onItemClick = { newsId -> newsDetailViewModel.open(newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) }
         )
         NewsRecent(
-            list = newsItems.value.latest,
+            list = newsItems.main.latest,
             onItemClick = { newsId -> newsDetailViewModel.open(newsId) },
             onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECENT) }
         )
@@ -87,17 +94,22 @@ fun NewsAllScreen(
     }
 
     val page by viewModel.state.collectAsState()
-    val items = page.items
+
+
+    if (page.isInitialLoading) {
+        FullscreenLoading()
+        return
+    }
 
     val detailState by newsDetailViewModel.uiState.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // 바닥에서 스크롤 시 다음 뉴스 로딩
     val listState = rememberLazyListState()
-    val loadMore by remember(items.size, page.nextCursor) {
+    val loadMore by remember(page.items.size, page.nextCursor) {
         derivedStateOf {
             val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            last >= items.size - 5 && page.nextCursor != null
+            last >= page.items.size - 5 && page.nextCursor != null
         }
     }
     LaunchedEffect(loadMore) {
@@ -119,8 +131,8 @@ fun NewsAllScreen(
     ) {
         item { NewsSectionHeader(type.title, onAllClick = null) }
         NewsAll(
-            list = items,
-            onItemClick = { news -> newsDetailViewModel.open(news)}
+            list = page.items,
+            onItemClick = { news -> newsDetailViewModel.open(news) }
         )
     }
 
@@ -139,13 +151,23 @@ fun LazyListScope.NewsHOT(
     onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
 ) {
-    if (list.isEmpty()) return
-    item { NewsSectionHeader(stringResource(R.string.news_feed_type_hot), onAllClick = onAllClick) }
     item {
-        HotNewsPager(
-            items = list,
-            onClick = { news -> onItemClick(news.newsId) }
+        NewsSectionHeader(
+            stringResource(R.string.news_feed_type_hot),
+            onAllClick = onAllClick
         )
+    }
+    if (list.isEmpty()) {
+        item {
+            NewsEmpty()
+        }
+    } else {
+        item {
+            HotNewsPager(
+                items = list,
+                onClick = { news -> onItemClick(news.newsId) }
+            )
+        }
     }
 }
 
@@ -154,14 +176,20 @@ fun LazyListScope.NewsRecommend(
     onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
 ) {
-    if (list.isEmpty()) return
     item {
         NewsSectionHeader(
             stringResource(R.string.news_feed_type_recommend),
             onAllClick = onAllClick
         )
     }
-    items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
+    if (list.isEmpty()) {
+        item {
+            NewsEmpty()
+        }
+    } else {
+        items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
+    }
+
 }
 
 private fun LazyListScope.NewsRecent(
@@ -169,23 +197,34 @@ private fun LazyListScope.NewsRecent(
     onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
 ) {
-    if (list.isEmpty()) return
     item {
         NewsSectionHeader(
             stringResource(R.string.news_feed_type_recent),
             onAllClick = onAllClick
         )
     }
-    items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
+    if (list.isEmpty()) {
+        item {
+            NewsEmpty()
+        }
+    } else {
+        items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
+    }
 }
 
 private fun LazyListScope.NewsAll(
     list: List<NewsSummary>,
     onItemClick: (Long) -> Unit,
 ) {
-    if (list.isEmpty()) return
-    items(list) { item ->
-        NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
+    if (list.isEmpty()) {
+        item {
+            NewsEmpty()
+        }
+    } else {
+        items(list) { item ->
+            NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) })
+        }
+    }
 }
 
 enum class NewsFeedType(@StringRes val titleRes: Int) {

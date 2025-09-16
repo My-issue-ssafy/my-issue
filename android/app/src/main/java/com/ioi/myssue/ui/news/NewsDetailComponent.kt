@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.news
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -59,7 +60,9 @@ fun NewsDetail(
     onDismiss: () -> Unit,
     viewModel: NewsDetailViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(newsId) { viewModel.getNewsDetail(newsId) }
+    LaunchedEffect(newsId) {
+        viewModel.getNewsDetail(newsId)
+    }
     val state = viewModel.uiState.collectAsState().value
 
     val context = LocalContext.current

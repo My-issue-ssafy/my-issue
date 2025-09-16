@@ -10,12 +10,12 @@ import kotlinx.serialization.Serializable
 data class NewsCardResponse(
     val newsId: Long,
     val title: String,
-    val author: String,
-    val newspaper: String,
-    val createdAt: String,
+    val author: String? = null,
+    val newspaper: String? = null,
+    val createdAt: String? = null,
     val views: Int,
     val category: String,
-    val thumbnail: String?
+    val thumbnail: String? = null
 )
 
 // 뉴스 섹션 전체보기 페이지
@@ -37,13 +37,13 @@ data class NewsMainResponse(
 fun NewsCardResponse.toDomain(time: TimeConverter) = NewsSummary(
     newsId = newsId,
     title = title,
-    author = author,
-    newspaper = newspaper,
-    createdAt = createdAt,
+    author = author ?: "-",
+    newspaper = newspaper ?: "-",
+    createdAt = createdAt ?: "-",
     views = views,
     category = category,
     thumbnail = thumbnail,
-    relativeTime = time.toRelative(createdAt),
+    relativeTime = time.toRelative(createdAt ?: "-"),
 )
 
 fun CursorPageNewsResponse.toDomain(time: TimeConverter) = CursorPage(

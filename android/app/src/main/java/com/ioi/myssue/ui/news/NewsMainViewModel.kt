@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.news
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.domain.model.MainNewsList
@@ -18,7 +19,7 @@ class NewsMainViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
     private val navigator: Navigator
 ) : ViewModel() {
-    private val _state = MutableStateFlow(MainNewsList())
+    private val _state = MutableStateFlow(NewsMainUiState(isInitialLoading = true))
     val state = _state.asStateFlow()
 
     init {
@@ -26,17 +27,26 @@ class NewsMainViewModel @Inject constructor(
     }
 
     fun getNews() {
+        val firstPage = _state.value.main.hot.isEmpty() &&
+                _state.value.main.recommend.isEmpty() &&
+                _state.value.main.latest.isEmpty()
+        if (firstPage) _state.value = _state.value.copy(isInitialLoading = true)
+
         viewModelScope.launch {
             runCatching { newsRepository.getMainNews() }
-                .onSuccess { main -> _state.value = main }
+                .onSuccess { main ->
+                    _state.value = _state.value.copy(
+                        main = main,
+                        isInitialLoading = false
+                    )
+                }
                 .onFailure {
+                    if (firstPage) _state.value = _state.value.copy(isInitialLoading = false)
                 }
         }
     }
 
-    fun onClickSeeAll(type: NewsFeedType) {
-        viewModelScope.launch {
+    fun onClickSeeAll(type: NewsFeedType) = viewModelScope.launch {
             navigator.navigate(BottomTabRoute.NewsAll(type))
         }
-    }
 }

@@ -13,9 +13,9 @@ data class NewsDetailResponse(
     val title: String,
     val content: List<NewsContentResponse>,
     val category: String,
-    val author: String,
-    val newspaper: String,
-    val createdAt: String,
+    val author: String? = null,
+    val newspaper: String? = null,
+    val createdAt: String? = null,
     val views: Int
 )
 
@@ -29,16 +29,15 @@ data class NewsContentResponse(
 fun NewsDetailResponse.toDomain(time: TimeConverter) = News(
     newsId = newsId,
     title = title,
-    author = author,
-    newspaper = newspaper,
-    createdAt = createdAt,
+    author = author ?: "-",
+    newspaper = newspaper ?: "-",
+    createdAt = createdAt ?: "-",
     views = views,
     category = category,
     thumbnail = getThumbnail(content),
     content = content.toDomainBlocks(),
-    displayTime = time.toDisplay(createdAt),
+    displayTime = time.toDisplay(createdAt ?: "-"),
 )
-
 
 
 // 블록 매핑
@@ -46,9 +45,9 @@ private fun List<NewsContentResponse>.toDomainBlocks(): List<NewsBlock> =
     mapNotNull { dto ->
         when (dto.type.lowercase()) {
             "image" -> NewsBlock.Image(dto.content)
-            "img_desc"  -> NewsBlock.Desc(dto.content)
-            "text"  -> NewsBlock.Text(dto.content)
-            else    -> null
+            "img_desc" -> NewsBlock.Desc(dto.content)
+            "text" -> NewsBlock.Text(dto.content)
+            else -> null
         }
     }
 
