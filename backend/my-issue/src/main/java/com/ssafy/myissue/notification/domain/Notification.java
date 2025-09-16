@@ -32,4 +32,8 @@ public class Notification {
     private LocalDateTime createdAt;
 
     private boolean read;
+
+    public void markAsRead() {
+        this.read = true;
+    }
 }

@@ -4,10 +4,6 @@ import com.ssafy.myissue.notification.dto.NotificationsResponse;
 import com.ssafy.myissue.notification.dto.SliceResponseDto;
 import com.ssafy.myissue.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +22,7 @@ public class NotificationController {
 
     @GetMapping
     @Operation(
-            summary = "내 알림 전체 조회 API",
+            summary = "내 알림 전체 조회",
             description = """
                     ### - 최신 알림 순으로 size 개수만큼 조회
                     ### - lastId가 없으면 가장 최신 알림부터 size 개수만큼 조회
@@ -44,7 +40,7 @@ public class NotificationController {
 
     @GetMapping("/unread")
     @Operation(
-            summary = "내 알림 중 읽지 않은 알림 존재 여부 조회 API",
+            summary = "내 알림 중 읽지 않은 알림 존재 여부 조회",
             description = "### - 읽지 않은 알림이 하나라도 있으면 true, 없으면 false 반환"
     )
     public ResponseEntity<Boolean> findUnreadNotification(@AuthenticationPrincipal Long userId) {
@@ -54,7 +50,7 @@ public class NotificationController {
 
     @DeleteMapping("/{notificationId}")
     @Operation(
-            summary = "내 알림 개별 삭제 API",
+            summary = "내 알림 개별 삭제",
             description = "### - notificationId에 해당하는 알림을 삭제"
     )
     public ResponseEntity<Void> deleteNotification(@AuthenticationPrincipal Long userId, @PathVariable Long notificationId) {
@@ -66,7 +62,7 @@ public class NotificationController {
 
     @DeleteMapping
     @Operation(
-            summary = "내 알림 전체 삭제 API",
+            summary = "내 알림 전체 삭제",
             description = "### - 내 모든 알림을 삭제"
     )
     public ResponseEntity<Void> deleteNotifications(@AuthenticationPrincipal Long userId) {
@@ -78,7 +74,7 @@ public class NotificationController {
 
     @PatchMapping("/status")
     @Operation(
-            summary = "내 알림 설정 상태 변경 API",
+            summary = "내 알림 설정 상태 변경",
             description = "### - 알림 설정이 활성화 되어있으면 비활성화, 비활성화 되어있으면 활성화로 변경"
     )
     public ResponseEntity<Void> updateNotificationStatus(@AuthenticationPrincipal Long userId) {
@@ -90,13 +86,25 @@ public class NotificationController {
 
     @GetMapping("/status")
     @Operation(
-            summary = "내 알림 설정 상태 조회 API",
+            summary = "내 알림 설정 상태 조회",
             description = "### - 알림 설정이 활성화 되어있으면 true, 비활성화 되어있으면 false 반환"
     )
     public ResponseEntity<Boolean> getNotificationStatus(@AuthenticationPrincipal Long userId) {
         log.debug("[getNotificationStatus] userId: {}", userId);
 
         return ResponseEntity.ok(notificationService.getNotificationStatus(userId));
+    }
+
+    @PatchMapping("/{notificationId}/read")
+    @Operation(
+            summary = "내 알림 읽음 처리",
+            description = "### - notificationId에 해당하는 알림을 읽음 처리"
+    )
+    public ResponseEntity<Void> markAsRead(@AuthenticationPrincipal Long userId, @PathVariable Long notificationId) {
+        log.debug("[markAsRead] userId: {}, notificationId: {}", userId, notificationId);
+
+        notificationService.updateNotificationReadStatus(userId, notificationId);
+        return ResponseEntity.noContent().build();
     }
 
 }

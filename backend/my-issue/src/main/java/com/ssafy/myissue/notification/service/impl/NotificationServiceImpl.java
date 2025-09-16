@@ -58,15 +58,7 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void deleteNotification(Long userId, Long notificationId) {
-        // 오류처리 : 알림이 존재하는지 / 해당 유저의 알림인지
-        if(!notificationRepository.existsById(notificationId))  {
-            log.error("[deleteNotification Service] Notification not found. notificationId: {}", notificationId);
-            throw new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND);
-        }
-        if(!notificationRepository.existsByUser_IdAndId(userId, notificationId)) {
-            log.error("[deleteNotification Service] Unauthorized access to notification. userId: {}, notificationId: {}", userId, notificationId);
-            throw new CustomException(ErrorCode.UNAUTHORIZED_NOTIFICATION);
-        }
+        isValidate(userId, notificationId);
 
         notificationRepository.deleteByUser_IdAndId(userId, notificationId);
     }
@@ -98,6 +90,32 @@ public class NotificationServiceImpl implements NotificationService {
             });
 
         return user.isNotificationEnabled();
+    }
+
+    @Override
+    @Transactional
+    public void updateNotificationReadStatus(Long userId, Long notificationId) {
+        isValidate(userId, notificationId);
+
+        Notification notification = notificationRepository.findById(notificationId)
+            .orElseThrow(() -> {
+                log.error("[updateNotificationReadStatus Service] Notification not found. notificationId: {}", notificationId);
+                return new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND);
+            });
+
+        notification.markAsRead();
+    }
+
+    private void isValidate(Long userId, Long notificationId) {
+        // 오류처리 : 알림이 존재하는지 / 해당 유저의 알림인지
+        if(!notificationRepository.existsById(notificationId))  {
+            log.error("[deleteNotification Service] Notification not found. notificationId: {}", notificationId);
+            throw new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND);
+        }
+        if(!notificationRepository.existsByUser_IdAndId(userId, notificationId)) {
+            log.error("[deleteNotification Service] Unauthorized access to notification. userId: {}, notificationId: {}", userId, notificationId);
+            throw new CustomException(ErrorCode.UNAUTHORIZED_NOTIFICATION);
+        }
     }
 
 }
