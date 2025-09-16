@@ -83,4 +83,12 @@ public class NotificationController {
         notificationService.updateNotificationStatus(userId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/status")
+    public ResponseEntity<Boolean> getNotificationStatus(@AuthenticationPrincipal Long userId) {
+        log.debug("[getNotificationStatus] userId: {}", userId);
+
+        return ResponseEntity.ok(notificationService.getNotificationStatus(userId));
+    }
+
 }

@@ -89,4 +89,15 @@ public class NotificationServiceImpl implements NotificationService {
         user.updateNotificationEnabled();
     }
 
+    @Override
+    public Boolean getNotificationStatus(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> {
+                log.error("[getNotificationStatus Service] User not found. userId: {}", userId);
+                return new CustomException(ErrorCode.USER_NOT_FOUND);
+            });
+
+        return user.isNotificationEnabled();
+    }
+
 }

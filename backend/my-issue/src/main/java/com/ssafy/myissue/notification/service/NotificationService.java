@@ -9,4 +9,5 @@ public interface NotificationService {
     void deleteNotification(Long userId, Long notificationId);
     void deleteNotifications(Long userId);
     void updateNotificationStatus(Long userId);
+    Boolean getNotificationStatus(Long userId);
 }
