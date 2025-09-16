@@ -1,7 +1,7 @@
 package com.ioi.myssue.domain.model
 
 data class MainNewsList (
-    val hot: List<News> = emptyList(),
-    val recommend: List<News> = emptyList(),
-    val recent: List<News> = emptyList()
+    val hot: List<NewsSummary> = emptyList(),
+    val recommend: List<NewsSummary> = emptyList(),
+    val latest: List<NewsSummary> = emptyList()
 )

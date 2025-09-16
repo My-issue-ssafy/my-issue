@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.news
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -59,7 +60,9 @@ fun NewsDetail(
     onDismiss: () -> Unit,
     viewModel: NewsDetailViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(newsId) { viewModel.getNewsDetail(newsId) }
+    LaunchedEffect(newsId) {
+        viewModel.getNewsDetail(newsId)
+    }
     val state = viewModel.uiState.collectAsState().value
 
     val context = LocalContext.current
@@ -84,7 +87,7 @@ fun NewsDetail(
             title = state.title,
             author = state.author,
             newspaper = state.newspaper,
-            createdAt = state.createdAt,
+            displayTime = state.displayTime,
             blocks = state.blocks,
             isBookmarked = state.isBookmarked,
             onToggleBookmark = { viewModel.toggleBookmark() }
@@ -123,7 +126,7 @@ fun NewsDetailSheet(
     title: String,
     author: String,
     newspaper: String,
-    createdAt: String,
+    displayTime: String,
     blocks: List<NewsBlock>,
     isBookmarked: Boolean,
     onToggleBookmark: () -> Unit
@@ -139,7 +142,7 @@ fun NewsDetailSheet(
             title = title,
             author = author,
             newspaper = newspaper,
-            createdAt = createdAt,
+            displayTime = displayTime,
             isBookmarked = isBookmarked,
             onToggleBookmark = onToggleBookmark
         )
@@ -176,7 +179,7 @@ fun NewsDetailHeader(
     title: String,
     author: String,
     newspaper: String,
-    createdAt: String,
+    displayTime: String,
     isBookmarked: Boolean,
     onToggleBookmark: () -> Unit
 ) {
@@ -219,7 +222,7 @@ fun NewsDetailHeader(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = createdAt,
+                    text = displayTime,
                     style = typography.labelMedium,
                     fontWeight = FontWeight.Bold,
                     color = Background500

@@ -7,7 +7,7 @@ data class NewsDetailUiState(
     val title: String = "",
     val author: String = "",
     val newspaper: String = "",
-    val createdAt: String = "",
+    val displayTime: String = "",
     val blocks: List<NewsBlock> = emptyList(),
     val isOpen: Boolean = false,
     val isBookmarked: Boolean = false,
