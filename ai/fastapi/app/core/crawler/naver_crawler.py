@@ -206,6 +206,11 @@ def _abs_url(base: str, u: str) -> str:
 def canonicalize_article_url(u: str) -> tuple[str | None, tuple[str, str] | None]:
     if not u:
         return None, None
+
+    # 엔터/스포츠 URL 필터링
+    if any(domain in u for domain in ["entertain.naver.com", "sports.naver.com"]):
+        return None, None
+
     m = ARTICLE_ID_RE.search(u)
     if m:
         oid, aid = m.group(1), m.group(2)
