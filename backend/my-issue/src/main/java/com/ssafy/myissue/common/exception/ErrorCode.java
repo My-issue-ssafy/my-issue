@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     // 401: Unauthorized | 400: Bad Request | 403 Forbidden | 404 Not Found | 409 Conflict | 410 Gone
 
+    /* -------- 시은 ----------*/
     // Refresh Token
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN","해당 Refresh Token이 존재하지 않습니다."),
     EXPIRED_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED,  "EXPIRED_REFRESH_TOKEN","만료된 Refresh Token입니다."),
@@ -21,6 +22,12 @@ public enum ErrorCode {
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "해당 유저를 찾을 수 없습니다."),
     EMPTY_FCM_TOKEN(HttpStatus.NOT_FOUND, "FCM_TOKEN_NOT_FOUND", "FCM Token이 비어있습니다."),
+    // Notification
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "해당 알림을 찾을 수 없습니다."),
+    UNAUTHORIZED_NOTIFICATION(HttpStatus.FORBIDDEN, "UNAUTHORIZED_NOTIFICATION", "해당 알림에 접근할 권한이 없습니다."),
+
+    /* -------- 진현 ----------*/
+
     // News
     NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, "NEWS_NOT_FOUND", "존재하지 않는 뉴스입니다."),                 // 상세/스크랩 시 대상 없음
     SCRAP_NOT_FOUND(HttpStatus.NOT_FOUND, "SCRAP_NOT_FOUND", "존재하지 않는 스크랩입니다."),            // 필요 시 사용

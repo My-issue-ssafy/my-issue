@@ -1,5 +1,7 @@
 package com.ssafy.myissue.notification.service.impl;
 
+import com.ssafy.myissue.common.exception.CustomException;
+import com.ssafy.myissue.common.exception.ErrorCode;
 import com.ssafy.myissue.notification.domain.Notification;
 import com.ssafy.myissue.notification.dto.NotificationsResponse;
 import com.ssafy.myissue.notification.dto.SliceResponseDto;
@@ -11,6 +13,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -50,13 +53,22 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public Void deleteNotification(Long userId, Long notificationId) {
+    @Transactional
+    public void deleteNotification(Long userId, Long notificationId) {
+        // 오류처리 : 알림이 존재하는지 / 해당 유저의 알림인지
+        if(!notificationRepository.existsById(notificationId))  {
+            log.error("[deleteNotification Service] Notification not found. notificationId: {}", notificationId);
+            throw new CustomException(ErrorCode.NOTIFICATION_NOT_FOUND);
+        }
+        if(!notificationRepository.existsByUser_IdAndId(userId, notificationId)) {
+            log.error("[deleteNotification Service] Unauthorized access to notification. userId: {}, notificationId: {}", userId, notificationId);
+            throw new CustomException(ErrorCode.UNAUTHORIZED_NOTIFICATION);
+        }
 
-        return null;
+        notificationRepository.deleteByUser_IdAndId(userId, notificationId);
     }
 
     @Override
-    public Void deleteNotifications(Long userId) {
-        return null;
+    public void deleteNotifications(Long userId) {
     }
 }

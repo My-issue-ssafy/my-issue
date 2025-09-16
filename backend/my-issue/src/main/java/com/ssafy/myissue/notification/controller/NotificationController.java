@@ -54,8 +54,10 @@ public class NotificationController {
 
     @DeleteMapping("/{notificationId}")
     public ResponseEntity<Void> deleteNotification(@AuthenticationPrincipal Long userId, @PathVariable Long notificationId) {
+        log.debug("[deleteNotification] userId: {}, notificationId: {}", userId, notificationId);
+        notificationService.deleteNotification(userId, notificationId);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
 }
