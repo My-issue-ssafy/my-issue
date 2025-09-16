@@ -2,17 +2,20 @@ package com.ioi.myssue.ui.cartoon
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.domain.repository.CartoonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.abs
 
 @HiltViewModel
 class CartoonViewModel @Inject constructor(
-    private val cartoonRepository: CartoonRepository
+    private val cartoonRepository: CartoonRepository,
+    private val analyticsLogger: AnalyticsLogger
 ) : ViewModel() {
 
     private var _state = MutableStateFlow(CartoonUiState())
@@ -23,14 +26,20 @@ class CartoonViewModel @Inject constructor(
     }
 
     private fun loadCartoon() = viewModelScope.launch {
-        _state.value = _state.value.copy(isLoading = true, error = null)
+        _state.update {
+            it.copy(isLoading = true, error = null)
+        }
 
         runCatching { cartoonRepository.getCartoonNews() }
             .onSuccess { cartoonNews ->
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    cartoonNewsList = cartoonNews
-                )
+                _state.update {
+                    it.copy(isLoading = false, cartoonNewsList = cartoonNews)
+                }
+            }
+            .onFailure {
+                _state.update {
+                    it.copy(isLoading = false, error = "문제가 발생했습니다.\n다시 시도해주세요.")
+                }
             }
     }
 
@@ -42,6 +51,16 @@ class CartoonViewModel @Inject constructor(
             isSwiping = isSwiping,
             exitTrigger = abs(_state.value.exitTrigger) + 1
         )
+
+        viewModelScope.launch {
+            _state.value.currentToonId?.let { toonId ->
+                runCatching { cartoonRepository.likeCartoon(toonId) }
+                    .onSuccess {
+                        analyticsLogger.logToonPositive(toonId)
+                    }
+            }
+
+        }
     }
 
     fun onHatePressed(isSwiping: Boolean = false) {
@@ -52,6 +71,16 @@ class CartoonViewModel @Inject constructor(
             isSwiping = isSwiping,
             exitTrigger = (abs(_state.value.exitTrigger) + 1) * -1
         )
+
+        viewModelScope.launch {
+            _state.value.currentToonId?.let { toonId ->
+                runCatching { cartoonRepository.hateCartoon(toonId) }
+                    .onSuccess {
+                        analyticsLogger.logToonNegative(toonId)
+                    }
+            }
+
+        }
     }
 
     fun onExitFinished() {

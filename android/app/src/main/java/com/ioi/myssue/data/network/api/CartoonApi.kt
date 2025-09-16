@@ -1,13 +1,13 @@
 package com.ioi.myssue.data.network.api
 
 import com.ioi.myssue.data.dto.response.ToonResponse
-import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-interface ToonNewsApiService {
+interface CartoonApi {
 
     @GET("toons")
     suspend fun getToons(
@@ -30,7 +30,7 @@ interface ToonNewsApiService {
         @Path("toon_id") toonId: Long
     )
 
-    @DELETE("toons/{toon_id}/like")
+    @PATCH("toons/{toon_id}/like")
     suspend fun cancelLikedToon(
         @Path("toon_id") toonId: Long
     )

@@ -1,6 +1,7 @@
 package com.ioi.myssue.ui.cartoon
 
-import SwipeDir
+import android.util.Log
+import com.ioi.myssue.ui.common.SwipeDir
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -46,13 +47,14 @@ import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background100
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background50
 import com.ioi.myssue.domain.model.CartoonNews
+import com.ioi.myssue.ui.common.swipeWithAnimation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import swipeWithAnimation
 
 @Composable
 fun CartoonActionButtons(
@@ -116,6 +118,7 @@ fun CartoonCardStack(
     onExitFinished: () -> Unit,
     onLikePressed: (Boolean) -> Unit,
     onHatePressed: (Boolean) -> Unit,
+    onShowDetail: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var exitingKey by remember { mutableStateOf<String?>(null) }
@@ -153,6 +156,7 @@ fun CartoonCardStack(
                             when (dir) {
                                 SwipeDir.Left -> onHatePressed(true)
                                 SwipeDir.Right -> onLikePressed(true)
+                                SwipeDir.Up -> onShowDetail(item.newsId)
                             }
                         }
                     ),
@@ -186,6 +190,14 @@ private fun CartoonCard(
         label = "flip"
     )
     val showFront = flip <= 90f
+
+    val analyticsLogger = LocalAnalytics.current
+
+    LaunchedEffect(flipped) {
+        if(flipped) {
+            analyticsLogger.logToonClick(cartoon.newsId)
+        }
+    }
 
     LaunchedEffect(isExiting) {
         if (isExiting) {

@@ -1,3 +1,6 @@
+package com.ioi.myssue.ui.common
+
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -16,8 +19,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
-enum class SwipeDir { Left, Right }
+enum class SwipeDir { Left, Right, Up }
 
 fun Modifier.swipeWithAnimation(
     key: Any? = null,
@@ -35,6 +39,9 @@ fun Modifier.swipeWithAnimation(
     val tx = remember(key) { Animatable(0f) }
     val rot = remember(key) { Animatable(0f) }
 
+    var totalDx by remember { mutableIntStateOf(0) }
+    var totalDy by remember { mutableIntStateOf(0) }
+
     LaunchedEffect(locked) {
         if (locked) {
             tx.stop(); rot.stop()
@@ -47,8 +54,15 @@ fun Modifier.swipeWithAnimation(
         .pointerInput(key, widthPx, locked) {
             if (locked) return@pointerInput
             detectDragGestures(
+                onDragStart = {
+                    totalDx = 0; totalDy = 0
+                },
                 onDrag = { change, drag ->
                     change.consume()
+                    totalDx += drag.x.toInt()
+                    totalDy += drag.y.toInt()
+
+                    // 일단 X축 이동은 계속 업데이트 (좌우 대비 필요)
                     val newX = tx.value + drag.x
                     scope.launch { tx.snapTo(newX) }
                     scope.launch {
@@ -57,6 +71,21 @@ fun Modifier.swipeWithAnimation(
                     }
                 },
                 onDragEnd = {
+                    // 주 이동 축 판정
+                    val absDx = abs(totalDx)
+                    val absDy = abs(totalDy)
+
+                    Log.d("Swipe", "onDragEnd totalDx: $totalDx, totalDy: $totalDy, absDx: $absDx, absDy: $absDy")
+                    if (absDy > absDx && totalDy < -100) {
+                        onSwiped(SwipeDir.Up)
+                        scope.launch {
+                            tx.snapTo(0f)
+                            rot.snapTo(0f)
+                        }
+                        return@detectDragGestures
+                    }
+
+                    // 좌우 스와이프 처리
                     val threshold = widthPx * thresholdFraction
                     val x = tx.value
                     val dir = when {

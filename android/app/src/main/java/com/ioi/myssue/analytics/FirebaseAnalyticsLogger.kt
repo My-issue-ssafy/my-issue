@@ -11,8 +11,8 @@ class FirebaseAnalyticsLogger(
      * 현재 사용자 ID를 설정
      * - 로그인 시점에 호출
      */
-    override fun setUserId(userId: String?) {
-        fa.setUserId(userId)
+    override fun setUserId(userId: Long) {
+        fa.setUserId(userId.toString())
     }
 
     /**
@@ -26,61 +26,65 @@ class FirebaseAnalyticsLogger(
             putString(FirebaseAnalytics.Param.SCREEN_CLASS, screenClass)
         }
     }
-
-    /**
-     * 뉴스 노출(피드에서 보여진 경우) 이벤트 로깅
-     * @param newsId 뉴스 고유 ID
-     * @param feedSource 노출된 피드 출처 (예: "home", "recommended")
-     */
     override fun logNewsImpression(newsId: Long, feedSource: String) {
-        val params = Bundle().apply {
+        fa.logEvent("news_impression") {
             putLong("news_id", newsId)
             putString("feed_source", feedSource)
         }
-        fa.logEvent("news_impression", params)
     }
 
-    /**
-     * 뉴스 클릭 이벤트 로깅
-     * @param newsId 클릭된 뉴스 고유 ID
-     * @param feedSource 클릭 발생한 피드 출처
-     */
     override fun logNewsClick(newsId: Long, feedSource: String) {
-        val params = Bundle().apply {
+        fa.logEvent("news_click") {
             putLong("news_id", newsId)
             putString("feed_source", feedSource)
         }
-        fa.logEvent("news_click", params)
     }
 
-    /**
-     * 뉴스 상세 조회 종료 이벤트 로깅
-     * @param newsId 뉴스 고유 ID
-     * @param dwellMs 머문 시간 (ms 단위)
-     * @param scrollPct 스크롤 퍼센트 (0~100)
-     * @param fromSource 어떤 경로에서 진입했는지 (예: "push", "home_feed")
-     */
     override fun logNewsViewEnd(newsId: Long, dwellMs: Long, scrollPct: Int, fromSource: String) {
-        val params = Bundle().apply {
+        fa.logEvent("news_view_end") {
             putLong("news_id", newsId)
             putLong("dwell_ms", dwellMs)
             putInt("scroll_pct", scrollPct)
             putString("from_source", fromSource)
         }
-        fa.logEvent("news_view_end", params)
     }
 
-    /**
-     * 뉴스 북마크 추가/제거 이벤트 로깅
-     * @param newsId 뉴스 고유 ID
-     * @param action 북마크 동작 ("add" = 추가, "remove" = 제거)
-     */
     override fun logNewsBookmark(newsId: Long, action: String) {
-        val params = Bundle().apply {
+        fa.logEvent("news_bookmark") {
             putLong("news_id", newsId)
             putString("action", action)
         }
-        fa.logEvent("news_bookmark", params)
+    }
+
+    // 툰 관련 이벤트
+    override fun logToonImpression(newsId: Long) {
+        fa.logEvent("toon_impression") {
+            putLong("news_id", newsId)
+        }
+    }
+
+    override fun logToonClick(newsId: Long) {
+        fa.logEvent("toon_click") {
+            putLong("news_id", newsId)
+        }
+    }
+
+    override fun logToonPositive(newsId: Long) {
+        fa.logEvent("toon_positive") {
+            putLong("news_id", newsId)
+        }
+    }
+
+    override fun logToonNegative(newsId: Long) {
+        fa.logEvent("toon_negative") {
+            putLong("news_id", newsId)
+        }
+    }
+
+    override fun logToonExpandNews(newsId: Long) {
+        fa.logEvent("toon_expand_news") {
+            putLong("news_id", newsId)
+        }
     }
 
     private inline fun FirebaseAnalytics.logEvent(

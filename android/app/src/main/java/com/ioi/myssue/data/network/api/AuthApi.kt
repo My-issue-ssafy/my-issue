@@ -1,5 +1,7 @@
 package com.ioi.myssue.data.network.api
 
+import com.ioi.myssue.data.dto.request.AddUserRequest
+import com.ioi.myssue.data.dto.response.AddUserResponse
 import kotlinx.serialization.Serializable
 import retrofit2.Response
 import retrofit2.http.Body
@@ -15,13 +17,3 @@ interface AuthApi {
     suspend fun reissueToken(
     ): Response<Unit>
 }
-
-@Serializable
-data class AddUserRequest(
-    val deviceUuid: String
-)
-
-@Serializable
-data class AddUserResponse(
-    val userId: Long
-)
