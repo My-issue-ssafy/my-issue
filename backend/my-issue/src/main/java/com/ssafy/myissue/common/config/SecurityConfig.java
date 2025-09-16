@@ -7,9 +7,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -35,12 +35,13 @@ public class SecurityConfig {
     }
 
     @Bean @Order(2)
-    SecurityFilterChain app(HttpSecurity http, AuthenticationConfiguration authCfg, CorsConfigurationSource corsConfigurationSource) throws Exception {
+    SecurityFilterChain app(HttpSecurity http, CorsConfigurationSource corsConfigurationSource, AuthenticationEntryPoint authenticationEntryPoint) throws Exception {
         http
                 .csrf(cs -> cs.disable())
                 .sessionManagement(m -> m.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         // 공개 엔드포인트
                         .requestMatchers(HttpMethod.POST, "/auth/device", "/auth/reissue").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
@@ -50,7 +51,9 @@ public class SecurityConfig {
                 .cors(c -> c.configurationSource(corsConfigurationSource))
                 .httpBasic(h -> h.disable())
                 .formLogin(f -> f.disable())
-                .addFilterBefore(new JwtAuthenticationFilter(jwtIssuer), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtIssuer, authenticationEntryPoint), UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exceptionHandling -> exceptionHandling.authenticationEntryPoint(authenticationEntryPoint))
+                ;
 
         return http.build();
     }

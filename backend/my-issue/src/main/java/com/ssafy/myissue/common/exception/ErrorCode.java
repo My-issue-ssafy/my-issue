@@ -17,6 +17,7 @@ public enum ErrorCode {
     // Access Token
     EXPIRED_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "EXPIRED_ACCESS_TOKEN", "만료된 Access Token 입니다."),
     MALFORMED_ACCESS_TOKEN(HttpStatus.BAD_REQUEST, "MALFORMED_ACCESS_TOKEN", "Access Token 형식이 올바르지 않습니다."),
+    INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_ACCESS_TOKEN","해당 Access Token이 존재하지 않습니다."),
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "해당 유저를 찾을 수 없습니다."),
     EMPTY_FCM_TOKEN(HttpStatus.NOT_FOUND, "FCM_TOKEN_NOT_FOUND", "FCM Token이 비어있습니다."),
@@ -27,7 +28,7 @@ public enum ErrorCode {
     INVALID_PARAMETER(HttpStatus.BAD_REQUEST, "INVALID_PARAMETER", "요청 파라미터가 유효하지 않습니다."), // 잘못된 쿼리/커서/size 등
 
     TOON_NOT_FOUND(HttpStatus.NOT_FOUND, "TOON_NOT_FOUND", "존재하지 않는 네컷뉴스입니다."),              // [ADDED]
-    TOON_LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "TOON_LIKE_NOT_FOUND", "좋아요/싫어요 기록이 없습니다.");     // [ADDED]
+    TOON_LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "TOON_LIKE_NOT_FOUND", "좋아요/싫어요 기록이 없습니다."),     // [ADDED]
     ;
 
     private final HttpStatus httpStatus;
