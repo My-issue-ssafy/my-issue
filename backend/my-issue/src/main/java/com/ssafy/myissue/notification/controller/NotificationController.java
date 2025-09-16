@@ -77,6 +77,10 @@ public class NotificationController {
     }
 
     @PatchMapping("/status")
+    @Operation(
+            summary = "내 알림 설정 상태 변경 API",
+            description = "### - 알림 설정이 활성화 되어있으면 비활성화, 비활성화 되어있으면 활성화로 변경"
+    )
     public ResponseEntity<Void> updateNotificationStatus(@AuthenticationPrincipal Long userId) {
         log.debug("[updateNotificationStatus] userId: {}", userId);
 
@@ -85,6 +89,10 @@ public class NotificationController {
     }
 
     @GetMapping("/status")
+    @Operation(
+            summary = "내 알림 설정 상태 조회 API",
+            description = "### - 알림 설정이 활성화 되어있으면 true, 비활성화 되어있으면 false 반환"
+    )
     public ResponseEntity<Boolean> getNotificationStatus(@AuthenticationPrincipal Long userId) {
         log.debug("[getNotificationStatus] userId: {}", userId);
 
