@@ -76,4 +76,11 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/status")
+    public ResponseEntity<Void> updateNotificationStatus(@AuthenticationPrincipal Long userId) {
+        log.debug("[updateNotificationStatus] userId: {}", userId);
+
+        notificationService.updateNotificationStatus(userId);
+        return ResponseEntity.noContent().build();
+    }
 }

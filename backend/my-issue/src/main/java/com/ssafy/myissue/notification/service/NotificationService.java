@@ -8,4 +8,5 @@ public interface NotificationService {
     Boolean findUnreadNotification(Long userId);
     void deleteNotification(Long userId, Long notificationId);
     void deleteNotifications(Long userId);
+    void updateNotificationStatus(Long userId);
 }

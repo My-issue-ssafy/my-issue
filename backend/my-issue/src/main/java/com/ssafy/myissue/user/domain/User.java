@@ -36,4 +36,8 @@ public class User {
     public void updateFcmToken(String fcmToken) {
         this.fcmToken = fcmToken;
     }
+
+    public void updateNotificationEnabled() {
+        this.notificationEnabled = !this.notificationEnabled;
+    }
 }

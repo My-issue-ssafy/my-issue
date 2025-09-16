@@ -7,6 +7,8 @@ import com.ssafy.myissue.notification.dto.NotificationsResponse;
 import com.ssafy.myissue.notification.dto.SliceResponseDto;
 import com.ssafy.myissue.notification.infrastructure.NotificationRepository;
 import com.ssafy.myissue.notification.service.NotificationService;
+import com.ssafy.myissue.user.domain.User;
+import com.ssafy.myissue.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -23,6 +25,7 @@ import java.util.List;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
     @Override
     public SliceResponseDto<NotificationsResponse> findAllByUserId(Long userId, Long lastId, int size) {
@@ -73,4 +76,17 @@ public class NotificationServiceImpl implements NotificationService {
     public void deleteNotifications(Long userId) {
         notificationRepository.deleteAllByUser_Id(userId);
     }
+
+    @Override
+    @Transactional
+    public void updateNotificationStatus(Long userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> {
+                log.error("[updateNotificationStatus Service] User not found. userId: {}", userId);
+                return new CustomException(ErrorCode.USER_NOT_FOUND);
+            });
+
+        user.updateNotificationEnabled();
+    }
+
 }
