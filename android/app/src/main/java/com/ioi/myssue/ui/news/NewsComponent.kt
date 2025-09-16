@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,17 +46,19 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ioi.myssue.R
+import com.ioi.myssue.designsystem.theme.AppColors.Primary400
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.AppColors.Primary700
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background300
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background400
-import com.ioi.myssue.domain.model.News
+import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.common.clickableNoRipple
 
 @Composable
@@ -90,7 +91,9 @@ fun NewsSectionHeader(
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun HotNewsPager(
-    items: List<News>, onClick: (News) -> Unit = {}, peek: Dp = 28.dp,   // 다음 페이지 미리보기 길이
+    items: List<NewsSummary>,
+    onClick: (NewsSummary) -> Unit = {},
+    peek: Dp = 28.dp,   // 다음 페이지 미리보기 길이
     pageSpacing: Dp = 18.dp
 ) {
     val config = LocalConfiguration.current
@@ -126,7 +129,7 @@ fun HotNewsPager(
 // HOT뉴스 페이저 한 슬라이드
 @Composable
 fun HotNewsSlide(
-    news: News, onClick: () -> Unit, modifier: Modifier = Modifier
+    news: NewsSummary, onClick: () -> Unit, modifier: Modifier = Modifier
 ) {
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -136,7 +139,7 @@ fun HotNewsSlide(
             .clickable { onClick() },
     ) {
         Box(Modifier.fillMaxSize()) {
-            if (news.img == null) {
+            if (news.thumbnail == null) {
                 Image(
                     painter = painterResource(R.drawable.ic_empty_thumbnail),
                     contentDescription = null,
@@ -145,7 +148,7 @@ fun HotNewsSlide(
                 )
             } else {
                 AsyncImage(
-                    model = news.img,
+                    model = news.thumbnail,
                     contentDescription = news.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
@@ -243,8 +246,8 @@ fun DotsIndicator(
 @Composable
 fun NewsItem(
     modifier: Modifier = Modifier,
-    news: News,
-    onClick: (News) -> Unit = {},
+    news: NewsSummary,
+    onClick: (NewsSummary) -> Unit = {},
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -252,7 +255,7 @@ fun NewsItem(
             .clip(RoundedCornerShape(16.dp))
             .padding(16.dp, 8.dp)
             .clickableNoRipple { onClick(news) }) {
-        NewsThumbnail(img = news.img)
+        NewsThumbnail(img = news.thumbnail)
 
         Spacer(Modifier.width(12.dp))
 
@@ -276,8 +279,8 @@ fun NewsItem(
     }
 }
 
-@Composable
 // 뉴스 썸네일 이미지
+@Composable
 fun NewsThumbnail(img: String?) {
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -300,8 +303,8 @@ fun NewsThumbnail(img: String?) {
 }
 
 
-@Composable
 // 뉴스 카테고리
+@Composable
 fun NewsCategory(category: String) {
     Text(
         text = category,
@@ -311,8 +314,8 @@ fun NewsCategory(category: String) {
     )
 }
 
-@Composable
 // 뉴스 제목
+@Composable
 fun NewsTitle(title: String) {
     Text(
         text = title,
@@ -324,8 +327,8 @@ fun NewsTitle(title: String) {
     )
 }
 
-@Composable
 // 뉴스 시간
+@Composable
 fun NewsCreatedAt(relativeTime: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Image(
@@ -343,8 +346,8 @@ fun NewsCreatedAt(relativeTime: String) {
     }
 }
 
-@Composable
 // 뉴스 조회수
+@Composable
 fun NewsViews(views: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
@@ -359,6 +362,34 @@ fun NewsViews(views: Int) {
             fontWeight = FontWeight.Bold,
             color = Background400,
             modifier = Modifier.padding(start = 4.dp)
+        )
+    }
+}
+
+
+// 뉴스 없을 때 화면
+@Composable
+fun NewsEmpty() {
+    Text(
+        text = "지금 볼 수 있는 뉴스가 없어요",
+        style = typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        color = Background400,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 20.dp)
+    )
+}
+
+// 뉴스 로딩 화면
+@Composable
+fun FullscreenLoading() {
+    Box(Modifier.fillMaxSize()) {
+        androidx.compose.material3.CircularProgressIndicator(
+            color = Primary400,
+            modifier = Modifier
+                .align(Alignment.Center)
         )
     }
 }

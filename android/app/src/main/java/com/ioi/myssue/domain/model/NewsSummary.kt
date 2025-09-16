@@ -1,6 +1,6 @@
 package com.ioi.myssue.domain.model
 
-data class News(
+data class NewsSummary (
     val newsId: Long,
     val title: String,
     val author: String,
@@ -9,6 +9,5 @@ data class News(
     val views: Int,
     val category: String,
     val thumbnail: String?,
-    val content: List<NewsBlock> = emptyList(),
-    val displayTime: String,
+    val relativeTime: String,
 )

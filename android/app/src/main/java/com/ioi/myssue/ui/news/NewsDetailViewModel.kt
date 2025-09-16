@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.news
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.domain.repository.NewsRepository
@@ -17,7 +18,7 @@ sealed interface NewsDetailEffect {
 }
 @HiltViewModel
 class NewsDetailViewModel @Inject constructor(
-    private val repository: NewsRepository,
+    private val newsRepository: NewsRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(NewsDetailUiState())
     val uiState = _uiState.asStateFlow()
@@ -38,9 +39,9 @@ class NewsDetailViewModel @Inject constructor(
         if(newsId == null) return
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
-            runCatching { repository.getNewsById(newsId) }
+            runCatching { newsRepository.getNewsDetail(newsId) }
                 .onSuccess { news ->
-                    val bookmarked = repository.isBookmarked(news.newsId)
+                    val bookmarked = newsRepository.isBookmarked(news.newsId)
                     _uiState.update {
                         it.copy(
                             loading = false,
@@ -48,7 +49,7 @@ class NewsDetailViewModel @Inject constructor(
                             title = news.title,
                             author = news.author,
                             newspaper = news.newspaper,
-                            createdAt = news.createdAt,
+                            displayTime = news.displayTime,
                             blocks = news.content,
                             isBookmarked = bookmarked
                         )
@@ -66,7 +67,7 @@ class NewsDetailViewModel @Inject constructor(
         _uiState.update { it.copy(isBookmarked = next) }
 
         viewModelScope.launch {
-            runCatching { repository.setBookmarked(id, next) }
+            runCatching { newsRepository.setBookmarked(id, next) }
                 .onSuccess { confirmed ->
                     _uiState.update { it.copy(isBookmarked = confirmed) }
                     _effect.emit(
