@@ -50,3 +50,19 @@ fcm:
     url: https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send
     google-api: https://www.googleapis.com/auth/cloud-platform
     project_id: ${PROJECT_ID}
+
+cloud:
+  aws:
+    s3:
+      bucket: venture-review   # 네가 만든 버킷 이름
+    region:
+      static: ap-northeast-2 # 서울
+    stack:
+      auto: false
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+
+gms:
+  key: ${GMS_KEY}
+

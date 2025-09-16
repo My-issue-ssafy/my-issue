@@ -59,10 +59,6 @@ public class News {
 
 
     /** 생성/삽입 직전에 createdAt이 비어 있으면 자동 세팅 */
-    @PrePersist
-    void onCreate() {
-        if (this.createdAt == null) this.createdAt = LocalDateTime.now();
-    }
 
     public void increaseViews() { this.views++; }
 }

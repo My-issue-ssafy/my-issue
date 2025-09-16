@@ -2,6 +2,7 @@ package com.ssafy.myissue.toons.controller;
 
 import com.ssafy.myissue.toons.dto.ToonResponse;
 import com.ssafy.myissue.toons.service.ToonsService;
+import com.ssafy.myissue.toons.service.ToonGeneratorService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.util.List;
 public class ToonsController {
 
     private final ToonsService toonsService;
+    private final ToonGeneratorService toonGeneratorService;
 
     // 네컷뉴스 전체 조회
     @GetMapping
@@ -64,5 +66,11 @@ public class ToonsController {
         if (userId == null) {
             throw new CustomException(ErrorCode.UNAUTHORIZED_ACCESS);
         }
+    }
+
+    @PostMapping("/generate-daily")
+    public ResponseEntity<Void> generateDailyToons() {
+        toonGeneratorService.generateDailyToons();
+        return ResponseEntity.ok().build();
     }
 }
