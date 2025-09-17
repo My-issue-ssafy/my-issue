@@ -32,25 +32,26 @@ public class ToonGeneratorService {
             LocalDateTime start = yesterday.atStartOfDay();
             LocalDateTime end = yesterday.atTime(LocalTime.MAX);
 
+            // 어제 기준 TOP 10 뉴스 가져오기
             List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(0, 10));
 
             for (News news : topNews) {
+                // 1. GPT 요약본 생성
                 String summary = gptService.summarize(news.getContent());
-                byte[] image = imageService.generateImage(news.getContent());
-                String imageUrl = s3Uploader.upload(image, "toons/" + news.getId() + ".png", "image/png");
 
+                // 2. 요약본만 포함한 Toons 저장 (이미지는 null)
                 Toons toon = Toons.builder()
                         .newsId(news.getId())
                         .title(news.getTitle())
                         .summary(summary)
-                        .toonImage(imageUrl)
+                        .toonImage(null)   // ✅ 이미지 나중에 업데이트
                         .build();
 
                 toonsRepository.save(toon);
             }
         } catch (Exception e) {
-            e.printStackTrace(); // 콘솔에 원인 출력
-            throw e; // 그대로 다시 던져서 Swagger는 500 리턴
+            e.printStackTrace();
+            throw e; // Swagger에서 500 에러 확인 가능
         }
     }
 }

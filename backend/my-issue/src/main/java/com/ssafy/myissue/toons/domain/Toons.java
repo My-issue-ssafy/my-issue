@@ -18,7 +18,7 @@ public class Toons {
     @Column(nullable = false)
     private Long newsId;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String toonImage;
 
     @Column(columnDefinition = "text")
