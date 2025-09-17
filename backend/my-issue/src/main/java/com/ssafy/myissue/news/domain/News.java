@@ -49,8 +49,7 @@ public class News {
     @Column(nullable = false)
     private int views = 0;
 
-    @Column(columnDefinition = "vector(768)", nullable = false)
-//    @Formula("embedding::text")
+    @Formula("embedding::text")
     private String embedding;
 
     @Column(nullable = true)

@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/news")
 @RequiredArgsConstructor
@@ -88,6 +90,11 @@ public class NewsController {
         return ResponseEntity.ok().build();
     }
 
+    // 인기도 기반 추천 모델 확인 TEST
+    @GetMapping("/hot/recommend/top100")
+    public ResponseEntity<List<NewsDetailResponse>> getHotRecommendTop100() {
+        return ResponseEntity.ok(newsService.getHotRecommendTop100());
+    }
     // ---------- helpers ----------
 
     /** size 하한/상한 고정 */
