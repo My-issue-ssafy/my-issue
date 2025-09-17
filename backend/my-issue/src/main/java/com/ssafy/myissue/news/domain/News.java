@@ -25,38 +25,36 @@ public class News {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // PK 값을 DB가 자동으로 생성하도록 지정하는 JPA 어노테이션. DB auto-increment
     @Column(name = "id")
-    private Long newsId;
+    private Long id;
 
-    @Column
+    @Column(nullable = false)
     private String title;
 
-//    @Column(columnDefinition = "jsonb")
-    @Column(columnDefinition = "text")
+    @Column(columnDefinition = "jsonb", nullable = false)
+//    @Column(columnDefinition = "text", nullable = false)
     private String content;
 
-    @Column
+    @Column(nullable = false)
     private String category;
 
+    @Column(nullable = false)
     private String author;
 
-    @Column
+    @Column(nullable = false)
     private String newsPaper;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column
+    @Column(nullable = false)
     private int views;
 
-//    @Column(columnDefinition = "vector(768)")
-    @Formula("embedding::text")
+    @Column(columnDefinition = "vector(768)", nullable = false)
+//    @Formula("embedding::text")
     private String embedding;
 
-    @Column
+    @Column(nullable = false)
     private String thumbnail;
-
-
-    /** 생성/삽입 직전에 createdAt이 비어 있으면 자동 세팅 */
 
     public void increaseViews() { this.views++; }
 }

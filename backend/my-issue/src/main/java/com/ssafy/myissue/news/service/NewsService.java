@@ -113,7 +113,7 @@ public class NewsService {
         var blocks = parseBlocks(n.getContent());
 
         return new NewsDetailResponse(
-                n.getNewsId(),
+                n.getId(),
                 n.getTitle(),
                 blocks,
                 n.getCategory(),
@@ -137,7 +137,7 @@ public class NewsService {
             News base = newsRepository.findById(lastId)
                     .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PARAMETER)); // [CHANGED]
             lastAt = base.getCreatedAt();
-            lastNewsId = base.getNewsId();
+            lastNewsId = base.getId();
         }
 
         List<News> rows = newsRepository.searchPage(keyword, category, lastAt, lastNewsId, pageSize + 1);
@@ -163,7 +163,7 @@ public class NewsService {
         if (hasNext && !rows.isEmpty()) {
             News last = rows.get(rows.size() - 1);
             long sec = last.getCreatedAt().toEpochSecond(ZoneOffset.UTC);
-            next = CursorCodec.encode(new LatestCursor(sec, last.getNewsId()));
+            next = CursorCodec.encode(new LatestCursor(sec, last.getId()));
         }
         return new CursorPage<>(items, next, hasNext);
     }
@@ -178,7 +178,7 @@ public class NewsService {
         if (hasNext && !rows.isEmpty()) {
             News last = rows.get(rows.size() - 1);
             long sec = last.getCreatedAt().toEpochSecond(ZoneOffset.UTC);
-            next = CursorCodec.encode(new HotCursor(last.getViews(), sec, last.getNewsId()));
+            next = CursorCodec.encode(new HotCursor(last.getViews(), sec, last.getId()));
         }
         return new CursorPage<>(items, next, hasNext);
     }
@@ -186,7 +186,7 @@ public class NewsService {
     /** 엔티티 목록 → 카드 DTO 목록 (썸네일 1장만 사용) */
     private List<NewsCardResponse> toCards(List<News> newsList) {
         return newsList.stream().map(n -> new NewsCardResponse(
-                n.getNewsId(),
+                n.getId(),
                 n.getTitle(),
                 n.getAuthor(),
                 n.getNewsPaper(),
