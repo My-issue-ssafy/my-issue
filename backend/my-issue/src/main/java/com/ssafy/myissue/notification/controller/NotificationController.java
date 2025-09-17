@@ -2,14 +2,20 @@ package com.ssafy.myissue.notification.controller;
 
 import com.ssafy.myissue.notification.dto.NotificationsResponse;
 import com.ssafy.myissue.notification.dto.SliceResponseDto;
+import com.ssafy.myissue.notification.dto.fcm.PersonalizedPush;
+import com.ssafy.myissue.notification.dto.fcm.SendSummary;
 import com.ssafy.myissue.notification.service.NotificationService;
+import com.ssafy.myissue.notification.service.impl.FcmPersonalizedSender;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.models.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -19,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final FcmPersonalizedSender sender;
 
     @GetMapping
     @Operation(
@@ -105,6 +112,12 @@ public class NotificationController {
 
         notificationService.updateNotificationReadStatus(userId, notificationId);
         return ResponseEntity.noContent().build();
+    }
+
+
+    @PostMapping("/send-personalized")
+    public ResponseEntity<SendSummary> send(@RequestBody List<PersonalizedPush> req) {
+        return ResponseEntity.ok(sender.sendPersonalized(req));
     }
 
 }

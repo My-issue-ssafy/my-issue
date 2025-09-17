@@ -21,6 +21,7 @@ public class User {
     @Column(name = "fcm_token")
     private String fcmToken;
 
+    @Builder.Default // Builder는 필드 초기갑 무시
     @Column(name = "notification_enabled")
     private boolean notificationEnabled = false;
 
