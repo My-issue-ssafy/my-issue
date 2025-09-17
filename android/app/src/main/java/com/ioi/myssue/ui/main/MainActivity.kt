@@ -45,7 +45,7 @@ class MainActivity : ComponentActivity() {
                                 BottomTabRoute.Cartoon -> viewModel.navigateCartoon()
                                 BottomTabRoute.Podcast -> viewModel.navigatePodcast()
                                 BottomTabRoute.MyPage -> viewModel.navigateMyPage()
-                                is BottomTabRoute.NewsAll -> Unit
+                                else -> Unit
                             }
                         }
                     )

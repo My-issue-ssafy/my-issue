@@ -23,4 +23,10 @@ sealed interface BottomTabRoute: NavKey {
 
     @Serializable
     data object MyPage: BottomTabRoute
+
+    @Serializable
+    data object MyScrap: BottomTabRoute
+
+    @Serializable
+    data object MyCartoon: BottomTabRoute
 }

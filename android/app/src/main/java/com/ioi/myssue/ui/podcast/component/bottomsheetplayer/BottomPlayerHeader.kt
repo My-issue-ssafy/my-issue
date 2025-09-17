@@ -68,11 +68,15 @@ fun BottomPlayerHeader(
             )
         }
 
-        IconButton(onClick = toggleContentType) {
+        IconButton(
+            onClick = toggleContentType,
+            modifier = Modifier.size(64.dp)
+        ) {
             Icon(
                 painterResource(R.drawable.ic_podcast_list),
                 contentDescription = null,
-                tint = BackgroundColors.Background50
+                tint = BackgroundColors.Background50,
+                modifier = Modifier.size(48.dp)
             )
         }
     }

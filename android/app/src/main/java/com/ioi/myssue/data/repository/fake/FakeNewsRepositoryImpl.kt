@@ -1,4 +1,4 @@
-package com.ioi.myssue.data.repository
+package com.ioi.myssue.data.repository.fake
 
 import com.ioi.myssue.common.util.TimeConverter
 import com.ioi.myssue.domain.model.CursorPage
@@ -7,7 +7,6 @@ import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.model.NewsBlock
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.repository.NewsRepository
-import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -15,8 +14,6 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import java.time.LocalDateTime
-import kotlin.math.max
-import kotlin.random.Random
 
 @Singleton
 class FakeNewsRepositoryImpl @Inject constructor(
@@ -144,11 +141,14 @@ class FakeNewsRepositoryImpl @Inject constructor(
     // 북마크
     private val bookmarkedIds = MutableStateFlow<Set<Long>>(emptySet())
 
-    override suspend fun isBookmarked(newsId: Long): Boolean =
-        newsId in bookmarkedIds.value
+    override suspend fun bookMarkNews(newsId: Long): Boolean {
+        TODO("Not yet implemented")
+    }
 
-    override suspend fun setBookmarked(newsId: Long, target: Boolean): Boolean {
-        bookmarkedIds.update { old -> if (target) old + newsId else old - newsId }
-        return newsId in bookmarkedIds.value
+    override suspend fun getBookmarkedNews(
+        size: Int?,
+        lastId: Long?
+    ): CursorPage<NewsSummary> {
+        TODO("Not yet implemented")
     }
 }

@@ -41,7 +41,6 @@ class NewsDetailViewModel @Inject constructor(
             _uiState.update { it.copy(loading = true, error = null) }
             runCatching { newsRepository.getNewsDetail(newsId) }
                 .onSuccess { news ->
-                    val bookmarked = newsRepository.isBookmarked(news.newsId)
                     _uiState.update {
                         it.copy(
                             loading = false,
@@ -51,7 +50,7 @@ class NewsDetailViewModel @Inject constructor(
                             newspaper = news.newspaper,
                             displayTime = news.displayTime,
                             blocks = news.content,
-                            isBookmarked = bookmarked
+                            isBookmarked = false
                         )
                     }
                 }
@@ -67,7 +66,7 @@ class NewsDetailViewModel @Inject constructor(
         _uiState.update { it.copy(isBookmarked = next) }
 
         viewModelScope.launch {
-            runCatching { newsRepository.setBookmarked(id, next) }
+            runCatching { newsRepository.bookMarkNews(id) }
                 .onSuccess { confirmed ->
                     _uiState.update { it.copy(isBookmarked = confirmed) }
                     _effect.emit(

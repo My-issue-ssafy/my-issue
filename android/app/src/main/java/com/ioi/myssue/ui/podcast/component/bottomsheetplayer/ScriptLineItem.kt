@@ -1,11 +1,7 @@
 package com.ioi.myssue.ui.podcast.component.bottomsheetplayer
 
-import android.R.attr.scaleX
-import android.R.attr.scaleY
-import android.R.attr.translationY
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +16,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ioi.myssue.designsystem.theme.BackgroundColors
@@ -27,8 +24,8 @@ import com.ioi.myssue.ui.podcast.ScriptLine
 
 @Composable
 fun ScriptLineItem(
+    modifier: Modifier = Modifier,
     line: ScriptLine,
-    offsetY: Float,
     style: Float
 ) {
     val blur: Dp = (2 * (1f - style)).dp
@@ -39,10 +36,9 @@ fun ScriptLineItem(
     val scale = 0.8f + 0.2f * style
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
+            .padding(vertical = 20.dp)
             .graphicsLayer {
-                translationY = offsetY
                 this.alpha = alpha
                 scaleX = scale
                 scaleY = scale
@@ -80,6 +76,7 @@ private fun AnimatedScriptText(
                 offset = Offset(shadowOffset, shadowOffset),
                 blurRadius = shadowRadius
             )
-        )
+        ),
+        textAlign = if (line.isLeftSpeaker) TextAlign.Start else TextAlign.End
     )
 }

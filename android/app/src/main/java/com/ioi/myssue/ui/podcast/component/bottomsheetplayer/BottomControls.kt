@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.ui.common.clickableNoRipple
 import com.ioi.myssue.ui.podcast.component.GradientProgressBar
 
 @Composable
@@ -29,7 +32,9 @@ fun BottomControls(
     durationMs: Long,
     changeDate: (Int) -> Unit,
     onPlayPause: () -> Unit,
+    onSeekTo: (Long) -> Unit,
     isPlaying: Boolean,
+    isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.padding(vertical = 20.dp)) {
@@ -44,7 +49,8 @@ fun BottomControls(
                 listOf(
                     BackgroundColors.Background50, BackgroundColors.Background50
                 )
-            )
+            ),
+            onSeekTo = onSeekTo
         )
         Spacer(Modifier.height(8.dp))
 
@@ -67,45 +73,66 @@ fun BottomControls(
             changeDate = changeDate,
             onPlayPause = onPlayPause,
             isPlaying = isPlaying,
-            )
+            isLoading = isLoading
+        )
     }
 }
+
 @Composable
 private fun BottomControlActionButtons(
     changeDate: (Int) -> Unit,
     onPlayPause: () -> Unit,
     isPlaying: Boolean,
+    isLoading: Boolean,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = { changeDate(-1) }) {
-            Icon(
-                painterResource(R.drawable.ic_podcast_previous),
-                contentDescription = "previous date",
-                tint = BackgroundColors.Background50
+
+        Icon(
+            painterResource(R.drawable.ic_podcast_previous),
+            contentDescription = "previous date",
+            tint = BackgroundColors.Background50,
+            modifier = Modifier
+                .size(32.dp)
+                .clickableNoRipple {
+                    if(!isLoading) changeDate(-1)
+                }
+        )
+
+
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.padding(6.dp).size(36.dp),
+                strokeWidth = 4.dp,
+                color = BackgroundColors.Background50
             )
         }
-
-        IconButton(onClick = onPlayPause) {
-            val icon =
-                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_podcast_play
+        else {
+            val icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_podcast_play
             Icon(
                 painter = painterResource(icon),
                 contentDescription = "play/pause",
-                tint = BackgroundColors.Background50
+                tint = BackgroundColors.Background50,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clickableNoRipple(onPlayPause)
             )
         }
 
-        IconButton(onClick = { changeDate(+1) }) {
-            Icon(
-                painterResource(R.drawable.ic_podcast_next),
-                contentDescription = "next date",
-                tint = BackgroundColors.Background50
-            )
-        }
+        Icon(
+            painterResource(R.drawable.ic_podcast_next),
+            contentDescription = "next date",
+            tint = BackgroundColors.Background50,
+            modifier = Modifier
+                .size(32.dp)
+                .clickableNoRipple {
+                    if(!isLoading) changeDate(+1)
+                }
+        )
+
     }
 }
 

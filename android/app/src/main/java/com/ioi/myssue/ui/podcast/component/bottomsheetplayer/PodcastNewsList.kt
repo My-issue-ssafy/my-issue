@@ -1,9 +1,11 @@
 package com.ioi.myssue.ui.podcast.component.bottomsheetplayer
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
@@ -27,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.podcast.KeyWordList
 
 @Composable
@@ -45,11 +49,11 @@ fun PodcastNewsList(
         modifier = modifier.fillMaxWidth()
     )
 
-    PodcastNewsList(news)
+    NewsSummaryList(news)
 }
 
 @Composable
-private fun PodcastNewsList(news: List<String>) {
+private fun NewsSummaryList(news: List<String>) {
     val listState = rememberLazyListState()
     LazyColumn(
         state = listState,
@@ -59,39 +63,58 @@ private fun PodcastNewsList(news: List<String>) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(news) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Card(
-                    shape = RoundedCornerShape(4.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                ) {
-                    AsyncImage(
-                        model = "https://imgnews.pstatic.net/image/277/2025/09/12/0005651015_001_20250912132818390.jpg?type=w860",
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(60.dp)
-                    )
-                }
+            NewsSummary(
+                newsSummary = NewsSummary(
+                    0L,
+                "https://imgnews.pstatic.net/image/277/2025/09/12/0005651015_001_20250912132818390.jpg?type=w860",
+                "IT",
+                "삼성전자, 3분기 잠정실적 발표...영업이익 15.8조원"
+                ),
+                fontColor = BackgroundColors.Background50
+            )
+        }
+    }
+}
 
-                Spacer(Modifier.width(12.dp))
+@Composable
+fun NewsSummary(
+    modifier: Modifier = Modifier,
+    newsSummary: NewsSummary,
+    fontColor: Color = Color.Black,
+    onClick: (Long) -> Unit = { }
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.clickable{onClick(newsSummary.newsId)}
+    ) {
+        Card(
+            shape = RoundedCornerShape(4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            modifier = Modifier.size(68.dp).aspectRatio(1f)
+        ) {
+            AsyncImage(
+                model = newsSummary.thumbnail,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+            )
+        }
 
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    Text(
-                        text = "IT",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = BackgroundColors.Background50
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "5년 만에 ‘보급형 태블릿’ 띄우는 삼성... 신흥국 점령 나선다",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = BackgroundColors.Background50,
-                        maxLines = 2
-                    )
-                }
-            }
+        Spacer(Modifier.width(12.dp))
+
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Text(
+                text = newsSummary.category,
+                style = MaterialTheme.typography.labelSmall,
+                color = fontColor
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = newsSummary.title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = fontColor,
+                maxLines = 2
+            )
         }
     }
 }

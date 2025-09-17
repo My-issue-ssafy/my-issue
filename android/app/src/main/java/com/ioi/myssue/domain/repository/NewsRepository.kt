@@ -16,6 +16,7 @@ interface NewsRepository {
 
     suspend fun getNewsDetail(newsId: Long): News
 
-    suspend fun isBookmarked(newsId: Long): Boolean
-    suspend fun setBookmarked(newsId: Long, target: Boolean): Boolean
+    suspend fun bookMarkNews(newsId: Long): Boolean
+
+    suspend fun getBookmarkedNews(size: Int? = 10, lastId: Long?): CursorPage<NewsSummary>
 }

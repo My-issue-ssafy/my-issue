@@ -122,6 +122,7 @@ fun HotNewsPager(
         DotsIndicator(
             count = items.size,
             current = pagerState.currentPage,
+            modifier = Modifier.padding(top = 12.dp)
         )
     }
 }
@@ -202,15 +203,14 @@ fun HotNewsSlide(
 
 @Composable
 fun DotsIndicator(
+    modifier: Modifier = Modifier,
     count: Int,
     current: Int,
-    dotSize: Dp = 10.dp,
+    dotSize: Dp = 8.dp,
     activeDotWidth: Dp = 22.dp,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 20.dp),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center
     ) {
         repeat(count) { index ->
@@ -247,6 +247,7 @@ fun DotsIndicator(
 fun NewsItem(
     modifier: Modifier = Modifier,
     news: NewsSummary,
+    isMarked: Boolean = false,
     onClick: (NewsSummary) -> Unit = {},
 ) {
     Row(
@@ -265,7 +266,24 @@ fun NewsItem(
                 .padding(top = 5.dp, bottom = 5.dp, start = 5.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            NewsCategory(category = news.category)
+            if(isMarked){
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    NewsCategory(category = news.category)
+                    Image(
+                        painter = painterResource(R.drawable.ic_my_bookmark),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            else {
+                NewsCategory(category = news.category)
+            }
+
             NewsTitle(title = news.title)
             Row(
                 modifier = Modifier.fillMaxWidth(),
