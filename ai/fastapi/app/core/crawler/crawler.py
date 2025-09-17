@@ -26,8 +26,13 @@ def save_news_to_db(article: dict, db):
             if article.get("published_at")
             else None
         )
-        embedding = article.get("title_embedding", {}).get("vector")
 
+        # created_at이 None이면 DB에 저장하지 않음 (스포츠/연예 뉴스 필터링)
+        if created_at is None:
+            logger.warning(f"[SKIP] created_at이 None인 기사 스킵: {article.get('title', 'Unknown')}")
+            return
+
+        embedding = article.get("title_embedding", {}).get("vector")
 
         # ✅ 첫 번째 이미지 URL 추출
         thumbnail_url = None
