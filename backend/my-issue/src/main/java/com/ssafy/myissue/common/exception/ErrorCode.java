@@ -19,6 +19,9 @@ public enum ErrorCode {
     EXPIRED_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "EXPIRED_ACCESS_TOKEN", "만료된 Access Token 입니다."),
     MALFORMED_ACCESS_TOKEN(HttpStatus.BAD_REQUEST, "MALFORMED_ACCESS_TOKEN", "Access Token 형식이 올바르지 않습니다."),
     INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_ACCESS_TOKEN","해당 Access Token이 존재하지 않습니다."),
+    EMPTY_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "EMPTY_ACCESS_TOKEN","Access Token이 비어있습니다."),
+    BEARER_PREFIX_INVALID(HttpStatus.UNAUTHORIZED, "BEARER_PREFIX_INVALID","Bearer 접두사로 시작하지 않습니다."),
+
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "해당 유저를 찾을 수 없습니다."),
     EMPTY_FCM_TOKEN(HttpStatus.NOT_FOUND, "FCM_TOKEN_NOT_FOUND", "FCM Token이 비어있습니다."),
