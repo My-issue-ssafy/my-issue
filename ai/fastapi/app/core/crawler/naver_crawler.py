@@ -23,6 +23,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 from bs4.element import NavigableString, Tag
+from loguru import logger
 
 # ========================
 # 전역 설정 변수들
@@ -106,7 +107,7 @@ def _get_kobert():
             trust_remote_code=True
         ).to(_KOBERT_DEVICE)
         _KOBERT_MODEL.eval()
-        print(f"[EMB] loaded: {EMBED_MODEL_NAME} on {_KOBERT_DEVICE}")
+        logger.info(f"[EMB] loaded: {EMBED_MODEL_NAME} on {_KOBERT_DEVICE}")
     return _KOBERT_TOKENIZER, _KOBERT_MODEL, _KOBERT_DEVICE
 
 def embed_title(text: str):
@@ -172,7 +173,7 @@ def safe_get(url: str, timeout: float = 15.0, extra_retries: int = 2, referer: s
         except requests.RequestException as e:
             last_exc = e
             sleep = (2 ** i) * 0.7 + random.random() * 0.3
-            print(f"[NET-RETRY] {url} -> {e} | retry in {sleep:.1f}s")
+            logger.warning(f"[NET-RETRY] {url} -> {e} | retry in {sleep:.1f}s")
             time.sleep(sleep)
     raise last_exc
 
@@ -610,7 +611,7 @@ def fetch_and_parse(url: str, sid1: str | None = None) -> dict | None:
                         with open(local_path, "wb") as f:
                             f.write(rr.content)
                 except Exception as e:
-                    print("[IMG-ERR]", iu, e)
+                    logger.error(f"[IMG-ERR] {iu} {e}")
 
     return item
 
@@ -684,7 +685,7 @@ def discover_and_store(sid1: str, reg_date: str, db, latest_dt, seen_ids: set[st
         h = hashlib.sha1(html.encode("utf-8", "ignore")).hexdigest()
         urls = extract_links_from_pc_html(html)
 
-        print(f"[sid1:{sid1}][{reg_date}][p{page}] urls={len(urls)} hash={h[:8]}")
+        logger.info(f"[sid1:{sid1}][{reg_date}][p{page}] urls={len(urls)} hash={h[:8]}")
 
         for u in urls:
             try:
@@ -697,7 +698,7 @@ def discover_and_store(sid1: str, reg_date: str, db, latest_dt, seen_ids: set[st
                 if pub_time:
                     pub_dt = datetime.fromisoformat(pub_time)
                     if latest_dt and pub_dt <= latest_dt:
-                        print(f"[STOP] 섹션 {sid1} ({section_name}) - {pub_dt} <= {latest_dt}")
+                        logger.info(f"[STOP] 섹션 {sid1} ({section_name}) - {pub_dt} <= {latest_dt}")
                         return  # 함수 전체 종료 (크롤링 중단)
 
                 # 제목 임베딩 추가
@@ -711,7 +712,7 @@ def discover_and_store(sid1: str, reg_date: str, db, latest_dt, seen_ids: set[st
                             "normalized": True,
                         }
                 except Exception as e:
-                    print("[EMB-ERR] title embedding:", e)
+                    logger.error(f"[EMB-ERR] title embedding: {e}")
 
                 # 중복 확인
                 canon_url = item.get("url")
@@ -723,7 +724,7 @@ def discover_and_store(sid1: str, reg_date: str, db, latest_dt, seen_ids: set[st
                 save_fn(item, db)
 
             except Exception as e:
-                print("[ERR]", u, e)
+                logger.error(f"[ERR] {u} {e}")
 
         # 중복 페이지 반복되면 중단
         if prev_hash == h:
@@ -756,7 +757,7 @@ def discover_links(sid1: str, reg_date: str, max_pages: int = MAX_PAGES) -> list
             found.add(u)
         page_new = len(found) - before
 
-        print(f"[sid1:{sid1}][{reg_date}][p{page}] so_far={len(found)} page_new={page_new} hash={h[:8]}")
+        logger.info(f"[sid1:{sid1}][{reg_date}][p{page}] so_far={len(found)} page_new={page_new} hash={h[:8]}")
 
         if prev_hash == h or page_new == 0:
             same_html_streak += 1
@@ -767,7 +768,7 @@ def discover_links(sid1: str, reg_date: str, max_pages: int = MAX_PAGES) -> list
         # # 완전 중복 페이지가 여러 번 반복되면 탈출
         # if same_html_streak >= 3:
         #     break
-        print(f"dicovery_links 실행")
+        logger.info(f"dicovery_links 실행")
         rand_sleep(LIST_DELAY)
 
     return list(found)
@@ -800,17 +801,17 @@ if __name__ == "__main__":
     reg_dates = [(today - timedelta(days=i)).strftime("%Y%m%d") for i in range(CRAWL_BACK_DAYS)]
     seen_ids: set[str] = set()
 
-    print(f"▶ 리스트 페이지 전용 수집 시작: days={CRAWL_BACK_DAYS}, max_pages={MAX_PAGES}, sections={len(NAVER_SECTIONS)}")
+    logger.info(f"▶ 리스트 페이지 전용 수집 시작: days={CRAWL_BACK_DAYS}, max_pages={MAX_PAGES}, sections={len(NAVER_SECTIONS)}")
 
     for reg in reg_dates:
-        print(f"\n=== 날짜: {reg} (list-only) ===")
+        logger.info(f"\n=== 날짜: {reg} (list-only) ===")
         for sid1 in NAVER_SECTIONS:
             try:
                 urls = discover_links(sid1, reg, max_pages=MAX_PAGES)
             except KeyboardInterrupt:
                 raise
             except Exception as e:
-                print(f"[ERR] discover sid1={sid1}/{reg} -> {e}")
+                logger.error(f"[ERR] discover sid1={sid1}/{reg} -> {e}")
                 continue
 
             for u in urls:
@@ -830,7 +831,7 @@ if __name__ == "__main__":
                                 "normalized": True
                             }
                     except Exception as e:
-                        print("[EMB-ERR] title embedding:", e)
+                        logger.error(f"[EMB-ERR] title embedding: {e}")
                     # --- [NEW end] ---
 
                     if save_item_if_new(item, seen_ids):
@@ -839,16 +840,16 @@ if __name__ == "__main__":
                             n_imgs = sum(1 for b in item["body"] if b.get("type") == "image")
                         elif isinstance(item.get("body"), str):
                             n_imgs = len(IMG_URL_RE.findall(item["body"]))
-                        print(f"[LIST][{yyyymmdd_from_iso(item.get('published_at')) or 'unknown'}] {item.get('title')} (sid1={sid1}) | imgs={n_imgs} | sections={item.get('section')}")
+                        logger.info(f"[LIST][{yyyymmdd_from_iso(item.get('published_at')) or 'unknown'}] {item.get('title')} (sid1={sid1}) | imgs={n_imgs} | sections={item.get('section')}")
                         rand_sleep(DETAIL_DELAY)
                 except KeyboardInterrupt:
                     raise
                 except Exception as e:
-                    print("[ERR]", u, e)
+                    logger.error(f"[ERR] {u} {e}")
 
-    print("✔ 리스트 전용 크롤링 완료!")
-    print(f"  - 고유 기사 수: {len(seen_ids):,}개 (중복 제거됨)")
-    print("  - 저장 위치: output/ (발행일별 JSONL 파일)")
-    print(f"  - 본문 모드: {INLINE_IMAGES_MODE} ({'블록 배열' if INLINE_IMAGES_MODE == 'blocks' else '마크다운 문자열'})")
+    logger.info("✔ 리스트 전용 크롤링 완료!")
+    logger.info(f"  - 고유 기사 수: {len(seen_ids):,}개 (중복 제거됨)")
+    logger.info("  - 저장 위치: output/ (발행일별 JSONL 파일)")
+    logger.info(f"  - 본문 모드: {INLINE_IMAGES_MODE} ({'블록 배열' if INLINE_IMAGES_MODE == 'blocks' else '마크다운 문자열'})")
     if DOWNLOAD_IMAGES:
-        print(f"  - 이미지 저장 위치: {IMAGES_DIR}/ (날짜별 디렉토리)")
+        logger.info(f"  - 이미지 저장 위치: {IMAGES_DIR}/ (날짜별 디렉토리)")
