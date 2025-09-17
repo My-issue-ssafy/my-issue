@@ -75,11 +75,6 @@ public class FcmPersonalizedSender {
                 .setToken(push.token())
                 .setNotification(notification);
 
-        // data payload 있으면 추가 (앱에서 인텐트 파싱용)
-        if (push.data() != null && !push.data().isEmpty()) {
-            builder.putAllData(push.data());
-        }
-
         return builder.build();
     }
 }
