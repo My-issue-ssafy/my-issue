@@ -44,6 +44,7 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         // 공개 엔드포인트
                         .requestMatchers(HttpMethod.POST, "/auth/device", "/auth/reissue").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/news/hot/update").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
