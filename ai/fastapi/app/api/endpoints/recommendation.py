@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 from datetime import datetime
+from loguru import logger
 
 from app.core.ml.recommendation_service import recommendation_service
 
@@ -96,23 +97,23 @@ async def get_cf_recommendations(
     """
     try:
         if not recommendation_service.cf_model_data:
-            recommendation_service.load_cf_model()
-        
+            try:
+                recommendation_service.load_cf_model()
+            except Exception as e:
+                logger.warning(f"CF 모델 로드 실패, 빈 리스트 반환: {e}")
+                return []
+
         recommendations = recommendation_service.get_cf_recommendations(user_id, count)
-        
+
         if not recommendations:
-            raise HTTPException(
-                status_code=404,
-                detail=f"사용자 {user_id}에 대한 CF 추천을 생성할 수 없습니다."
-            )
-        
+            logger.info(f"사용자 {user_id}에 대한 CF 추천이 없어 빈 리스트 반환")
+            return []
+
         return [RecommendationItem(**rec) for rec in recommendations]
-        
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"CF 추천 생성 중 오류가 발생했습니다: {str(e)}"
-        )
+        logger.error(f"CF 추천 생성 중 오류 발생, 빈 리스트 반환: {e}")
+        return []
 
 @router.get("/recommendations/{user_id}/cbf", response_model=List[RecommendationItem])
 async def get_cbf_recommendations(
@@ -127,23 +128,23 @@ async def get_cbf_recommendations(
     """
     try:
         if not recommendation_service.cbf_model_data:
-            recommendation_service.load_cbf_model()
-        
+            try:
+                recommendation_service.load_cbf_model()
+            except Exception as e:
+                logger.warning(f"CBF 모델 로드 실패, 빈 리스트 반환: {e}")
+                return []
+
         recommendations = recommendation_service.get_cbf_recommendations(user_id, count)
-        
+
         if not recommendations:
-            raise HTTPException(
-                status_code=404,
-                detail=f"사용자 {user_id}에 대한 CBF 추천을 생성할 수 없습니다."
-            )
-        
+            logger.info(f"사용자 {user_id}에 대한 CBF 추천이 없어 빈 리스트 반환")
+            return []
+
         return [RecommendationItem(**rec) for rec in recommendations]
-        
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"CBF 추천 생성 중 오류가 발생했습니다: {str(e)}"
-        )
+        logger.error(f"CBF 추천 생성 중 오류 발생, 빈 리스트 반환: {e}")
+        return []
 
 @router.get("/health")
 async def health_check():
