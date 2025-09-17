@@ -1,5 +1,6 @@
 package com.ssafy.myissue.toons.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ssafy.myissue.news.domain.News;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import com.ssafy.myissue.toons.domain.Toons;
@@ -26,7 +27,7 @@ public class ToonGeneratorService {
     private final S3Uploader s3Uploader;
 
     @Transactional
-    public void generateDailyToons() {
+    public void generateDailyToons() throws JsonProcessingException {
         try {
             LocalDate yesterday = LocalDate.now().minusDays(1);
             LocalDateTime start = yesterday.atStartOfDay();
