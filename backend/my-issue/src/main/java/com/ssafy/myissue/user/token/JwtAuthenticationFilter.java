@@ -53,7 +53,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (header == null || !header.startsWith("Bearer ")) {
             SecurityContextHolder.clearContext();
-            throw new CustomException(ErrorCode.MALFORMED_ACCESS_TOKEN);
+            authenticationEntryPoint.commence(
+                    request, response,
+                    new InsufficientAuthenticationException("MISSING_OR_MALFORMED_ACCESS_TOKEN")
+            );
         }
 
         String token = header.substring(7);
