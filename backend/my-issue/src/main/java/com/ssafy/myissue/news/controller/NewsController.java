@@ -5,27 +5,26 @@ import com.ssafy.myissue.news.dto.NewsCardResponse;
 import com.ssafy.myissue.news.dto.NewsDetailResponse;
 import com.ssafy.myissue.news.dto.NewsHomeResponse;
 import com.ssafy.myissue.news.dto.ScrapToggleResponse;
+import com.ssafy.myissue.news.service.NewsScheduler;
 import com.ssafy.myissue.news.service.NewsScrapService;
 import com.ssafy.myissue.news.service.NewsService;
 import com.ssafy.myissue.common.exception.CustomException;
 import com.ssafy.myissue.common.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/news")
+@RequiredArgsConstructor
 @Tag(name = "News", description = "뉴스 API - 진현")
 public class NewsController {
 
     private final NewsService newsService;
     private final NewsScrapService scrapService;
-
-    public NewsController(NewsService newsService, NewsScrapService scrapService) {
-        this.newsService = newsService;
-        this.scrapService = scrapService;
-    }
+    private final NewsScheduler newsScheduler;
 
     /** 홈: HOT 5, 추천 5, 최신 5 */
     @GetMapping("/main")
@@ -81,6 +80,12 @@ public class NewsController {
     public ResponseEntity<CursorPage<NewsCardResponse>> myBookmarks(@AuthenticationPrincipal Long userId, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size, @RequestParam(value = "lastId", required = false) Long lastId) {
         if (userId == null) throw new CustomException(ErrorCode.UNAUTHORIZED_ACCESS);
         return ResponseEntity.ok(scrapService.list(userId, safeSize(size, 20, 50), lastId));
+    }
+
+    @PostMapping("/hot/update")
+    public ResponseEntity<Void> updateHotNews() {
+        newsScheduler.manualScheduler();
+        return ResponseEntity.ok().build();
     }
 
     // ---------- helpers ----------
