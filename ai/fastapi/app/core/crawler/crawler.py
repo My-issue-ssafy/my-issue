@@ -51,7 +51,7 @@ def save_news_to_db(article: dict, db):
             created_at=created_at,
             views=random.randint(1000, 10000),
             embedding=embedding,
-            thumbnail=thumbnail_url
+            thumbnail=thumbnail_url,
             scrap_count=random.randint(1, 20)
         )
         db.add(news)
