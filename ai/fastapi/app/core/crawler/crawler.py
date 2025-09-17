@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 import random
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from loguru import logger
 
 engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -49,11 +50,11 @@ def save_news_to_db(article: dict, db):
         )
         db.add(news)
         db.commit()
-        print(f"[DB] saved: {news.title}")
+        logger.info(f"[DB] saved: {news.title}")
 
     except Exception as e:
         db.rollback()
-        print("[DB ERROR]", e)
+        logger.error(f"[DB ERROR] {e}")
 
 
 def get_latest_times_per_section(db):
@@ -75,7 +76,7 @@ def crawl_section(sid1: str, reg_date: str, latest_times: dict, seen_ids_lock: t
     local_seen_ids = set()
 
     try:
-        print(f"▶ [Thread-{sid1}] 섹션 {sid1} ({section_name}) 크롤링 시작")
+        logger.info(f"▶ [Thread-{sid1}] 섹션 {sid1} ({section_name}) 크롤링 시작")
 
         def thread_safe_save(article: dict, db_session):
             """스레드 안전한 저장 함수 (테스트용 - 프린트만)"""
@@ -97,15 +98,15 @@ def crawl_section(sid1: str, reg_date: str, latest_times: dict, seen_ids_lock: t
             try:
                 save_news_to_db(article, db_session)
             except Exception as e:
-                print(f"    ❌ [Thread-{sid1}] DB 저장 오류: {e}")
+                logger.error(f"    ❌ [Thread-{sid1}] DB 저장 오류: {e}")
 
         discover_and_store(sid1, reg_date, db, latest_dt, local_seen_ids, thread_safe_save, max_pages=MAX_PAGE)
 
-        print(f"✔ [Thread-{sid1}] 섹션 {sid1} ({section_name}) 크롤링 완료 - {len(local_seen_ids)}개 기사")
+        logger.info(f"✔ [Thread-{sid1}] 섹션 {sid1} ({section_name}) 크롤링 완료 - {len(local_seen_ids)}개 기사")
         return len(local_seen_ids)
 
     except Exception as e:
-        print(f"❌ [Thread-{sid1}] 섹션 {sid1} 크롤링 오류: {e}")
+        logger.error(f"❌ [Thread-{sid1}] 섹션 {sid1} 크롤링 오류: {e}")
         return 0
     finally:
         db.close()
@@ -120,7 +121,7 @@ def run_crawl_job():
     latest_times = get_latest_times_per_section(db)
     db.close()
 
-    print(f"[LATEST] 섹션별 최신 작성시간: {latest_times}")
+    logger.info(f"[LATEST] 섹션별 최신 작성시간: {latest_times}")
 
     # 스레드 안전한 전역 seen_ids
     global_seen_ids: set[str] = set()
@@ -129,7 +130,7 @@ def run_crawl_job():
     total_articles = 0
 
     for reg in reg_dates:
-        print(f"\n=== 날짜: {reg} (멀티스레드 크롤링) ===")
+        logger.info(f"\n=== 날짜: {reg} (멀티스레드 크롤링) ===")
 
         # ThreadPoolExecutor로 6개 섹션 동시 실행
         sections = ["100", "101", "102", "103", "104", "105"]
@@ -148,11 +149,15 @@ def run_crawl_job():
                     article_count = future.result()
                     total_articles += article_count
                 except Exception as e:
-                    print(f"❌ 섹션 {sid1} 스레드 실행 오류: {e}")
+                    logger.error(f"❌ 섹션 {sid1} 스레드 실행 오류: {e}")
 
-    print(f"\n✔ 멀티스레드 크롤링 완료!")
-    print(f"  - 총 수집 기사: {total_articles:,}개")
-    print(f"  - 고유 URL: {len(global_seen_ids):,}개")
+    logger.info(f"\n🎉 ===== 멀티스레드 크롤링 완료! =====")
+    logger.info(f"📊 크롤링 결과 요약:")
+    logger.info(f"  📰 총 수집 기사: {total_articles:,}개")
+    logger.info(f"  🔗 고유 URL: {len(global_seen_ids):,}개")
+    logger.info(f"  🧵 사용된 스레드: 6개 (섹션별 병렬 처리)")
+    logger.info(f"⏰ 크롤링 완료 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"==========================================\n")
 
 
 # def run_crawl_job():
