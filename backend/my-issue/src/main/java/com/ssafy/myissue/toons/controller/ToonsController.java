@@ -2,11 +2,15 @@ package com.ssafy.myissue.toons.controller;
 
 import com.ssafy.myissue.toons.dto.ToonResponse;
 import com.ssafy.myissue.toons.service.ToonsService;
+import com.ssafy.myissue.toons.service.ToonGeneratorService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import com.ssafy.myissue.common.exception.CustomException;
+import com.ssafy.myissue.common.exception.ErrorCode;
 
 import java.util.List;
 
@@ -17,6 +21,7 @@ import java.util.List;
 public class ToonsController {
 
     private final ToonsService toonsService;
+    private final ToonGeneratorService toonGeneratorService;
 
     // 네컷뉴스 전체 조회
     @GetMapping
@@ -28,6 +33,7 @@ public class ToonsController {
     @PostMapping("/{toonId}/like")
     public ResponseEntity<Void> likeToon(@PathVariable Long toonId,
                                          @AuthenticationPrincipal Long userId) {
+        requireUser(userId);
         toonsService.likeToon(userId, toonId);
         return ResponseEntity.ok().build();
     }
@@ -36,6 +42,7 @@ public class ToonsController {
     @PostMapping("/{toonId}/hate")
     public ResponseEntity<Void> hateToon(@PathVariable Long toonId,
                                          @AuthenticationPrincipal Long userId) {
+        requireUser(userId);
         toonsService.hateToon(userId, toonId);
         return ResponseEntity.ok().build();
     }
@@ -44,6 +51,7 @@ public class ToonsController {
     @PatchMapping("/{toonId}/like")
     public ResponseEntity<Void> cancelLike(@PathVariable Long toonId,
                                            @AuthenticationPrincipal Long userId) {
+        requireUser(userId);
         toonsService.cancelLike(userId, toonId);
         return ResponseEntity.noContent().build();
     }
@@ -51,6 +59,18 @@ public class ToonsController {
     // 내가 좋아요한 네컷뉴스 조회
     @GetMapping("/likes")
     public ResponseEntity<List<ToonResponse>> getUserLikedToons(@AuthenticationPrincipal Long userId) {
+        requireUser(userId);
         return ResponseEntity.ok(toonsService.getUserLikedToons(userId));
+    }
+    private void requireUser(Long userId) {
+        if (userId == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED_ACCESS);
+        }
+    }
+
+    @PostMapping("/generate-daily")
+    public ResponseEntity<Void> generateDailyToons() {
+        toonGeneratorService.generateDailyToons();
+        return ResponseEntity.ok().build();
     }
 }

@@ -32,15 +32,6 @@ public class SwaggerConfig {
                         .description("API 명세서")
                         .version("v1.0.0"));
     }
-//    @Bean
-//    public GroupedOpenApi newsGroup() {
-//        return GroupedOpenApi.builder()
-//                .group("news")
-//                // 실제 컨트롤러 매핑에 맞춰서 조정
-//                .pathsToMatch("/api/news/**", "/news/**")
-//                .packagesToScan("com.ssafy.myissue.news.controller")
-//                .build();
-//    }
 }
 
 

@@ -49,6 +49,9 @@ docker run -d --name "${NEW_NAME}" \
   -e SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD:-}" \
   -e JWT_SECRET_BASE64="${JWT_SECRET_BASE64:-}" \
   -e REDIS_PASSWORD="${REDIS_PASSWORD:-}" \
+  -e AWS_ACCESS_KEY="${AWS_ACCESS_KEY:-}" \
+  -e AWS_SECRET_KEY="${AWS_SECRET_KEY:-}" \
+  -e GMS_KEY="${GMS_KEY:-}" \
   "${APP_IMAGE}"
 
 echo "⏳ Waiting for service to be healthy..."

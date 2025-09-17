@@ -36,6 +36,8 @@ public class AuthServiceImpl implements AuthService {
         // 등록되지 않은 uuid -> 등록
         if(user == null) {
             user = userRepository.save(User.newOf(deviceUuid));
+        } else {
+            userRepository.save(user);
         }
 
         return createJwt(user.getId(), response);

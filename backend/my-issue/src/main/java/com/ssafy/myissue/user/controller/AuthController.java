@@ -28,7 +28,7 @@ public class AuthController {
     // HttpServletResponse header에 accessToken 담아야 하니 받아야 함
     @PostMapping("/device")
     @Operation(
-        summary = "device 등록 및 jwt 토큰 발급 API",
+        summary = "device 등록 및 jwt 토큰 발급",
         description = """
                 ### - 클라이언트에서 디바이스 UUID를 전달하면, 신규 가입 또는 기존 사용자 로그인 처리</li>
                 ### - 성공 시 AccessToken은 <b>응답 헤더(Authorization: Bearer ...)</b>, RefreshToken은 <b>쿠키(refreshToken)</b>로 내려감</li>
@@ -44,7 +44,7 @@ public class AuthController {
 
     @PostMapping("/reissue")
     @Operation(
-        summary = "토큰 재발급 API",
+        summary = "토큰 재발급",
         description = """
                 ### - AccessToken이 만료되었을 때, RefreshToken을 이용하여 AccessToken과 RefreshToken을 재발급
                 ### - RefreshToken을 쿠키(<code>refreshToken</code>)로 전달
@@ -62,7 +62,7 @@ public class AuthController {
 
     @PostMapping("/fcm")
     @Operation(
-        summary = "유저 FCM 토큰 등록 API",
+        summary = "유저 FCM 토큰 등록",
         description = """
                 ### - FCM 토큰을 등록
                 ### - 헤더의 AccessToken을 통해 사용자 인증
