@@ -37,10 +37,10 @@ public class ToonGeneratorService {
             for (News news : topNews) {
                 String summary = gptService.summarize(news.getContent());
                 byte[] image = imageService.generateImage(news.getContent());
-                String imageUrl = s3Uploader.upload(image, "toons/" + news.getNewsId() + ".png", "image/png");
+                String imageUrl = s3Uploader.upload(image, "toons/" + news.getId() + ".png", "image/png");
 
                 Toons toon = Toons.builder()
-                        .newsId(news.getNewsId())
+                        .newsId(news.getId())
                         .title(news.getTitle())
                         .summary(summary)
                         .toonImage(imageUrl)

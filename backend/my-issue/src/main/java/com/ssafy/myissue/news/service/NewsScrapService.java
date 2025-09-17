@@ -69,7 +69,7 @@ public class NewsScrapService {
 
         List<NewsCardResponse> items = newsList.stream()
                 .map(n -> new NewsCardResponse(
-                        n.getNewsId(),
+                        n.getId(),
                         n.getTitle(),
                         n.getAuthor(),
                         n.getNewsPaper(),

@@ -8,7 +8,7 @@ public record NotificationsResponse(Long notificationId, Long newsId, String con
     public static NotificationsResponse from(Notification notification){
         return new NotificationsResponse(
                 notification.getId(),
-                notification.getNews().getNewsId(),
+                notification.getNews().getId(),
                 notification.getContent(),
                 notification.getNews().getThumbnail(),
                 notification.getCreatedAt(),

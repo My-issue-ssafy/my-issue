@@ -27,13 +27,13 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
         var where = new BooleanBuilder(); // 동적 where 시작. var는 지역 변수 타입.
         if (lastCreatedAt != null && lastNewsId != null) { // 커서가 있을 때만(= 이전 페이지의 '마지막 아이템' 키를 받았을 때만) 다음 페이지 조건을 건다
             where.and(news.createdAt.lt(lastCreatedAt)
-                    .or(news.createdAt.eq(lastCreatedAt).and(news.newsId.lt(lastNewsId))));
+                    .or(news.createdAt.eq(lastCreatedAt).and(news.id.lt(lastNewsId))));
         } // 커서가 있을 떄만 키셋 조건 추가. 직전 마지막 (createdAt, newsId)보다 작은 것만 가져오라는 뜻.
         // 더 과거 시각: createdAt < lastCreatedAt
         // 만일 시간이 같다면 id를 더 작은 거: createdAt = lastCreatedAt AND newsId < lastNewsId
         return query.selectFrom(news) // FROM news
                 .where(where) // 첫 페이지면 빈 where -> 전체, 다음 페이지면 키셋 where 적용
-                .orderBy(news.createdAt.desc(), news.newsId.desc()) // 불변 정렬. 여기서 키셋 페이징은 where의 비교 키들과 order by 순서가 완전히 일치해야 함.
+                .orderBy(news.createdAt.desc(), news.id.desc()) // 불변 정렬. 여기서 키셋 페이징은 where의 비교 키들과 order by 순서가 완전히 일치해야 함.
                 .limit(size) // 요청 개수만큼. 보통 service 단에서 size+1을 넣어 받아옴. 초과분으로 hasNext를 판정하고 1개를 잘라서 보내는 패턴 사용
                 .fetch(); // 실제로 쿼리를 실행하고 List<news> 반환
     }
@@ -59,7 +59,7 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
             where.and(
                     news.views.lt(lastViews)
                             .or(news.views.eq(lastViews).and(news.createdAt.lt(lastCreatedAt)))
-                            .or(news.views.eq(lastViews).and(news.createdAt.eq(lastCreatedAt)).and(news.newsId.lt(lastNewsId)))
+                            .or(news.views.eq(lastViews).and(news.createdAt.eq(lastCreatedAt)).and(news.id.lt(lastNewsId)))
             );
             // 조회수가 더 작거나
             // 조회수가 같으면 createdAt이 더 과거거나
@@ -67,7 +67,7 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
         }
         return query.selectFrom(news)
                 .where(where)
-                .orderBy(news.views.desc(), news.createdAt.desc(), news.newsId.desc())
+                .orderBy(news.views.desc(), news.createdAt.desc(), news.id.desc())
                 .limit(size)
                 .fetch();
     }
@@ -87,11 +87,11 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
         var where = new BooleanBuilder().and(news.category.eq(category));
         if (lastCreatedAt != null && lastNewsId != null) {
             where.and(news.createdAt.lt(lastCreatedAt)
-                    .or(news.createdAt.eq(lastCreatedAt).and(news.newsId.lt(lastNewsId))));
+                    .or(news.createdAt.eq(lastCreatedAt).and(news.id.lt(lastNewsId))));
         }
         return query.selectFrom(news)
                 .where(where)
-                .orderBy(news.createdAt.desc(), news.newsId.desc())
+                .orderBy(news.createdAt.desc(), news.id.desc())
                 .limit(size)
                 .fetch();
     }
@@ -114,13 +114,13 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
         if (lastCreatedAt != null && lastNewsId != null) {
             where.and(
                     news.createdAt.lt(lastCreatedAt)
-                            .or(news.createdAt.eq(lastCreatedAt).and(news.newsId.lt(lastNewsId)))
+                            .or(news.createdAt.eq(lastCreatedAt).and(news.id.lt(lastNewsId)))
             );
         }
 
         return query.selectFrom(news)
                 .where(where)
-                .orderBy(news.createdAt.desc(), news.newsId.desc())
+                .orderBy(news.createdAt.desc(), news.id.desc())
                 .limit(size)
                 .fetch();
     }
@@ -150,7 +150,7 @@ public class NewsRepositoryImpl implements NewsCustomRepository {
     public Optional<NewsScrap> findScrapByUserIdAndNewsId(Long userId, Long newsIdVal) {
         // 스크랩 중복 확인
         var row = query.selectFrom(newsScrap)
-                .where(newsScrap.userId.eq(userId).and(newsScrap.news.newsId.eq(newsIdVal)))
+                .where(newsScrap.userId.eq(userId).and(newsScrap.news.id.eq(newsIdVal)))
                 .fetchOne();
         return Optional.ofNullable(row);
     }
