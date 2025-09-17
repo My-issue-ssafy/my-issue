@@ -57,6 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     request, response,
                     new InsufficientAuthenticationException("MISSING_OR_MALFORMED_ACCESS_TOKEN")
             );
+            return;
         }
 
         String token = header.substring(7);
