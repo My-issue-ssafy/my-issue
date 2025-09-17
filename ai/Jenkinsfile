@@ -3,8 +3,9 @@ pipeline {
   options { timestamps(); disableConcurrentBuilds(); gitLabConnection('my-issue') }
 
   environment {
-		IMAGE_REPO = 'xioz19/my-issue-py'
-    TAG = 'manual' // Checkout에서 커밋 SHA로 덮어씀
+	IMAGE_REPO = 'xioz19/my-issue-py'
+	TAG = 'manual' // Checkout에서 커밋 SHA로 덮어씀
+	DOCKER_BUILDKIT = '1' 
   }
 
   triggers {
