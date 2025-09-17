@@ -65,7 +65,7 @@ def get_latest_times_per_section(db):
     )
     return {row[0]: row[1] for row in rows if row[1]}
     
-def crawl_section(sid1: str, reg_date: str, latest_times: dict, seen_ids_lock: threading.Lock, db_lock: threading.Lock, global_seen_ids: set[str]):
+def crawl_section(sid1: str, reg_date: str, latest_times: dict, seen_ids_lock: threading.Lock, global_seen_ids: set[str]):
     """단일 섹션 크롤링 (스레드용)"""
     section_name = SID1_TO_SECTION.get(sid1, "기타")
     latest_dt = latest_times.get(section_name)
@@ -93,12 +93,11 @@ def crawl_section(sid1: str, reg_date: str, latest_times: dict, seen_ids_lock: t
             local_seen_ids.add(canon_url)
 
 
-            # DB 저장 (락으로 동시성 처리)
-            with db_lock:
-                try:
-                    save_news_to_db(article, db_session)
-                except Exception as e:
-                    print(f"    ❌ [Thread-{sid1}] DB 저장 오류: {e}")
+            # DB 저장
+            try:
+                save_news_to_db(article, db_session)
+            except Exception as e:
+                print(f"    ❌ [Thread-{sid1}] DB 저장 오류: {e}")
 
         discover_and_store(sid1, reg_date, db, latest_dt, local_seen_ids, thread_safe_save, max_pages=MAX_PAGE)
 
@@ -123,10 +122,9 @@ def run_crawl_job():
 
     print(f"[LATEST] 섹션별 최신 작성시간: {latest_times}")
 
-    # 스레드 안전한 전역 seen_ids 및 DB 락
+    # 스레드 안전한 전역 seen_ids
     global_seen_ids: set[str] = set()
     seen_ids_lock = threading.Lock()
-    db_lock = threading.Lock()  # DB 동시성 처리용
 
     total_articles = 0
 
@@ -139,7 +137,7 @@ def run_crawl_job():
         with ThreadPoolExecutor(max_workers=6, thread_name_prefix="Crawler") as executor:
             # 각 섹션별로 스레드 시작
             future_to_section = {
-                executor.submit(crawl_section, sid1, reg, latest_times, seen_ids_lock, db_lock, global_seen_ids): sid1
+                executor.submit(crawl_section, sid1, reg, latest_times, seen_ids_lock, global_seen_ids): sid1
                 for sid1 in sections
             }
 
