@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from loguru import logger
 
 from app.config import PROJECT_ID, DEFAULT_DATASET, LOOKBACK_DAYS
-from app.bq import get_client, get_latest_date, fetch_events
+from app.core.analytics.bq import get_client, get_latest_date, fetch_events
 
 # 결과 출력 시 표시할 최대 행 수 (너무 많은 데이터가 출력되는 것을 방지)
 SHOW = 50

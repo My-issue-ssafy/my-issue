@@ -46,7 +46,7 @@ def query_to_df(client: bigquery.Client, sql: str, job_config: Optional[bigquery
     # SQL 쿼리 실행
     job = client.query(sql, job_config=job_config)
     # 결과를 DataFrame으로 변환 (BigQuery Storage API 사용으로 빠른 읽기)
-    return job.result().to_dataframe(create_bqstorage_client=True)
+    return job.result().to_dataframe(create_bqstorage_client=False)
 
 def get_latest_date(client: bigquery.Client, dataset: str) -> Optional[str]:
     """
@@ -97,20 +97,29 @@ def fetch_events(client: bigquery.Client, dataset: str, from_str: str, to_str: s
     """
     sql = f"""
     SELECT
-      user_id,                                                        -- 사용자 ID
-      news_id,                                                        -- 뉴스 ID  
-      event_name,                                                     -- 이벤트 이름
-      ts,                                                             -- 이벤트 발생 시간
-      dwell_ms,                                                       -- 체류 시간 (밀리초)
-      scroll_pct,                                                     -- 스크롤 비율
-      action,                                                         -- 액션 종류 (add, remove 등)
-      feed_source,                                                    -- 피드 소스
-      from_source                                                     -- 유입 소스
-    FROM `{PROJECT_ID}.{dataset}.events_*`
-    WHERE _TABLE_SUFFIX BETWEEN @from AND @to                         -- 날짜 범위 필터
-      AND user_id IS NOT NULL                                         -- 사용자 ID 필수
-      AND news_id IS NOT NULL                                         -- 뉴스 ID 필수
-      AND (STARTS_WITH(event_name, 'news_') OR STARTS_WITH(event_name, 'toon_')) -- news_ 또는 toon_ 이벤트만
+      e.user_id,                                                                          -- 사용자 ID
+      COALESCE(
+        SAFE_CAST(ep_news_id.value.int_value AS INT64),
+        SAFE_CAST(ep_news_id.value.string_value AS INT64)
+      ) AS news_id,                                                                       -- 뉴스 ID (event_params에서 추출)
+      e.event_name,                                                                       -- 이벤트 이름
+      TIMESTAMP_MICROS(e.event_timestamp) AS ts,                                         -- 이벤트 발생 시간 (마이크로초 -> 타임스탬프)
+      SAFE_CAST(ep_dwell.value.int_value AS INT64) AS dwell_ms,                         -- 체류 시간 (밀리초)
+      SAFE_CAST(ep_scroll.value.int_value AS INT64) AS scroll_pct,                      -- 스크롤 비율
+      ep_action.value.string_value AS action,                                            -- 액션 종류 (add, remove 등)
+      ep_feed.value.string_value AS feed_source,                                         -- 피드 소스
+      ep_from.value.string_value AS from_source                                          -- 유입 소스
+    FROM `{PROJECT_ID}.{dataset}.events_*` e
+    LEFT JOIN UNNEST(e.event_params) ep_news_id ON ep_news_id.key = 'news_id'          -- news_id 파라미터 추출
+    LEFT JOIN UNNEST(e.event_params) ep_dwell ON ep_dwell.key = 'dwell_ms'             -- dwell_ms 파라미터 추출
+    LEFT JOIN UNNEST(e.event_params) ep_scroll ON ep_scroll.key = 'scroll_pct'         -- scroll_pct 파라미터 추출
+    LEFT JOIN UNNEST(e.event_params) ep_action ON ep_action.key = 'action'             -- action 파라미터 추출
+    LEFT JOIN UNNEST(e.event_params) ep_feed ON ep_feed.key = 'feed_source'            -- feed_source 파라미터 추출
+    LEFT JOIN UNNEST(e.event_params) ep_from ON ep_from.key = 'from_source'            -- from_source 파라미터 추출
+    WHERE _TABLE_SUFFIX BETWEEN @from AND @to                                           -- 날짜 범위 필터
+      AND e.user_id IS NOT NULL                                                         -- 사용자 ID 필수
+      AND (ep_news_id.value.int_value IS NOT NULL OR ep_news_id.value.string_value IS NOT NULL) -- news_id 필수
+      AND (STARTS_WITH(e.event_name, 'news_') OR STARTS_WITH(e.event_name, 'toon_'))  -- news_ 또는 toon_ 이벤트만
     ORDER BY ts
     """
     # 쿼리 매개변수 설정 (SQL 인젝션 방지)
