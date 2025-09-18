@@ -15,9 +15,10 @@ public record NewsDetailResponse(
         String newspaper,
         LocalDateTime createdAt,
         int views,
-        int scrapCount
+        int scrapCount,
+        boolean isScraped
 ) {
-    public static NewsDetailResponse from(News news, List<ContentBlock> blocks){
+    public static NewsDetailResponse from(News news, List<ContentBlock> blocks, boolean isScraped) {
         return new NewsDetailResponse(
                 news.getId(),
                 news.getTitle(),
@@ -27,7 +28,8 @@ public record NewsDetailResponse(
                 news.getNewsPaper(),
                 news.getCreatedAt(),
                 news.getViews(),
-                news.getScrapCount()
+                news.getScrapCount(),
+                isScraped
         );
     }
 }
