@@ -76,7 +76,6 @@ public class NewsScrapService {
                 .map(n -> new NewsCardResponse(
                         n.getId(),
                         n.getTitle(),
-                        n.getAuthor(),
                         n.getNewsPaper(),
                         n.getCreatedAt(),
                         n.getViews(),

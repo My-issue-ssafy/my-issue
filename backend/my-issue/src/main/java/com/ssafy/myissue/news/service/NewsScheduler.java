@@ -1,6 +1,6 @@
 package com.ssafy.myissue.news.service;
 
-import com.ssafy.myissue.news.domain.News;
+import com.ssafy.myissue.news.dto.HotNewsCandidates;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +38,7 @@ public class NewsScheduler {
         LocalDateTime since = LocalDateTime.now().minusDays(7);
 
         // 후보군 조회
-        List<News> candidates = newsRepository.findHotCandidates(since, 50, 0);
+        List<HotNewsCandidates> candidates = newsRepository.findHotCandidates(since, 50, 0);
 
         // 점수 계산 후 정렬
         List<NewsScore> scored = candidates.stream()
@@ -52,12 +52,13 @@ public class NewsScheduler {
         ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
 
         for (NewsScore ns : scored) {
+            log.info("HOT 뉴스 후보 - ID: {}, 점수: {}", ns.newsId(), ns.score());
             zset.add(HOT_KEY, ns.newsId(), ns.score());
         }
         log.info("HOT 뉴스 TOP 100 업데이트 완료");
     }
 
-    private double calculateScore(News news) {
+    private double calculateScore(HotNewsCandidates news) {
         long hoursSince = Duration.between(news.getCreatedAt(), LocalDateTime.now()).toHours();
 
         // 가중치: 조회수(1점), 스크랩(5점)

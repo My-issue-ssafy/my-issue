@@ -55,8 +55,8 @@ public class NewsController {
 
     /** 뉴스 상세 */
     @GetMapping("/{newsId}")
-    public ResponseEntity<NewsDetailResponse> getDetail(@PathVariable("newsId") long newsId) { // [CHANGED]
-        return ResponseEntity.ok(newsService.getDetailAndIncreaseView(newsId));
+    public ResponseEntity<NewsDetailResponse> getDetail(@PathVariable("newsId") long newsId, @AuthenticationPrincipal Long userId) { // [CHANGED]
+        return ResponseEntity.ok(newsService.getDetailAndIncreaseView(newsId, userId));
     }
 
     /**
