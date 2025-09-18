@@ -12,6 +12,9 @@ pipeline {
     NGINX_CONF = credentials('NGINX_CONF')
     JWT_SECRET_BASE64 = credentials('JWT_SECRET_BASE64')
     REDIS_PASSWORD = credentials('REDIS_PASSWORD')
+    AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY')
+    AWS_SECRET_KEY = credentials('AWS_SECRET_KEY')
+    GMS_KEY = credentials('GMS_KEY')
   }
 
   options {
@@ -110,6 +113,9 @@ pipeline {
           string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
           string(credentialsId: 'JWT_SECRET_BASE64', variable: 'JWT_SECRET_BASE64'),
           string(credentialsId: 'REDIS_PASSWORD', variable: 'REDIS_PASSWORD'),
+          string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY'),
+          string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_KEY'),
+          string(credentialsId: 'GMS_KEY', variable: 'GMS_KEY'),
           sshUserPrivateKey(
             credentialsId: 'ec2-ssh-key-pem',
             keyFileVariable: 'SSH_KEY',
@@ -124,6 +130,9 @@ pipeline {
             export SPRING_DATASOURCE_PASSWORD=${env.SPRING_DATASOURCE_PASSWORD}
             export JWT_SECRET_BASE64=${env.JWT_SECRET_BASE64}
             export REDIS_PASSWORD=${env.REDIS_PASSWORD}
+            export AWS_ACCESS_KEY=${env.AWS_ACCESS_KEY}
+            export AWS_SECRET_KEY=${env.AWS_SECRET_KEY}
+            export GMS_KEY=${env.GMS_KEY}
             export SPRING_PROFILES_ACTIVE=prod
 
             bash -c '
@@ -136,6 +145,9 @@ pipeline {
                  export SPRING_DATASOURCE_PASSWORD='${env.SPRING_DATASOURCE_PASSWORD}' && \\
                  export JWT_SECRET_BASE64='${env.JWT_SECRET_BASE64}' && \\
                  export REDIS_PASSWORD='${env.REDIS_PASSWORD}' && \\
+                 export AWS_ACCESS_KEY='${env.AWS_ACCESS_KEY}' && \\
+                 export AWS_SECRET_KEY='${env.AWS_SECRET_KEY}' && \\
+                 export GMS_KEY='${env.GMS_KEY}' && \\
 
                  export SPRING_PROFILES_ACTIVE=prod && \\
                  chmod +x ~/deploy.sh && \\

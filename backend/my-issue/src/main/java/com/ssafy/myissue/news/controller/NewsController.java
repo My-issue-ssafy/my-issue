@@ -5,27 +5,28 @@ import com.ssafy.myissue.news.dto.NewsCardResponse;
 import com.ssafy.myissue.news.dto.NewsDetailResponse;
 import com.ssafy.myissue.news.dto.NewsHomeResponse;
 import com.ssafy.myissue.news.dto.ScrapToggleResponse;
+import com.ssafy.myissue.news.service.NewsScheduler;
 import com.ssafy.myissue.news.service.NewsScrapService;
 import com.ssafy.myissue.news.service.NewsService;
 import com.ssafy.myissue.common.exception.CustomException;
 import com.ssafy.myissue.common.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/news")
+@RequiredArgsConstructor
 @Tag(name = "News", description = "뉴스 API - 진현")
 public class NewsController {
 
     private final NewsService newsService;
     private final NewsScrapService scrapService;
-
-    public NewsController(NewsService newsService, NewsScrapService scrapService) {
-        this.newsService = newsService;
-        this.scrapService = scrapService;
-    }
+    private final NewsScheduler newsScheduler;
 
     /** 홈: HOT 5, 추천 5, 최신 5 */
     @GetMapping("/main")
@@ -83,6 +84,17 @@ public class NewsController {
         return ResponseEntity.ok(scrapService.list(userId, safeSize(size, 20, 50), lastId));
     }
 
+    @PostMapping("/hot/update")
+    public ResponseEntity<Void> updateHotNews() {
+        newsScheduler.manualScheduler();
+        return ResponseEntity.ok().build();
+    }
+
+    // 인기도 기반 추천 모델 확인 TEST
+    @GetMapping("/hot/recommend/top100")
+    public ResponseEntity<List<NewsDetailResponse>> getHotRecommendTop100() {
+        return ResponseEntity.ok(newsService.getHotRecommendTop100());
+    }
     // ---------- helpers ----------
 
     /** size 하한/상한 고정 */

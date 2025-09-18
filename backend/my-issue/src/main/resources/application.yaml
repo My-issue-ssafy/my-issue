@@ -45,3 +45,19 @@ logging:
 jwt:
   secret-base64: ${JWT_SECRET_BASE64}
 
+
+cloud:
+  aws:
+    s3:
+      bucket: venture-review   # 네가 만든 버킷 이름
+    region:
+      static: ap-northeast-2 # 서울
+    stack:
+      auto: false
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+
+gms:
+  key: ${GMS_KEY}
+

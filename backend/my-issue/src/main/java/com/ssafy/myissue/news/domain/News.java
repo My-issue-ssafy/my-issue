@@ -5,8 +5,6 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.Formula;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 파라미터 없는 생성자를 protected로 만들어라
@@ -27,42 +25,40 @@ public class News {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // PK 값을 DB가 자동으로 생성하도록 지정하는 JPA 어노테이션. DB auto-increment
     @Column(name = "id")
-    private Long newsId;
+    private Long id;
 
-    @Column
+    @Column(nullable = false)
     private String title;
 
-//    @Column(columnDefinition = "jsonb")
-    @Column(columnDefinition = "text")
+    @Column(columnDefinition = "jsonb", nullable = false)
+//    @Column(columnDefinition = "text", nullable = false)
     private String content;
 
-    @Column
+    @Column(nullable = false)
     private String category;
 
+    @Column(nullable = true)
     private String author;
 
-    @Column
+    @Column(nullable = true)
     private String newsPaper;
 
-    @Column(name = "created_at", updatable = false)
+    @Column(nullable = true)
     private LocalDateTime createdAt;
 
-    @Column
-    private int views;
+    @Column(nullable = false)
+    private int views = 0;
 
-//    @Column(columnDefinition = "vector(768)")
     @Formula("embedding::text")
     private String embedding;
 
-    @Column
+    @Column(nullable = true)
     private String thumbnail;
 
+    @Column(nullable = true)
+    private int scrapCount = 0;
 
-    /** 생성/삽입 직전에 createdAt이 비어 있으면 자동 세팅 */
-    @PrePersist
-    void onCreate() {
-        if (this.createdAt == null) this.createdAt = LocalDateTime.now();
-    }
-
+    public void increaseScrapCount() { this.scrapCount++; }
+    public void decreaseScrapCount() { this.scrapCount--; }
     public void increaseViews() { this.views++; }
 }
