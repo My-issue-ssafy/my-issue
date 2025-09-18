@@ -107,7 +107,7 @@ fun NewsSummary(
             Text(
                 text = newsSummary.category,
                 style = MaterialTheme.typography.labelSmall,
-                color = fontColor
+                color = fontColor.copy(alpha = 0.7f)
             )
             Spacer(Modifier.height(4.dp))
             Text(

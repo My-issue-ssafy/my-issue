@@ -1,10 +1,12 @@
 package com.ioi.myssue.ui.mypage
 
+import android.R.attr.strokeWidth
 import android.annotation.SuppressLint
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -80,8 +82,7 @@ fun MyPageScreen(
         )
         if(state.isLoadingScrapNews) {
             CircularProgressIndicator(
-                modifier = Modifier
-                    .padding(16.dp)
+                modifier = Modifier.padding(vertical = 128.dp)
                     .align(Alignment.CenterHorizontally),
                 color = AppColors.Primary600,
                 strokeWidth = 2.dp
@@ -100,13 +101,13 @@ fun MyPageScreen(
             onAllClick = if (state.myToons.isNotEmpty()) ({ viewModel.navigateToAllToons() }) else null
         )
         if(state.isLoadingLikeToons) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .align(Alignment.CenterHorizontally),
-                color = AppColors.Primary600,
-                strokeWidth = 2.dp
-            )
+            Box(modifier = Modifier.weight(1f)) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = AppColors.Primary600,
+                    strokeWidth = 2.dp
+                )
+            }
         }
         else {
             ScrappedCartoonNewsPager(
