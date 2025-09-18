@@ -16,7 +16,8 @@ data class NewsDetailResponse(
     val author: String? = null,
     val newspaper: String? = null,
     val createdAt: String? = null,
-    val views: Int
+    val views: Int,
+    val scrapCount: Int
 )
 
 // 뉴스 본문 블록
@@ -37,6 +38,7 @@ fun NewsDetailResponse.toDomain(time: TimeConverter) = News(
     thumbnail = getThumbnail(content),
     content = content.toDomainBlocks(),
     displayTime = time.toDisplay(createdAt ?: "-"),
+    scrapCount = scrapCount
 )
 
 

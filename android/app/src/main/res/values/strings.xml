@@ -5,5 +5,8 @@
     <string name="see_all">전체보기</string>
     <string name="news_feed_type_hot">HOT 뉴스</string>
     <string name="news_feed_type_recommend">맞춤 뉴스</string>
-    <string name="news_feed_type_recent">최신 뉴스</string>
+    <string name="news_feed_type_latest">최신 뉴스</string>
+    <string name="no_searched_news">검색된 뉴스가 없어요</string>
+    <string name="no_news">지금 볼 수 있는 뉴스가 없어요</string>
+    <string name="search_news">뉴스를 검색하세요.</string>
 </resources>
