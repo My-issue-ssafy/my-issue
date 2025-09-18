@@ -1,5 +1,6 @@
 package com.ssafy.myissue.toons.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ssafy.myissue.toons.dto.ToonResponse;
 import com.ssafy.myissue.toons.service.ToonsService;
 import com.ssafy.myissue.toons.service.ToonGeneratorService;
@@ -69,7 +70,7 @@ public class ToonsController {
     }
 
     @PostMapping("/generate-daily")
-    public ResponseEntity<Void> generateDailyToons() {
+    public ResponseEntity<Void> generateDailyToons() throws JsonProcessingException {
         toonGeneratorService.generateDailyToons();
         return ResponseEntity.ok().build();
     }
