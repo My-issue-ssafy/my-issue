@@ -6,6 +6,7 @@ from app.api.endpoints.crawler import router as crawler_router
 from app.api.endpoints.recommendation import router as recommendation_router
 from app.api.endpoints.tts import router as tts_router
 import os
+import logging
 
 app = FastAPI(
   title="News Recommendation & TTS System",
@@ -39,3 +40,13 @@ def startup_event():
     # Create necessary directories for TTS
     os.makedirs("temp_audio", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
+
+# 로그 설정
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO
+)
