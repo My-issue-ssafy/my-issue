@@ -16,18 +16,18 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-public class ToonGeneratorService {
+        @Service
+        @RequiredArgsConstructor
+        public class ToonGeneratorService {
 
-    private final NewsRepository newsRepository;
-    private final ToonsRepository toonsRepository;
-    private final GptService gptService;
-    private final ImageService imageService;
-    private final S3Uploader s3Uploader;
+            private final NewsRepository newsRepository;
+            private final ToonsRepository toonsRepository;
+            private final GptService gptService;
+            private final ImageService imageService;
+            private final S3Uploader s3Uploader;
 
-    @Transactional
-    public void generateDailyToons() throws JsonProcessingException {
+            @Transactional
+            public void generateDailyToons() throws JsonProcessingException {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         LocalDateTime start = yesterday.atStartOfDay();
         LocalDateTime end = yesterday.atTime(LocalTime.MAX);
