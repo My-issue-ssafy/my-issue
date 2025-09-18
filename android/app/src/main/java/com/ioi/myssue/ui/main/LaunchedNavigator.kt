@@ -21,7 +21,7 @@ fun LaunchedNavigator(
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(routerViewModel, lifecycleOwner, currentTab) {
+    LaunchedEffect(routerViewModel, lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             routerViewModel.sideEffect.collectLatest { sideEffect ->
                 when (sideEffect) {
@@ -41,7 +41,7 @@ fun LaunchedNavigator(
                         val targetTab = findTabForRoute(sideEffect.route)
                         if (targetTab != null) {
                             if (currentTab != targetTab) onTabChange(targetTab)
-                            val backStack = tabBackStacks[targetTab]?: return@collectLatest
+                            val backStack = tabBackStacks[targetTab] ?: return@collectLatest
                             backStack.clear()
                             backStack.add(sideEffect.route)
                         }

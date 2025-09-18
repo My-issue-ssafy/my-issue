@@ -4,7 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.navigation3.runtime.rememberNavBackStack
 import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.analytics.AnalyticsLogger
@@ -67,9 +73,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // 탭 전환 반영 후 한 프레임 지나면 플래그 리셋 → 내부 이동은 다시 슬라이드
             LaunchedEffect(currentTab) {
-                withFrameNanos { /* 한 프레임 대기 */ }
+                withFrameNanos {}
                 isTabSwitch = false
             }
         }

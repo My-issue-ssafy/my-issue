@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -36,6 +37,7 @@ import com.ioi.myssue.ui.mypage.mytoon.MyCartoonScreen
 import com.ioi.myssue.ui.news.NewsAllScreen
 import com.ioi.myssue.ui.news.NewsScreen
 import com.ioi.myssue.ui.podcast.PodCastScreen
+import com.ioi.myssue.ui.podcast.PodcastViewModel
 import com.ioi.myssue.ui.search.SearchScreen
 
 @Composable
@@ -87,6 +89,7 @@ fun MainScreen(
             entryDecorators = listOf(
                 rememberSceneSetupNavEntryDecorator(),
                 rememberSavedStateNavEntryDecorator(),
+                rememberViewModelStoreNavEntryDecorator()
             ),
             backStack = navBackStack,
             onBack = { navBackStack.removeLastOrNull() },
@@ -99,7 +102,10 @@ fun MainScreen(
                     is BottomTabRoute.NewsAll -> NavEntry(key) { NewsAllScreen(type = key.type) }
                     BottomTabRoute.Search -> NavEntry(key) { SearchScreen() }
                     BottomTabRoute.Cartoon -> NavEntry(key) { CartoonScreen() }
-                    BottomTabRoute.Podcast -> NavEntry(key) { PodCastScreen() }
+                    BottomTabRoute.Podcast -> NavEntry(key) {
+                        val podcastViewModel: PodcastViewModel = hiltViewModel(context as MainActivity)
+                        PodCastScreen(podcastViewModel)
+                    }
                     BottomTabRoute.MyPage -> NavEntry(key) { MyPageScreen() }
                     BottomTabRoute.MyScrap -> NavEntry(key) { MyScrapScreen() }
                     BottomTabRoute.MyCartoon -> NavEntry(key) { MyCartoonScreen() }
