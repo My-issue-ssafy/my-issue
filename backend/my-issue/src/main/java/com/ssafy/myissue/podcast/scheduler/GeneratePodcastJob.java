@@ -13,7 +13,7 @@ public class GeneratePodcastJob {
 
     private final PodcastService podcastService;
 
-    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul") // 매일 새벽 2시 실행
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul") // 매일 새벽 2시 실행
     public void run() {
         try {
             log.debug("🎙️ Podcast 생성 Job 시작 ");
