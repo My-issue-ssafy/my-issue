@@ -30,6 +30,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Text
@@ -371,7 +372,7 @@ fun NewsViews(views: Int) {
 @Composable
 fun NewsEmpty() {
     Text(
-        text = "지금 볼 수 있는 뉴스가 없어요",
+        text = stringResource(R.string.no_news),
         style = typography.titleLarge,
         fontWeight = FontWeight.Bold,
         color = Background400,
@@ -384,9 +385,11 @@ fun NewsEmpty() {
 
 // 뉴스 로딩 화면
 @Composable
-fun FullscreenLoading() {
-    Box(Modifier.fillMaxSize()) {
-        androidx.compose.material3.CircularProgressIndicator(
+fun Loading() {
+    Box(Modifier
+        .fillMaxSize()
+    ) {
+        CircularProgressIndicator(
             color = Primary400,
             modifier = Modifier
                 .align(Alignment.Center)
