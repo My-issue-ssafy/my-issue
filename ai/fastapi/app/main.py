@@ -6,6 +6,7 @@ from app.api.endpoints.crawler import router as crawler_router
 from app.api.endpoints.recommendation import router as recommendation_router
 from app.api.endpoints.tts import router as tts_router
 import os
+import logging
 
 app = FastAPI(
   title="News Recommendation & TTS System",
@@ -39,3 +40,12 @@ def startup_event():
     # Create necessary directories for TTS
     os.makedirs("temp_audio", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
+
+class HealthCheckFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        # 로그 메시지에 /health 가 포함되어 있으면 False 리턴 (즉, 로그 안 찍힘)
+        return "/health" not in record.getMessage()
+
+# uvicorn access logger 가져오기
+uvicorn_access = logging.getLogger("uvicorn.access")
+uvicorn_access.addFilter(HealthCheckFilter())
