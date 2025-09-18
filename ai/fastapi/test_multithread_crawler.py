@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 import sys
 import os
+from loguru import logger
 
 # FastAPI 앱 경로 추가
 sys.path.append(os.path.join(os.path.dirname(__file__), 'fastapi'))
@@ -25,11 +26,11 @@ def test_crawl_section(sid1: str, reg_date: str, seen_ids_lock: threading.Lock, 
     local_seen_ids = set()
 
     try:
-        print(f"🚀 [Thread-{sid1}] 섹션 {sid1} ({section_name}) 크롤링 시작")
+        logger.info(f"[Thread-{sid1}] 섹션 {sid1} ({section_name}) 크롤링 시작")
 
         # 링크 수집
         urls = discover_links(sid1, reg_date, max_pages=MAX_TEST_PAGES)
-        print(f"📋 [Thread-{sid1}] 수집된 링크: {len(urls)}개")
+        logger.info(f"[Thread-{sid1}] 수집된 링크: {len(urls)}개")
 
         for i, url in enumerate(urls[:10]):  # 최대 10개만 테스트
             try:
@@ -62,24 +63,23 @@ def test_crawl_section(sid1: str, reg_date: str, seen_ids_lock: threading.Lock, 
                 else:
                     preview = str(body)[:50] + "..." if body else "본문 없음"
 
-                print(f"  📰 [Thread-{sid1}][{i+1:2d}/10] {title}")
-                print(f"      🏢 {press} | 📅 {published[:19] if published else 'N/A'}")
-                print(f"      📝 {preview}")
-                print()
+                logger.info(f"[Thread-{sid1}][{i+1:2d}/10] {title}")
+                logger.info(f"      {press} | {published[:19] if published else 'N/A'}")
+                logger.info(f"      {preview}")
 
             except Exception as e:
-                print(f"    ❌ [Thread-{sid1}] 기사 파싱 오류: {e}")
+                logger.error(f"[Thread-{sid1}] 기사 파싱 오류: {e}")
 
-        print(f"✅ [Thread-{sid1}] 섹션 {sid1} ({section_name}) 완료 - {len(local_seen_ids)}개 기사")
+        logger.info(f"[Thread-{sid1}] 섹션 {sid1} ({section_name}) 완료 - {len(local_seen_ids)}개 기사")
         return len(local_seen_ids)
 
     except Exception as e:
-        print(f"💥 [Thread-{sid1}] 섹션 {sid1} 크롤링 오류: {e}")
+        logger.error(f"[Thread-{sid1}] 섹션 {sid1} 크롤링 오류: {e}")
         return 0
 
 def test_multithread_crawling():
     """멀티스레드 크롤링 테스트"""
-    print("🔥 멀티스레드 크롤링 테스트 시작!\n")
+    logger.info("멀티스레드 크롤링 테스트 시작!")
 
     today = datetime.today()
     reg_date = today.strftime("%Y%m%d")  # 오늘만
@@ -90,10 +90,10 @@ def test_multithread_crawling():
 
     total_articles = 0
 
-    print(f"📅 테스트 날짜: {reg_date}")
-    print(f"📄 페이지 제한: {MAX_TEST_PAGES}페이지")
-    print(f"🔗 기사 제한: 섹션당 최대 10개")
-    print("-" * 60)
+    logger.info(f"테스트 날짜: {reg_date}")
+    logger.info(f"페이지 제한: {MAX_TEST_PAGES}페이지")
+    logger.info("기사 제한: 섹션당 최대 10개")
+    logger.info("-" * 60)
 
     # 6개 섹션 동시 실행
     sections = ["100", "101", "102", "103", "104", "105"]
@@ -114,19 +114,19 @@ def test_multithread_crawling():
                 article_count = future.result()
                 total_articles += article_count
                 section_name = SID1_TO_SECTION.get(sid1, "기타")
-                print(f"🏁 섹션 {sid1} ({section_name}) 스레드 완료!")
+                logger.info(f"섹션 {sid1} ({section_name}) 스레드 완료!")
             except Exception as e:
-                print(f"💥 섹션 {sid1} 스레드 실행 오류: {e}")
+                logger.error(f"섹션 {sid1} 스레드 실행 오류: {e}")
 
     end_time = datetime.now()
     duration = (end_time - start_time).total_seconds()
 
-    print("\n" + "=" * 60)
-    print("🎉 멀티스레드 크롤링 테스트 완료!")
-    print(f"⏱️  실행 시간: {duration:.2f}초")
-    print(f"📊 총 수집 기사: {total_articles:,}개")
-    print(f"🔗 고유 URL: {len(global_seen_ids):,}개")
-    print(f"🧵 동시 스레드: 6개")
+    logger.info("=" * 60)
+    logger.info("멀티스레드 크롤링 테스트 완료!")
+    logger.info(f"실행 시간: {duration:.2f}초")
+    logger.info(f"총 수집 기사: {total_articles:,}개")
+    logger.info(f"고유 URL: {len(global_seen_ids):,}개")
+    logger.info("동시 스레드: 6개")
 
 if __name__ == "__main__":
     test_multithread_crawling()

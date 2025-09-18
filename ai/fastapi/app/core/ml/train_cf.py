@@ -14,6 +14,7 @@ import scipy.sparse as sp
 
 from google.cloud import bigquery
 from google.cloud.bigquery import ScalarQueryParameter, QueryJobConfig
+from loguru import logger
 
 # implicit 라이브러리의 ALS (Alternating Least Squares) 협업 필터링 알고리즘
 from implicit.als import AlternatingLeastSquares
@@ -82,7 +83,7 @@ def cleanup_old_csv_files(data_dir: str, days_to_keep: int = 14):
     cutoff_date = datetime.now().date() - timedelta(days=days_to_keep)
     deleted_count = 0
     
-    print(f"[INFO] {days_to_keep}일 이전 CSV 파일 정리 중 (기준: {cutoff_date})")
+    logger.info(f"{days_to_keep}일 이전 CSV 파일 정리 중 (기준: {cutoff_date})")
     
     for csv_file in csv_files:
         try:
@@ -97,16 +98,16 @@ def cleanup_old_csv_files(data_dir: str, days_to_keep: int = 14):
                     if file_date < cutoff_date:
                         os.remove(csv_file)
                         file_size = Path(csv_file).stat().st_size / (1024*1024) if Path(csv_file).exists() else 0
-                        print(f"[INFO] 삭제됨: {Path(csv_file).name} ({file_date}, {file_size:.1f}MB)")
+                        logger.info(f"삭제됨: {Path(csv_file).name} ({file_date}, {file_size:.1f}MB)")
                         deleted_count += 1
                         
         except (ValueError, OSError) as e:
-            print(f"[WARNING] 파일 처리 실패: {Path(csv_file).name} - {e}")
+            logger.warning(f"파일 처리 실패: {Path(csv_file).name} - {e}")
     
     if deleted_count > 0:
-        print(f"[INFO] {deleted_count}개 오래된 CSV 파일 정리 완료")
+        logger.info(f"{deleted_count}개 오래된 CSV 파일 정리 완료")
     else:
-        print(f"[INFO] 삭제할 오래된 CSV 파일 없음")
+        logger.info("삭제할 오래된 CSV 파일 없음")
 
 # 4) 협업 필터링 모델 학습을 위한 사용자-뉴스 상호작용 데이터 추출
 def fetch_interactions(client: bigquery.Client) -> pd.DataFrame:
@@ -171,9 +172,9 @@ def fetch_interactions(client: bigquery.Client) -> pd.DataFrame:
     )
     
     # 디버깅: 생성된 SQL 출력
-    print(f"[DEBUG] Generated SQL:")
-    print(sql)
-    print(f"[DEBUG] Date range: {from_date} to {to_date}")
+    logger.debug("Generated SQL:")
+    logger.debug(sql)
+    logger.debug(f"Date range: {from_date} to {to_date}")
     
     # 쿼리 실행 및 DataFrame으로 변환
     df = client.query(sql, job_config=job_config).result().to_dataframe(create_bqstorage_client=True)
@@ -194,18 +195,18 @@ def train_model(df: pd.DataFrame):
         interaction_matrix: 사용자-아이템 상호작용 행렬
     """
     if df.empty:
-        print("[경고] 빈 데이터프레임으로 인해 모델 학습을 건너뜁니다.")
+        logger.warning("빈 데이터프레임으로 인해 모델 학습을 건너뜁니다.")
         return None, None, None, None
 
     # 데이터 유효성 검사
     if 'user_id' not in df.columns or 'news_id' not in df.columns or 'strength' not in df.columns:
-        print("[경고] 필수 컬럼(user_id, news_id, strength)이 누락되었습니다.")
+        logger.warning("필수 컬럼(user_id, news_id, strength)이 누락되었습니다.")
         return None, None, None, None
         
     # null 값 제거
     df_clean = df.dropna(subset=['user_id', 'news_id', 'strength'])
     if df_clean.empty:
-        print("[경고] null 값 제거 후 데이터가 비어있습니다.")
+        logger.warning("null 값 제거 후 데이터가 비어있습니다.")
         return None, None, None, None
 
     # 뉔자/뉴스 ID를 숫자 인덱스로 변환 (효율적인 행렬 연산을 위해)
@@ -214,7 +215,7 @@ def train_model(df: pd.DataFrame):
     
     # 빈 카테고리 체크
     if len(users.cat.categories) == 0 or len(items.cat.categories) == 0:
-        print("[경고] 유효한 사용자나 아이템이 없습니다.")
+        logger.warning("유효한 사용자나 아이템이 없습니다.")
         return None, None, None, None
         
     user_index = users.cat.codes.values  # 사용자 ID -> 숫자 인덱스
@@ -235,12 +236,12 @@ def train_model(df: pd.DataFrame):
         # implicit ALS는 item x user 형태를 기대하므로 행렬을 전치
         # 하지만 recommend 시에는 user x item 형태를 사용해야 하므로
         # 모델 학습과 추천 시 일관성을 맞춰야 함
-        print(f"[INFO] 모델 학습 중 - 행렬 크기: {mat.shape} -> 전치 후: {mat.T.shape}")
+        logger.info(f"모델 학습 중 - 행렬 크기: {mat.shape} -> 전치 후: {mat.T.shape}")
         model.fit(mat.T)  # item x user 형태로 학습
-        print(f"[INFO] 모델 학습 완료 - Users: {len(users.cat.categories)}, Items: {len(items.cat.categories)}")
-        print(f"[INFO] 모델 내부 차원 - item_factors: {model.item_factors.shape}, user_factors: {model.user_factors.shape}")
+        logger.info(f"모델 학습 완료 - Users: {len(users.cat.categories)}, Items: {len(items.cat.categories)}")
+        logger.info(f"모델 내부 차원 - item_factors: {model.item_factors.shape}, user_factors: {model.user_factors.shape}")
     except Exception as e:
-        print(f"[에러] 모델 학습 실패: {e}")
+        logger.error(f"모델 학습 실패: {e}")
         return None, None, None, None
 
     # 실시간 추천에 필요한 데이터 반환 (미리 계산된 추천은 생성하지 않음)
@@ -292,9 +293,9 @@ def save_model(model, users, items, interaction_matrix):
     with open(METADATA_PATH, 'w') as f:
         json.dump(metadata, f, indent=2)
     
-    print(f"[INFO] Model saved to {MODEL_PATH}")
-    print(f"[INFO] Metadata saved to {METADATA_PATH}")
-    print(f"[INFO] Users: {len(users.cat.categories)}, Items: {len(items.cat.categories)}")
+    logger.info(f"Model saved to {MODEL_PATH}")
+    logger.info(f"Metadata saved to {METADATA_PATH}")
+    logger.info(f"Users: {len(users.cat.categories)}, Items: {len(items.cat.categories)}")
 
 # 7) 테스트용: 샘플 사용자에게 추천 생성 및 출력
 def test_recommendations(model, users, items, interaction_matrix, num_test_users=3, topn=5):
@@ -309,11 +310,11 @@ def test_recommendations(model, users, items, interaction_matrix, num_test_users
         num_test_users: 테스트할 사용자 수
         topn: 사용자당 추천할 아이템 수
     """
-    print(f"\n[테스트] {num_test_users}명의 샘플 사용자에게 추천 생성 중...")
-    print(f"[디버그] 전체 사용자 수: {len(users.cat.categories)}")
-    print(f"[디버그] 전체 아이템 수: {len(items.cat.categories)}")
-    print(f"[디버그] 상호작용 행렬 크기: {interaction_matrix.shape}")
-    print(f"[디버그] 행렬 형태: users x items = {interaction_matrix.shape[0]} x {interaction_matrix.shape[1]}")
+    logger.info(f"\n{num_test_users}명의 샘플 사용자에게 추천 생성 중...")
+    logger.debug(f"전체 사용자 수: {len(users.cat.categories)}")
+    logger.debug(f"전체 아이템 수: {len(items.cat.categories)}")
+    logger.debug(f"상호작용 행렬 크기: {interaction_matrix.shape}")
+    logger.debug(f"행렬 형태: users x items = {interaction_matrix.shape[0]} x {interaction_matrix.shape[1]}")
     
     # 랜덤하게 몇 명의 사용자 선택 (실제 사용자 인덱스 범위 내에서)
     import random
@@ -323,12 +324,12 @@ def test_recommendations(model, users, items, interaction_matrix, num_test_users
     
     # 안전성 검사: 유효한 사용자가 있는지 확인
     if total_users == 0 or max_user_idx < 0:
-        print("[경고] 유효한 사용자가 없습니다.")
+        logger.warning("유효한 사용자가 없습니다.")
         return
         
     valid_range = min(total_users, max_user_idx + 1)
     if valid_range <= 0:
-        print("[경고] 유효한 사용자 범위가 없습니다.")
+        logger.warning("유효한 사용자 범위가 없습니다.")
         return
         
     actual_test_users = min(num_test_users, valid_range)
@@ -337,31 +338,31 @@ def test_recommendations(model, users, items, interaction_matrix, num_test_users
     for user_idx in test_user_indices:
         # 안전성 체크
         if user_idx >= len(users.cat.categories):
-            print(f"[경고] 사용자 인덱스 {user_idx} >= 사용자 카테고리 수 {len(users.cat.categories)}")
+            logger.warning(f"사용자 인덱스 {user_idx} >= 사용자 카테고리 수 {len(users.cat.categories)}")
             continue
         if user_idx >= interaction_matrix.shape[0]:
-            print(f"[경고] 사용자 인덱스 {user_idx} >= 행렬 행 수 {interaction_matrix.shape[0]}")
+            logger.warning(f"사용자 인덱스 {user_idx} >= 행렬 행 수 {interaction_matrix.shape[0]}")
             continue
             
         user_id = users.cat.categories[user_idx]
         
         try:
-            print(f"[디버그] 사용자 처리 중 - 인덱스: {user_idx}, ID: {user_id}")
-            print(f"[디버그] 사용자 행렬 범위 체크: user_idx={user_idx} < matrix_rows={interaction_matrix.shape[0]}? {user_idx < interaction_matrix.shape[0]}")
+            logger.debug(f"사용자 처리 중 - 인덱스: {user_idx}, ID: {user_id}")
+            logger.debug(f"사용자 행렬 범위 체크: user_idx={user_idx} < matrix_rows={interaction_matrix.shape[0]}? {user_idx < interaction_matrix.shape[0]}")
             
             # 해당 사용자에게 추천 생성 - implicit ALS recommend 메소드 올바른 사용법  
             try:
                 # implicit 라이브러리 recommend 함수의 올바른 사용법:
                 # user_items는 해당 사용자의 아이템 선호도를 나타내는 행 벡터 (1 x items)
                 user_items = interaction_matrix[user_idx]  # 사용자 행렬에서 해당 사용자 행 추출 (1 x 200000)
-                print(f"[디버그] user_items shape: {user_items.shape}")
-                print(f"[디버그] user_items type: {type(user_items)}")
-                print(f"[디버그] interaction_matrix shape: {interaction_matrix.shape}")
+                logger.debug(f"user_items shape: {user_items.shape}")
+                logger.debug(f"user_items type: {type(user_items)}")
+                logger.debug(f"interaction_matrix shape: {interaction_matrix.shape}")
                 
                 # user_items가 올바른 형태인지 확인
                 if hasattr(user_items, 'toarray'):
                     non_zero_count = (user_items.toarray() > 0).sum()
-                    print(f"[디버그] user_items 비영값 개수: {non_zero_count}")
+                    logger.debug(f"user_items 비영값 개수: {non_zero_count}")
                 
                 # implicit이 차원을 바꿔 학습했으므로 직접 계산으로 추천 생성
                 import numpy as np
@@ -393,20 +394,20 @@ def test_recommendations(model, users, items, interaction_matrix, num_test_users
                 rec_items = top_indices
                 scores = scores_all[top_indices]
                 
-                print(f"[디버그] 직접 계산 결과:")
-                print(f"[디버그] actual_user_embeddings shape: {actual_user_embeddings.shape}")
-                print(f"[디버그] actual_item_embeddings shape: {actual_item_embeddings.shape}")
-                print(f"[디버그] user_embedding shape: {user_embedding.shape}")
-                print(f"[디버그] item_embeddings shape: {item_embeddings.shape}")
-                print(f"[디버그] scores_all shape: {scores_all.shape}")
-                print(f"[디버그] 상호작용한 아이템 수: {len(interacted_items)}")
-                print(f"[디버그] 점수 통계 - min: {scores_all.min():.6f}, max: {scores_all.max():.6f}, mean: {scores_all.mean():.6f}")
-                print(f"[디버그] 최대 추천 아이템 인덱스: {max(rec_items) if len(rec_items) > 0 else 'N/A'}")
-                print(f"[디버그] 아이템 카테고리 수: {len(items.cat.categories)}")
-                print(f"[디버그] 추천된 아이템 인덱스: {rec_items}")
-                print(f"[디버그] 아이템 인덱스 범위: max={max(rec_items) if len(rec_items) > 0 else 'N/A'}, items_count={len(items.cat.categories)}")
+                logger.debug("직접 계산 결과:")
+                logger.debug(f"actual_user_embeddings shape: {actual_user_embeddings.shape}")
+                logger.debug(f"actual_item_embeddings shape: {actual_item_embeddings.shape}")
+                logger.debug(f"user_embedding shape: {user_embedding.shape}")
+                logger.debug(f"item_embeddings shape: {item_embeddings.shape}")
+                logger.debug(f"scores_all shape: {scores_all.shape}")
+                logger.debug(f"상호작용한 아이템 수: {len(interacted_items)}")
+                logger.debug(f"점수 통계 - min: {scores_all.min():.6f}, max: {scores_all.max():.6f}, mean: {scores_all.mean():.6f}")
+                logger.debug(f"최대 추천 아이템 인덱스: {max(rec_items) if len(rec_items) > 0 else 'N/A'}")
+                logger.debug(f"아이템 카테고리 수: {len(items.cat.categories)}")
+                logger.debug(f"추천된 아이템 인덱스: {rec_items}")
+                logger.debug(f"아이템 인덱스 범위: max={max(rec_items) if len(rec_items) > 0 else 'N/A'}, items_count={len(items.cat.categories)}")
             except (IndexError, ValueError) as idx_error:
-                print(f"[경고] 사용자 {user_id} 인덱스/값 오류: {idx_error}")
+                logger.warning(f"사용자 {user_id} 인덱스/값 오류: {idx_error}")
                 try:
                     # 대안 1: filter_already_liked_items=False로 직접 계산 재시도
                     actual_user_embeddings = model.item_factors     # 실제 사용자 임베딩들
@@ -420,52 +421,52 @@ def test_recommendations(model, users, items, interaction_matrix, num_test_users
                     rec_items = top_indices
                     scores = scores_all[top_indices]
                     
-                    print(f"[디버그] 대안 계산 완료 - filter_already_liked_items=False")
+                    logger.debug("대안 계산 완료 - filter_already_liked_items=False")
                 except Exception as e:
-                    print(f"[에러] 사용자 {user_id} 추천 생성 완전 실패: {e}")
+                    logger.error(f"사용자 {user_id} 추천 생성 완전 실패: {e}")
                     # 대안 2: 빈 추천 결과로 처리
                     rec_items, scores = [], []
             
-            print(f"\n--- User: {user_id} ---")
+            logger.info(f"\n--- User: {user_id} ---")
             
             # 사용자가 이미 상호작용한 아이템들 출력
             user_interactions = interaction_matrix[user_idx].nonzero()[1]
             if len(user_interactions) > 0:
-                print("이전에 상호작용한 뉴스:")
+                logger.info("이전에 상호작용한 뉴스:")
                 for i, item_idx in enumerate(user_interactions[:3]):  # 상위 3개만
                     # 아이템 인덱스 안전성 검사
                     if item_idx < 0 or item_idx >= len(items.cat.categories):
-                        print(f"  - [잘못된 아이템 인덱스 {item_idx}]")
+                        logger.warning(f"  - [잘못된 아이템 인덱스 {item_idx}]")
                         continue
                     try:
                         item_id = items.cat.categories[item_idx]
                         score = interaction_matrix[user_idx, item_idx]
-                        print(f"  - {item_id} (score: {score:.2f})")
+                        logger.info(f"  - {item_id} (score: {score:.2f})")
                     except IndexError as e:
-                        print(f"  - [인덱스 에러 {item_idx}] - {e}")
+                        logger.error(f"  - [인덱스 에러 {item_idx}] - {e}")
                 if len(user_interactions) > 3:
-                    print(f"  ... and {len(user_interactions) - 3} more")
+                    logger.info(f"  ... and {len(user_interactions) - 3} more")
             
             # 추천 결과 출력
-            print("추천 뉴스 (점수가 높을수록 선호도 높음):")
+            logger.info("추천 뉴스 (점수가 높을수록 선호도 높음):")
             if len(rec_items) == 0:
-                print("  추천 결과가 없습니다.")
+                logger.info("  추천 결과가 없습니다.")
             else:
                 for rank, (item_idx, score) in enumerate(zip(rec_items, scores), 1):
                     # 아이템 인덱스가 범위를 벗어나면 건너뛰기
                     if item_idx < 0 or item_idx >= len(items.cat.categories):
-                        print(f"  {rank}. [잘못된 아이템 인덱스 {item_idx}/{len(items.cat.categories)}] (선호도: {score:.4f})")
+                        logger.warning(f"  {rank}. [잘못된 아이템 인덱스 {item_idx}/{len(items.cat.categories)}] (선호도: {score:.4f})")
                         continue
                     try:
                         item_id = items.cat.categories[item_idx]
-                        print(f"  {rank}. {item_id} (선호도: {score:.4f})")
+                        logger.info(f"  {rank}. {item_id} (선호도: {score:.4f})")
                     except IndexError as e:
-                        print(f"  {rank}. [인덱스 에러 {item_idx}] (선호도: {score:.4f}) - {e}")
+                        logger.error(f"  {rank}. [인덱스 에러 {item_idx}] (선호도: {score:.4f}) - {e}")
                 
         except Exception as e:
-            print(f"Error generating recommendations for {user_id}: {e}")
+            logger.error(f"Error generating recommendations for {user_id}: {e}")
     
-    print(f"\n[TEST] Recommendation test completed!")
+    logger.info("\nRecommendation test completed!")
 
 def main():
     """
@@ -485,17 +486,17 @@ def main():
     # 1. 오늘 날짜의 GA4 이벤트 테이블이 존재하는지 확인
     # GA4 데이터는 일반적으로 1일 지연되어 BigQuery에 도착
     if not has_today_table(client, dataset):
-        print("[SKIP] today's GA table not ready yet.")
+        logger.info("today's GA table not ready yet.")
         return
 
     # 2. 이미 오늘 모델 학습을 완료했는지 확인 (중복 학습 방지)
     if already_trained_today():
-        print("[SKIP] already trained today.")
+        logger.info("already trained today.")
         return
 
     # 3. 협업 필터링에 사용할 사용자-뉴스 상호작용 데이터 추출
     df = fetch_interactions(client)
-    print(f"[INFO] interactions rows={len(df)}")
+    logger.info(f"interactions rows={len(df)}")
 
     # 추출된 상호작용 데이터를 CSV로 저장 (EDA 및 추후 분석용)
     if not df.empty:
@@ -508,21 +509,21 @@ def main():
         cleanup_old_csv_files(data_dir, days_to_keep=14)
         
         df.to_csv(csv_path, index=False, encoding='utf-8-sig')
-        print(f"[INFO] Interactions data saved to {csv_path}")
+        logger.info(f"Interactions data saved to {csv_path}")
 
     if df.empty:
-        print("[SKIP] no interactions to train.")
+        logger.info("no interactions to train.")
         return
 
     # 4. ALS 모델 학습 (실시간 추천을 위해 미리 계산된 추천은 생성하지 않음)
     model, users, items, interaction_matrix = train_model(df)
     if model is None:
-        print("[SKIP] no model generated.")
+        logger.info("no model generated.")
         return
 
     # 5. 학습된 모델과 관련 데이터를 파일 시스템에 저장
     save_model(model, users, items, interaction_matrix)
-    print(f"[OK] Model training completed and saved")
+    logger.info("Model training completed and saved")
 
     # 6. 테스트용: 샘플 사용자들에게 추천 생성 및 결과 출력
     test_recommendations(model, users, items, interaction_matrix, num_test_users=3, topn=5)

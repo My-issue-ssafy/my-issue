@@ -7,6 +7,7 @@ import numpy as np
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
+from loguru import logger
 
 # 모델 저장 경로
 MODELS_DIR = Path(__file__).resolve().parent.parent.parent / "models"
@@ -31,18 +32,18 @@ class RecommendationService:
         """
         try:
             if not CF_MODEL_PATH.exists():
-                print(f"[WARNING] CF 모델 파일이 없습니다: {CF_MODEL_PATH}")
+                logger.warning(f"CF 모델 파일이 없습니다: {CF_MODEL_PATH}")
                 return False
             
             with open(CF_MODEL_PATH, 'rb') as f:
                 self.cf_model_data = pickle.load(f)
             
             self.cf_loaded_at = datetime.now()
-            print(f"[INFO] CF 모델 로드 완료 - Users: {len(self.cf_model_data['user_categories'])}, Items: {len(self.cf_model_data['item_categories'])}")
+            logger.info(f"CF 모델 로드 완료 - Users: {len(self.cf_model_data['user_categories'])}, Items: {len(self.cf_model_data['item_categories'])}")
             return True
             
         except Exception as e:
-            print(f"[ERROR] CF 모델 로드 실패: {e}")
+            logger.error(f"CF 모델 로드 실패: {e}")
             return False
     
     def load_cbf_model(self) -> bool:
@@ -54,18 +55,18 @@ class RecommendationService:
         """
         try:
             if not CBF_MODEL_PATH.exists():
-                print(f"[WARNING] CBF 모델 파일이 없습니다: {CBF_MODEL_PATH}")
+                logger.warning(f"CBF 모델 파일이 없습니다: {CBF_MODEL_PATH}")
                 return False
             
             with open(CBF_MODEL_PATH, 'rb') as f:
                 self.cbf_model_data = pickle.load(f)
             
             self.cbf_loaded_at = datetime.now()
-            print(f"[INFO] CBF 모델 로드 완료 - Users: {len(self.cbf_model_data['user_profiles'])}, Recommendations: {len(self.cbf_model_data['recommendations'])}")
+            logger.info(f"CBF 모델 로드 완료 - Users: {len(self.cbf_model_data['user_profiles'])}, Recommendations: {len(self.cbf_model_data['recommendations'])}")
             return True
             
         except Exception as e:
-            print(f"[ERROR] CBF 모델 로드 실패: {e}")
+            logger.error(f"CBF 모델 로드 실패: {e}")
             return False
     
     def get_cf_recommendations(self, user_id: str, top_k: int = 50) -> List[Dict]:
@@ -80,7 +81,7 @@ class RecommendationService:
             List[Dict]: 추천 뉴스 리스트 [{'news_id': int, 'score': float, 'method': 'CF'}, ...]
         """
         if not self.cf_model_data:
-            print("[WARNING] CF 모델이 로드되지 않았습니다")
+            logger.warning("CF 모델이 로드되지 않았습니다")
             return []
         
         try:
@@ -91,7 +92,7 @@ class RecommendationService:
             
             # 사용자 ID가 학습 데이터에 있는지 확인
             if user_id not in user_categories:
-                print(f"[WARNING] 사용자 {user_id}가 CF 모델에 없습니다")
+                logger.warning(f"사용자 {user_id}가 CF 모델에 없습니다")
                 return []
             
             # 사용자 인덱스 찾기
@@ -132,11 +133,11 @@ class RecommendationService:
                             'method': 'CF'
                         })
             
-            print(f"[INFO] CF 추천 생성: 사용자 {user_id} -> {len(recommendations)}개")
+            logger.info(f"CF 추천 생성: 사용자 {user_id} -> {len(recommendations)}개")
             return recommendations
             
         except Exception as e:
-            print(f"[ERROR] CF 추천 생성 실패: {e}")
+            logger.error(f"CF 추천 생성 실패: {e}")
             return []
     
     def get_cbf_recommendations(self, user_id: str, top_k: int = 50) -> List[Dict]:
@@ -151,7 +152,7 @@ class RecommendationService:
             List[Dict]: 추천 뉴스 리스트 [{'news_id': int, 'score': float, 'method': 'CBF', 'title': str, 'category': str}, ...]
         """
         if not self.cbf_model_data:
-            print("[WARNING] CBF 모델이 로드되지 않았습니다")
+            logger.warning("CBF 모델이 로드되지 않았습니다")
             return []
         
         try:
@@ -159,7 +160,7 @@ class RecommendationService:
             
             # 사용자 ID가 CBF 추천에 있는지 확인
             if user_id not in recommendations_data:
-                print(f"[WARNING] 사용자 {user_id}가 CBF 모델에 없습니다")
+                logger.warning(f"사용자 {user_id}가 CBF 모델에 없습니다")
                 return []
             
             user_recommendations = recommendations_data[user_id][:top_k]
@@ -175,11 +176,11 @@ class RecommendationService:
                     'category': rec.get('category', '')
                 })
             
-            print(f"[INFO] CBF 추천 가져오기: 사용자 {user_id} -> {len(recommendations)}개")
+            logger.info(f"CBF 추천 가져오기: 사용자 {user_id} -> {len(recommendations)}개")
             return recommendations
             
         except Exception as e:
-            print(f"[ERROR] CBF 추천 가져오기 실패: {e}")
+            logger.error(f"CBF 추천 가져오기 실패: {e}")
             return []
     
     def diversify_by_category(self, recommendations: List[Dict], max_per_category: int = 15) -> List[Dict]:
@@ -202,7 +203,7 @@ class RecommendationService:
                 diversified.append(rec)
                 category_counts[category] = category_counts.get(category, 0) + 1
         
-        print(f"[INFO] 카테고리 다양성 적용: {len(recommendations)} -> {len(diversified)}개")
+        logger.info(f"카테고리 다양성 적용: {len(recommendations)} -> {len(diversified)}개")
         return diversified
     
     def add_balanced_perspectives(self, recommendations: List[Dict], ratio: float = 0.05) -> List[Dict]:
@@ -240,11 +241,11 @@ class RecommendationService:
                 rec['method'] = 'CBF_OPPOSITE'
             
             result = recommendations + opposite_to_add
-            print(f"[INFO] 반대 관점 추가: {len(opposite_to_add)}개 ({ratio*100:.1f}%)")
+            logger.info(f"반대 관점 추가: {len(opposite_to_add)}개 ({ratio*100:.1f}%)")
             return result
             
         except Exception as e:
-            print(f"[WARNING] 반대 관점 추가 실패: {e}")
+            logger.warning(f"반대 관점 추가 실패: {e}")
             return recommendations
     
     def normalize_scores(self, recommendations: List[Dict]) -> List[Dict]:
@@ -282,7 +283,7 @@ class RecommendationService:
                 for rec in cbf_recs:
                     rec['normalized_score'] = rec['score']  # 이미 0-1
         
-        print(f"[INFO] 점수 정규화 완료: CF {len(cf_recs)}개, CBF {len(cbf_recs)}개")
+        logger.info(f"점수 정규화 완료: CF {len(cf_recs)}개, CBF {len(cbf_recs)}개")
         return recommendations
 
     def calculate_time_weight(self, news_created_at, current_time):
@@ -320,7 +321,7 @@ class RecommendationService:
                 return 0.4      # 1주일 이후
                 
         except Exception as e:
-            print(f"[WARNING] 시간 가중치 계산 실패: {e}")
+            logger.warning(f"시간 가중치 계산 실패: {e}")
             return 0.5
 
     def weighted_shuffle(self, recommendations: List[Dict]) -> List[Dict]:
@@ -376,11 +377,11 @@ class RecommendationService:
                 shuffled.append(selected_rec)
             except Exception as e:
                 # 예외 발생 시 첫 번째 아이템 선택
-                print(f"[WARNING] 가중 셔플 오류: {e}")
+                logger.warning(f"가중 셔플 오류: {e}")
                 selected_rec, _ = remaining.pop(0)
                 shuffled.append(selected_rec)
         
-        print(f"[INFO] 가중 셔플 완료: {len(shuffled)}개 추천")
+        logger.info(f"가중 셔플 완료: {len(shuffled)}개 추천")
         return shuffled
 
     def apply_diversity_strategy(self, recommendations: List[Dict], 
@@ -428,13 +429,13 @@ class RecommendationService:
                                  strategy: str = "balanced") -> Dict:
         """
         CF와 CBF를 결합한 하이브리드 추천 (전략 기반)
-        
+
         Args:
             user_id: 사용자 ID
             cf_count: CF 추천 수
             cbf_count: CBF 추천 수
             strategy: 추천 전략 ("pure", "balanced", "diverse")
-            
+
         Returns:
             Dict: {
                 'user_id': str,
@@ -446,6 +447,8 @@ class RecommendationService:
                 'timestamp': str
             }
         """
+        logger.info(f"하이브리드 추천 시작: user_id={user_id}, cf_count={cf_count}, cbf_count={cbf_count}, strategy={strategy}")
+
         result = {
             'user_id': user_id,
             'total_recommendations': 0,
@@ -457,65 +460,112 @@ class RecommendationService:
             },
             'timestamp': datetime.now().isoformat()
         }
-        
+
         # 모델들이 로드되지 않았다면 로드 시도
+        logger.debug(f"모델 상태 확인 - CF: {'로드됨' if self.cf_model_data else '미로드'}, CBF: {'로드됨' if self.cbf_model_data else '미로드'}")
+
         if not self.cf_model_data:
-            self.load_cf_model()
+            logger.info("CF 모델 로드 시도...")
+            cf_loaded = self.load_cf_model()
+            logger.info(f"CF 모델 로드 결과: {'성공' if cf_loaded else '실패'}")
+
         if not self.cbf_model_data:
-            self.load_cbf_model()
-        
+            logger.info("CBF 모델 로드 시도...")
+            cbf_loaded = self.load_cbf_model()
+            logger.info(f"CBF 모델 로드 결과: {'성공' if cbf_loaded else '실패'}")
+
         # CF 추천 가져오기
-        cf_recs = self.get_cf_recommendations(user_id, cf_count)
-        
+        logger.info(f"CF 추천 요청: user_id={user_id}, count={cf_count}")
+        try:
+            cf_recs = self.get_cf_recommendations(user_id, cf_count)
+            logger.info(f"CF 추천 결과: {len(cf_recs)}개")
+        except Exception as e:
+            logger.error(f"CF 추천 생성 실패: {e}")
+            cf_recs = []
+
         # CBF 추천 가져오기
-        cbf_recs = self.get_cbf_recommendations(user_id, cbf_count)
+        logger.info(f"CBF 추천 요청: user_id={user_id}, count={cbf_count}")
+        try:
+            cbf_recs = self.get_cbf_recommendations(user_id, cbf_count)
+            logger.info(f"CBF 추천 결과: {len(cbf_recs)}개")
+        except Exception as e:
+            logger.error(f"CBF 추천 생성 실패: {e}")
+            cbf_recs = []
         
         # 결합된 추천 리스트 생성 (중복 제거)
+        logger.info("추천 결과 결합 시작...")
         combined = []
         seen_news_ids = set()
-        
+
         # CF 추천을 먼저 추가
-        for rec in cf_recs:
-            if rec['news_id'] not in seen_news_ids:
-                combined.append(rec)
-                seen_news_ids.add(rec['news_id'])
-        
+        logger.debug(f"CF 추천 추가 중: {len(cf_recs)}개")
+        try:
+            for rec in cf_recs:
+                if rec.get('news_id') not in seen_news_ids:
+                    combined.append(rec)
+                    seen_news_ids.add(rec['news_id'])
+        except Exception as e:
+            logger.error(f"CF 추천 결합 중 오류: {e}")
+
         # CBF 추천을 추가 (중복 제거)
-        for rec in cbf_recs:
-            if rec['news_id'] not in seen_news_ids:
-                combined.append(rec)
-                seen_news_ids.add(rec['news_id'])
-        
+        logger.debug(f"CBF 추천 추가 중: {len(cbf_recs)}개")
+        try:
+            for rec in cbf_recs:
+                if rec.get('news_id') not in seen_news_ids:
+                    combined.append(rec)
+                    seen_news_ids.add(rec['news_id'])
+        except Exception as e:
+            logger.error(f"CBF 추천 결합 중 오류: {e}")
+
+        logger.info(f"추천 결합 완료: CF {len(cf_recs)}개 + CBF {len(cbf_recs)}개 -> 결합 {len(combined)}개")
+
         # 다양성 전략 적용 전 개수 기록
         result['diversity_applied']['before_diversity_count'] = len(combined)
-        
+
         # 전략별 다양성 적용
-        if strategy == "pure":
-            # 순수 추천: 다양성 적용 없음
-            pass
-        elif strategy == "balanced":
-            # 균형 추천: 카테고리 다양성 + 5% 반대 관점
-            combined = self.diversify_by_category(combined, max_per_category=15)
-            combined = self.add_balanced_perspectives(combined, ratio=0.05)
-        elif strategy == "diverse":
-            # 다양성 추천: 엄격한 카테고리 제한 + 10% 반대 관점
-            combined = self.diversify_by_category(combined, max_per_category=8)
-            combined = self.add_balanced_perspectives(combined, ratio=0.1)
-        
+        logger.info(f"다양성 전략 적용: {strategy}")
+        try:
+            if strategy == "pure":
+                # 순수 추천: 다양성 적용 없음
+                logger.debug("순수 전략: 다양성 적용 안함")
+                pass
+            elif strategy == "balanced":
+                # 균형 추천: 카테고리 다양성 + 5% 반대 관점
+                logger.debug("균형 전략: 카테고리 다양성 적용")
+                combined = self.diversify_by_category(combined, max_per_category=15)
+                combined = self.add_balanced_perspectives(combined, ratio=0.05)
+            elif strategy == "diverse":
+                # 다양성 추천: 엄격한 카테고리 제한 + 10% 반대 관점
+                logger.debug("다양성 전략: 엄격한 카테고리 제한 적용")
+                combined = self.diversify_by_category(combined, max_per_category=8)
+                combined = self.add_balanced_perspectives(combined, ratio=0.1)
+        except Exception as e:
+            logger.error(f"다양성 전략 적용 중 오류: {e}")
+
         # 점수 정규화 (CF와 CBF 스케일 통일)
-        combined = self.normalize_scores(combined)
-        
+        logger.debug("점수 정규화 시작")
+        try:
+            combined = self.normalize_scores(combined)
+            logger.debug("점수 정규화 완료")
+        except Exception as e:
+            logger.error(f"점수 정규화 중 오류: {e}")
+
         # 가중 셔플 적용 (점수 + 시간 가중치)
-        combined = self.weighted_shuffle(combined)
-        
+        logger.debug("가중 셔플 시작")
+        try:
+            combined = self.weighted_shuffle(combined)
+            logger.debug("가중 셔플 완료")
+        except Exception as e:
+            logger.error(f"가중 셔플 중 오류: {e}")
+
         # 다양성 적용 후 개수 기록
         result['diversity_applied']['after_diversity_count'] = len(combined)
-        
+
         result['recommendations'] = combined
         result['total_recommendations'] = len(combined)
-        
-        print(f"[INFO] 하이브리드 추천 완료: 사용자 {user_id} -> CF:{len(cf_recs)}, CBF:{len(cbf_recs)}, 최종:{len(combined)}개 (전략: {strategy})")
-        
+
+        logger.info(f"하이브리드 추천 완료: 사용자 {user_id} -> CF:{len(cf_recs)}, CBF:{len(cbf_recs)}, 최종:{len(combined)}개 (전략: {strategy})")
+
         return result
 
 # 전역 추천 서비스 인스턴스
