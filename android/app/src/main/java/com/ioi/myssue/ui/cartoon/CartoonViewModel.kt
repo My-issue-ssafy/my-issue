@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.cartoon
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.analytics.AnalyticsLogger
@@ -21,11 +22,7 @@ class CartoonViewModel @Inject constructor(
     private var _state = MutableStateFlow(CartoonUiState())
     val state = _state.asStateFlow()
 
-    init {
-        loadCartoon()
-    }
-
-    private fun loadCartoon() = viewModelScope.launch {
+    fun loadCartoon() = viewModelScope.launch {
         _state.update {
             it.copy(isLoading = true, error = null)
         }
@@ -37,6 +34,7 @@ class CartoonViewModel @Inject constructor(
                 }
             }
             .onFailure {
+                Log.e("CartoonViewModel", "loadCartoon: ", it)
                 _state.update {
                     it.copy(isLoading = false, error = "문제가 발생했습니다.\n다시 시도해주세요.")
                 }

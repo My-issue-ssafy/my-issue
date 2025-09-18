@@ -40,6 +40,10 @@ fun NewsScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
+    LaunchedEffect(Unit) {
+        viewModel.getNews()
+    }
+
     when {
         uiState.isInitialLoading -> {
             Box(

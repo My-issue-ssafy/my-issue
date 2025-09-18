@@ -1,6 +1,7 @@
 package com.ioi.myssue.ui.podcast
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -68,6 +69,7 @@ fun PodCastScreen(
                     title = state.selectedDateString,
                     imageUrl = state.episode.articleImage,
                     isPlaying = state.audio.isPlaying,
+                    isLoading = state.isLoading,
                     positionMs = state.audio.position,
                     durationMs = state.audio.duration,
                     currentLine = state.currentLine.text,
@@ -88,11 +90,14 @@ fun PodCastScreen(
                 positionMs = state.audio.position,
                 durationMs = state.audio.duration,
                 onPlayPause = viewModel::toggle,
+                onSeekTo = viewModel::seekTo,
                 isPlaying = state.audio.isPlaying,
+                isLoading = state.isLoading,
                 changeDate = viewModel::changeDate,
                 onDismissRequest = viewModel::closePlayer,
                 scripts = state.episode.scripts,
                 currentIndex = state.currentIndex,
+                onLineClick = viewModel::updateIndex,
                 toggleContentType = viewModel::toggleContentType,
                 contentType = state.contentType
             )
@@ -186,6 +191,7 @@ private fun ColumnScope.PlayerContent(
     title: String,
     imageUrl: String,
     isPlaying: Boolean,
+    isLoading: Boolean,
     positionMs: Long,
     durationMs: Long,
     currentLine: String,
@@ -198,6 +204,7 @@ private fun ColumnScope.PlayerContent(
         title = title,
         imageUrl = imageUrl,
         isPlaying = isPlaying,
+        isLoading = isLoading,
         positionMs = positionMs,
         durationMs = durationMs,
         onSeekTo = onSeekTo,

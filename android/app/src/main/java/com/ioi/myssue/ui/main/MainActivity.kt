@@ -4,18 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.navigation3.runtime.NavKey
+import androidx.compose.runtime.*
 import androidx.navigation3.runtime.rememberNavBackStack
 import com.ioi.myssue.LocalAnalytics
+import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.designsystem.theme.MyssueTheme
 import com.ioi.myssue.navigation.BottomTabRoute
-import com.ioi.myssue.analytics.AnalyticsLogger
+import com.ioi.myssue.navigation.MainTab
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -23,33 +18,59 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var logger: AnalyticsLogger
-    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            var startDestination: NavKey by remember { mutableStateOf(BottomTabRoute.News) }
-            val navBackStack = rememberNavBackStack(startDestination)
+            val newsBackStack = rememberNavBackStack(BottomTabRoute.News)
+            val searchBackStack = rememberNavBackStack(BottomTabRoute.Search)
+            val cartoonBackStack = rememberNavBackStack(BottomTabRoute.Cartoon)
+            val podcastBackStack = rememberNavBackStack(BottomTabRoute.Podcast)
+            val myPageBackStack = rememberNavBackStack(BottomTabRoute.MyPage)
 
-            LaunchedNavigator(navBackStack)
+            val tabBackStacks = mapOf(
+                MainTab.NEWS to newsBackStack,
+                MainTab.SEARCH to searchBackStack,
+                MainTab.CARTOON to cartoonBackStack,
+                MainTab.PODCAST to podcastBackStack,
+                MainTab.MYPAGE to myPageBackStack
+            )
+
+            var currentTab by remember { mutableStateOf(MainTab.NEWS) }
+            var isTabSwitch by remember { mutableStateOf(false) }
+
+            // ViewModel 사이드이펙트 네비게이터 (탭 바뀌면 무애니 처리)
+            LaunchedNavigator(
+                tabBackStacks = tabBackStacks,
+                currentTab = currentTab,
+                onTabChange = { newTab ->
+                    if (currentTab != newTab) {
+                        isTabSwitch = true
+                        currentTab = newTab
+                    }
+                }
+            )
 
             MyssueTheme {
                 CompositionLocalProvider(LocalAnalytics provides logger) {
                     MainScreen(
-                        navBackStack = navBackStack,
-                        onTabSelected = {
-                            when (it.route) {
-                                BottomTabRoute.News -> viewModel.navigateNews()
-                                BottomTabRoute.Search -> viewModel.navigateSearch()
-                                BottomTabRoute.Cartoon -> viewModel.navigateCartoon()
-                                BottomTabRoute.Podcast -> viewModel.navigatePodcast()
-                                BottomTabRoute.MyPage -> viewModel.navigateMyPage()
-                                is BottomTabRoute.NewsAll -> Unit
+                        navBackStack = tabBackStacks[currentTab] ?: newsBackStack,
+                        onTabSelected = { newTab ->
+                            if (currentTab != newTab) {
+                                isTabSwitch = true
+                                currentTab = newTab
                             }
-                        }
+                        },
+                        isTabSwitch = isTabSwitch
                     )
                 }
+            }
+
+            // 탭 전환 반영 후 한 프레임 지나면 플래그 리셋 → 내부 이동은 다시 슬라이드
+            LaunchedEffect(currentTab) {
+                withFrameNanos { /* 한 프레임 대기 */ }
+                isTabSwitch = false
             }
         }
     }

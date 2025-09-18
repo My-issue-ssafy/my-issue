@@ -19,8 +19,6 @@ class SearchViewModel @Inject constructor(
 
     private val queryInput = MutableStateFlow("")
 
-    init { refresh() } // 최초 로드(전체)
-
     fun onQueryChange(q: String) {
         _state.update { it.copy(query = q) }
         queryInput.value = q

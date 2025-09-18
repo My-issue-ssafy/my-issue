@@ -22,6 +22,7 @@ fun PlayerCard(
     title: String,
     imageUrl: String,
     isPlaying: Boolean,
+    isLoading: Boolean,
     positionMs: Long,
     durationMs: Long,
     onSeekTo: (Long) -> Unit,
@@ -58,6 +59,7 @@ fun PlayerCard(
             PlayerBottomOverlay(
                 title = title,
                 isPlaying = isPlaying,
+                isLoading = isLoading,
                 positionMs = positionMs,
                 durationMs = durationMs,
                 onSeekTo = onSeekTo,

@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -17,8 +18,8 @@ class PodcastViewModel @Inject constructor(
     private val audioController: AudioController
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(PodcastUiState())
-    val state: StateFlow<PodcastUiState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(PodCastUiState())
+    val state: StateFlow<PodCastUiState> = _state.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -40,7 +41,7 @@ class PodcastViewModel @Inject constructor(
                 }
             }
         }
-        selectDate(LocalDate.now())
+        selectDate(LocalDate.now(), false)
     }
 
     fun toggleCalendarViewType() {
@@ -57,7 +58,7 @@ class PodcastViewModel @Inject constructor(
         _state.value = _state.value.copy(contentType = toggledContentType)
     }
 
-    fun selectDate(date: LocalDate) {
+    fun selectDate(date: LocalDate, playNow: Boolean = true) {
         val episode = dummyEpisodes.random()
         _state.value = _state.value.copy(
             selectedDate = date,
@@ -70,8 +71,19 @@ class PodcastViewModel @Inject constructor(
         viewModelScope.launch {
             audioController.connect()
             audioController.setPlaylist(listOf(episode.audioUrl.toUri()))
-            audioController.play()
+            if(playNow) {
+                audioController.play()
+            }
         }
+    }
+
+    fun updateIndex(index: Int) = viewModelScope.launch {
+        if(index < 0 || index >= _state.value.episode.scripts.size) return@launch
+        if(_state.value.isLoading) return@launch
+
+        _state.update { it.copy(currentIndex = index) }
+        seekTo(_state.value.episode.scripts[index].startMs)
+        play()
     }
 
     fun openPlayer() {

@@ -1,25 +1,21 @@
 package com.ioi.myssue.ui.podcast.component.bottomsheetplayer
 
-import android.R.attr.scaleX
-import android.R.attr.scaleY
-import android.R.attr.translationY
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ioi.myssue.designsystem.theme.BackgroundColors
@@ -27,8 +23,8 @@ import com.ioi.myssue.ui.podcast.ScriptLine
 
 @Composable
 fun ScriptLineItem(
+    modifier: Modifier = Modifier,
     line: ScriptLine,
-    offsetY: Float,
     style: Float
 ) {
     val blur: Dp = (2 * (1f - style)).dp
@@ -39,10 +35,9 @@ fun ScriptLineItem(
     val scale = 0.8f + 0.2f * style
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
+            .padding(vertical = 20.dp)
             .graphicsLayer {
-                translationY = offsetY
                 this.alpha = alpha
                 scaleX = scale
                 scaleY = scale
@@ -69,8 +64,8 @@ private fun AnimatedScriptText(
     Text(
         text = line.text,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .fillMaxWidth()
+            .padding(8.dp)
             .blur(blur),
         color = BackgroundColors.Background50,
         style = MaterialTheme.typography.titleLarge.copy(
@@ -80,6 +75,7 @@ private fun AnimatedScriptText(
                 offset = Offset(shadowOffset, shadowOffset),
                 blurRadius = shadowRadius
             )
-        )
+        ),
+        textAlign = if (line.isLeftSpeaker) TextAlign.Start else TextAlign.End
     )
 }

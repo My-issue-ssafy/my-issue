@@ -1,85 +1,103 @@
 package com.ioi.myssue.ui.podcast.component.bottomsheetplayer
 
-import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.Transition
-import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.pointerInput
+import com.ioi.myssue.ui.common.clickableNoRipple
 import com.ioi.myssue.ui.podcast.ScriptLine
+import kotlinx.coroutines.delay
 
 @Composable
-fun ColumnScope.ScriptBlockAnimated(scripts: List<ScriptLine>, currentIndex: Int) {
-    val slotHeight = with(LocalDensity.current) { 72.dp.toPx() }
-    val transition = updateTransition(targetState = currentIndex, label = "scriptTransition")
-    val window = (currentIndex - 2)..(currentIndex + 2)
+fun ColumnScope.ScriptBlockAnimated(
+    scripts: List<ScriptLine>,
+    currentIndex: Int,
+    onLineClick: (Int) -> Unit
+) {
+    val listState = rememberLazyListState()
+    var isAutoScrollEnabled by remember { mutableStateOf(true) }
+    var lastUserInteractionTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
 
-    Box(
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            if (System.currentTimeMillis() - lastUserInteractionTime > 5000) {
+                isAutoScrollEnabled = true
+            }
+        }
+    }
+
+    LaunchedEffect(currentIndex, isAutoScrollEnabled) {
+        if (isAutoScrollEnabled && currentIndex >= 0) {
+            val viewportHeight =
+                listState.layoutInfo.viewportEndOffset - listState.layoutInfo.viewportStartOffset
+
+            val itemInfo = listState.layoutInfo.visibleItemsInfo.find { it.index == currentIndex }
+            val itemHeight =
+                itemInfo?.size ?: (listState.layoutInfo.visibleItemsInfo.firstOrNull()?.size ?: 0)
+
+            val centerOffset = (viewportHeight / 2) - itemHeight
+
+            listState.animateScrollToItem(
+                index = currentIndex,
+                scrollOffset = -centerOffset
+            )
+        }
+    }
+
+    LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxWidth()
-            .weight(1f),
-        contentAlignment = Alignment.Center
+            .weight(1f)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent()
+                        lastUserInteractionTime = System.currentTimeMillis()
+                        isAutoScrollEnabled = false
+                    }
+                }
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        scripts.forEachIndexed { index, line ->
-            if (index in window) {
-                val offsetY by rememberLineAnimations(
-                    transition = transition,
-                    index = index,
-                    slotHeight = slotHeight
-                )
-                val style by rememberLineStyle(transition, index)
-
-                ScriptLineItem(
-                    line = line,
-                    offsetY = offsetY,
-                    style = style
-                )
+        itemsIndexed(scripts) { index, line ->
+            val distance = kotlin.math.abs(index - currentIndex)
+            val styleTarget = when (distance) {
+                0 -> 1f
+                1 -> 0.5f
+                else -> 0f
             }
+
+            val style by animateFloatAsState(
+                targetValue = styleTarget,
+                animationSpec = tween(400),
+                label = "style-$index"
+            )
+
+            ScriptLineItem(
+                line = line,
+                style = style,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickableNoRipple {
+                        onLineClick(index)
+                    }
+            )
         }
     }
 }
 
-/**
- * 1. 라인 위치 애니메이션
- */
-@Composable
-private fun rememberLineAnimations(
-    transition: Transition<Int>,
-    index: Int,
-    slotHeight: Float
-) = transition.animateFloat(
-    transitionSpec = {
-        tween(
-            400,
-            easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
-        )
-    },
-    label = "offsetY-$index"
-) { target -> (index - target) * slotHeight }
-
-/**
- * 2. 라인 스타일 애니메이션 값 (중앙일수록 강조)
- */
-@Composable
-private fun rememberLineStyle(
-    transition: Transition<Int>,
-    index: Int
-) = transition.animateFloat(
-    transitionSpec = { tween(400) },
-    label = "style-$index"
-) { target ->
-    when (index - target) {
-        -2, +2 -> 0f
-        -1, +1 -> 0.5f
-        0 -> 1f
-        else -> 0f
-    }
-}

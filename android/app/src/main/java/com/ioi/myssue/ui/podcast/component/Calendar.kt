@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.podcast.component
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
@@ -67,6 +69,9 @@ fun Calendar(
         Spacer(Modifier.height(16.dp))
 
         if (isMonthlyView) {
+            BackHandler {
+                onToggleView()
+            }
             MonthCalendar(
                 currentMonth = today,
                 selectedDate = selectedDate,

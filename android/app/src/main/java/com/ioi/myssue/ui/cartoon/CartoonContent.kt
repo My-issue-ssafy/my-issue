@@ -1,7 +1,6 @@
 package com.ioi.myssue.ui.cartoon
 
-import android.util.Log
-import com.ioi.myssue.ui.common.SwipeDir
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -10,10 +9,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -40,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,11 +47,13 @@ import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
+import com.google.common.math.Quantiles.scale
 import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background100
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background50
 import com.ioi.myssue.domain.model.CartoonNews
+import com.ioi.myssue.ui.common.SwipeDir
 import com.ioi.myssue.ui.common.swipeWithAnimation
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -148,6 +150,7 @@ fun CartoonCardStack(
                 isExiting = isExiting,
                 exitDir = exitDir,
                 modifier = Modifier
+                    .padding(16.dp)
                     .zIndex(if (isExiting) 1f else -layerOrder.toFloat())
                     .swipeWithAnimation(
                         key = item.toonImageUrl,
@@ -171,13 +174,17 @@ fun CartoonCardStack(
     }
 }
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-private fun CartoonCard(
+fun CartoonCard(
+    modifier: Modifier = Modifier,
     cartoon: CartoonNews,
     isExiting: Boolean,
     exitDir: Int,
-    modifier: Modifier = Modifier,
-    onExitEnd: (() -> Unit)? = null
+    isSmallMode: Boolean = false,
+    isFlippable: Boolean = true,
+    onExitEnd: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
 ) {
     val animKey = remember { "${cartoon.toonImageUrl}|${cartoon.newsTitle}" }
     val tx = remember(animKey) { Animatable(0f) }
@@ -214,62 +221,158 @@ private fun CartoonCard(
     val interactionSource = remember { MutableInteractionSource() }
     val cameraDistancePx = with(LocalDensity.current) { 12.dp.toPx() }
 
-    BoxWithConstraints(
-        modifier = modifier.fillMaxWidth(),
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .graphicsLayer {
+                if (isExiting) {
+                    translationX = tx.value
+                    rotationZ = rotZ.value
+                }
+                rotationY = flip
+                cameraDistance = cameraDistancePx
+            }
+            .clickable(
+                enabled = !isExiting,
+                indication = null,
+                interactionSource = interactionSource
+            ) {
+                onClick()
+                if(isFlippable) {
+                    flipped = !flipped
+                }
+              },
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = modifier
-                .size(maxWidth - 32.dp)
-                .graphicsLayer {
-                    if (isExiting) {
-                        translationX = tx.value
-                        rotationZ = rotZ.value
-                    }
-                    rotationY = flip
-                    cameraDistance = cameraDistancePx
-                }
-                .clickable(
-                    enabled = !isExiting,
-                    indication = null,
-                    interactionSource = interactionSource
-                ) { flipped = !flipped }
+        Card(
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(containerColor = Background50),
         ) {
-            Card(
-                elevation = CardDefaults.cardElevation(8.dp),
-                colors = CardDefaults.cardColors(containerColor = Background100),
-                modifier = Modifier.fillMaxSize()
-            ) {
-                if (showFront) {
+            if (showFront) {
+                CartoonImage(
+                    url = cartoon.toonImageUrl,
+                    contentDesc = cartoon.newsTitle,
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            } else {
+                Box {
                     CartoonImage(
                         url = cartoon.toonImageUrl,
                         contentDesc = cartoon.newsTitle,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(8.dp)
+                            .padding(4.dp)
+                            .alpha(0.1f)
+                            .graphicsLayer { rotationY = 180f }
                     )
-                } else {
-                    Box {
-                        CartoonImage(
-                            url = cartoon.toonImageUrl,
-                            contentDesc = cartoon.newsTitle,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp)
-                                .alpha(0.1f)
-                                .graphicsLayer { rotationY = 180f }
-                        )
-                        CartoonWithNewsSummary(cartoon)
-                    }
+                    CartoonWithNewsSummary(cartoon = cartoon, scale = if(isSmallMode) 0.5f else 1.0f)
                 }
             }
         }
     }
-
 }
 
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-private fun CartoonWithNewsSummary(cartoon: CartoonNews) {
+fun ExpandedCartoonCard(
+    modifier: Modifier = Modifier,
+    cartoon: CartoonNews,
+    isExiting: Boolean,
+    exitDir: Int,
+    scale: Float = 1.0f,
+    isFlippable: Boolean = true,
+    onExitEnd: (() -> Unit)? = null,
+    onClick: () -> Unit = {},
+    expandedContent : @Composable () -> Unit
+) {
+    val animKey = remember { "${cartoon.toonImageUrl}|${cartoon.newsTitle}" }
+    val tx = remember(animKey) { Animatable(0f) }
+    val rotZ = remember(animKey) { Animatable(0f) }
+
+    var flipped by rememberSaveable(animKey) { mutableStateOf(false) }
+    val flip by animateFloatAsState(
+        targetValue = if (flipped) 180f else 0f,
+        animationSpec = tween(600),
+        label = "flip"
+    )
+    val showFront = flip <= 90f
+
+    LaunchedEffect(isExiting) {
+        if (isExiting) {
+            coroutineScope {
+                launch { tx.animateTo(600f * exitDir, tween(600)) }
+                launch { rotZ.animateTo(-30f * exitDir, tween(600)) }
+            }
+            onExitEnd?.invoke()
+        } else {
+            tx.snapTo(0f); rotZ.snapTo(0f)
+        }
+    }
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val cameraDistancePx = with(LocalDensity.current) { 12.dp.toPx() }
+
+    Box(
+        modifier = modifier
+            .padding(8.dp)
+            .graphicsLayer {
+                if (isExiting) {
+                    translationX = tx.value
+                    rotationZ = rotZ.value
+                }
+                rotationY = flip
+                cameraDistance = cameraDistancePx
+            }
+            .clickable(
+                enabled = !isExiting,
+                indication = null,
+                interactionSource = interactionSource
+            ) {
+                onClick()
+                if(isFlippable) {
+                    flipped = !flipped
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(containerColor = Background50),
+        ) {
+            if (showFront) {
+                CartoonImage(
+                    url = cartoon.toonImageUrl,
+                    contentDesc = cartoon.newsTitle,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .align(Alignment.CenterHorizontally)
+                )
+            } else {
+                Box {
+                    CartoonImage(
+                        url = cartoon.toonImageUrl,
+                        contentDesc = cartoon.newsTitle,
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .alpha(0.1f)
+                            .graphicsLayer { rotationY = 180f }
+                    )
+                    CartoonWithNewsSummary(cartoon = cartoon, scale = scale)
+                }
+            }
+            expandedContent()
+        }
+    }
+}
+
+
+@Composable
+private fun CartoonWithNewsSummary(
+    cartoon: CartoonNews,
+    scale: Float
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -280,10 +383,15 @@ private fun CartoonWithNewsSummary(cartoon: CartoonNews) {
         Text(
             modifier = Modifier.padding(4.dp),
             text = cartoon.newsTitle,
-            style = MaterialTheme.typography.titleLarge,
-            fontSize = 32.sp
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 32.sp * scale,
+                lineHeight = 44.sp * scale,
+            ),
+            maxLines = if(scale < 1f) 5 else 3,
+            overflow = TextOverflow.Ellipsis
         )
 
+        if(scale < 1f) return@Column
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -294,7 +402,11 @@ private fun CartoonWithNewsSummary(cartoon: CartoonNews) {
             Text(
                 modifier = Modifier.padding(16.dp),
                 text = cartoon.newsDescription,
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 20.sp * scale
+                ),
+                maxLines = 5,
+                overflow = TextOverflow.Ellipsis
             )
         }
 

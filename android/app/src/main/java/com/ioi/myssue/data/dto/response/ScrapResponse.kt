@@ -1,0 +1,9 @@
+package com.ioi.myssue.data.dto.response
+
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class ScrapResponse(
+    val scrapped: Boolean,
+    val scrapId: Long
+)

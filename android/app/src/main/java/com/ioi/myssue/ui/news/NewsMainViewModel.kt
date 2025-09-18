@@ -3,8 +3,6 @@ package com.ioi.myssue.ui.news
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ioi.myssue.domain.model.MainNewsList
-import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.repository.NewsRepository
 import com.ioi.myssue.navigation.BottomTabRoute
 import com.ioi.myssue.navigation.Navigator
@@ -23,10 +21,6 @@ class NewsMainViewModel @Inject constructor(
     private val _state = MutableStateFlow(NewsMainUiState(isInitialLoading = true))
     val state = _state.asStateFlow()
 
-    init {
-        getNews()
-    }
-
     fun getNews() {
         val firstPage = _state.value.main.hot.isEmpty() &&
                 _state.value.main.recommend.isEmpty() &&
@@ -42,6 +36,7 @@ class NewsMainViewModel @Inject constructor(
                     )
                 }
                 .onFailure {
+                    Log.d("NewsMainViewModel", "getNews: ${it}")
                     if (firstPage) _state.value = _state.value.copy(isInitialLoading = false)
                 }
         }

@@ -4,8 +4,11 @@ import com.ioi.myssue.data.dto.response.CursorPageNewsResponse
 import com.ioi.myssue.data.dto.response.NewsCardResponse
 import com.ioi.myssue.data.dto.response.NewsDetailResponse
 import com.ioi.myssue.data.dto.response.NewsMainResponse
+import com.ioi.myssue.data.dto.response.ScrapResponse
+import kotlinx.serialization.Serializable
 
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -51,5 +54,15 @@ interface NewsApi {
     suspend fun getNewsDetail(
         @Path("newsId") newsId: Long
     ): NewsDetailResponse
-}
 
+    @GET("news/bookmarks")
+    suspend fun getBookMarkedNews(
+        @Query("size") size: Int? = null,
+        @Query("cursor") cursor: String? = null
+    ): CursorPageNewsResponse
+
+    @POST("news/{newsId}/bookmark")
+    suspend fun bookMarkNews(
+        @Path("newsId") newsId: Long
+    ): ScrapResponse
+}

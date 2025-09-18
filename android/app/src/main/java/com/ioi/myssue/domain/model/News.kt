@@ -11,5 +11,6 @@ data class News(
     val thumbnail: String?,
     val content: List<NewsBlock> = emptyList(),
     val displayTime: String,
-    val scrapCount: Int
+    val scrapCount: Int,
+    val isScraped: Boolean
 )
