@@ -37,24 +37,28 @@ public class News {
     @Column(nullable = false)
     private String category;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String author;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String newsPaper;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
-    private int views;
+    private int views = 0;
 
-    @Column(columnDefinition = "vector(768)", nullable = false)
-//    @Formula("embedding::text")
+    @Formula("embedding::text")
     private String embedding;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String thumbnail;
 
+    @Column(nullable = true)
+    private int scrapCount = 0;
+
+    public void increaseScrapCount() { this.scrapCount++; }
+    public void decreaseScrapCount() { this.scrapCount--; }
     public void increaseViews() { this.views++; }
 }

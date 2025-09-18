@@ -14,24 +14,28 @@ import com.ssafy.myissue.news.domain.News;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import com.ssafy.myissue.common.exception.CustomException;      // [ADDED]
 import com.ssafy.myissue.common.exception.ErrorCode;          // [ADDED]
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class NewsService {
 
+    private final RedisTemplate<String, Object> redisTemplate;
+    private static final String HOT_KEY= "hot:news";
     private final NewsRepository newsRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public NewsService(NewsRepository newsRepository) {
-        this.newsRepository = newsRepository;
-    }
 
     /** 메인 화면: HOT 5, 추천 5(임시 최신), 최신 5 */
     public NewsHomeResponse getHome(Long userId) {
@@ -120,7 +124,8 @@ public class NewsService {
                 n.getAuthor(),
                 n.getNewsPaper(),
                 n.getCreatedAt(),
-                n.getViews()
+                n.getViews(),
+                n.getScrapCount()
         );
     }
 
@@ -205,5 +210,35 @@ public class NewsService {
         } catch (Exception e) {
             return Collections.emptyList();
         }
+    }
+
+    public List<NewsDetailResponse> getHotRecommendTop100() {
+        ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
+
+        // Redis에서 상위 100개 ID 가져오기
+        Set<Object> newsIds = zset.reverseRange(HOT_KEY, 0, 99);
+
+        if (newsIds == null || newsIds.isEmpty()) {
+            return List.of(); // HOT 뉴스 없으면 빈 리스트 반환
+        }
+
+        // Long 변환
+        List<Long> ids = newsIds.stream()
+                .map(id -> Long.valueOf(id.toString()))
+                .toList();
+
+        // DB 조회
+        List<News> newsList = newsRepository.findAllById(ids);
+
+        // Map으로 변환 (id → News 매핑)
+        Map<Long, News> newsMap = newsList.stream()
+                .collect(Collectors.toMap(News::getId, n -> n));
+
+        // Redis 순서 보존 + DTO 변환
+        return ids.stream()
+                .map(newsMap::get)
+                .filter(Objects::nonNull)
+                .map(n -> NewsDetailResponse.from(n, parseBlocks(n.getContent()))) // 엔티티 → DTO 변환
+                .toList();
     }
 }

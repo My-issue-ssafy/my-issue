@@ -51,11 +51,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Authorization 헤더 없으면 패스
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (header == null || !header.startsWith("Bearer ")) {
+        if (header == null) {
             SecurityContextHolder.clearContext();
             authenticationEntryPoint.commence(
                     request, response,
-                    new InsufficientAuthenticationException("MISSING_OR_MALFORMED_ACCESS_TOKEN")
+                    new InsufficientAuthenticationException("EMPTY_ACCESS_TOKEN")
+            );
+            return;
+        }
+
+        if (!header.startsWith("Bearer ")) {
+            SecurityContextHolder.clearContext();
+            authenticationEntryPoint.commence(
+                    request, response,
+                    new InsufficientAuthenticationException("BEARER_PREFIX_INVALID")
             );
             return;
         }

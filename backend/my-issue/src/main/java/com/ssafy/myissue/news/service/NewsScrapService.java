@@ -36,6 +36,9 @@ public class NewsScrapService {
 
         if (existing.isPresent()) {
             scrapRepository.delete(existing.get());
+            News news = existing.get().getNews();
+            news.decreaseScrapCount();
+            newsRepository.save(news);
             return new ScrapToggleResponse(false, null);
         } else {
             News news = newsRepository.findById(newsId)
@@ -46,6 +49,8 @@ public class NewsScrapService {
                             .news(news)
                             .build()
             );
+            news.increaseScrapCount();
+            newsRepository.save(news);
             return new ScrapToggleResponse(true, saved.getScrapId());
         }
     }

@@ -15,4 +15,9 @@ public interface NewsRepository extends JpaRepository<News, Long>, NewsCustomRep
     List<News> findTop10ByDate(@Param("start") LocalDateTime start,
                                @Param("end") LocalDateTime end,
                                Pageable pageable);
+
+    @Query("SELECT n FROM News n WHERE n.createdAt >= :since AND n.views >= :minViews AND n.scrapCount >= :minScraps")
+    List<News> findHotCandidates(@Param("since") LocalDateTime since,
+                                 @Param("minViews") int minViews,
+                                 @Param("minScraps") int minScraps);
 }
