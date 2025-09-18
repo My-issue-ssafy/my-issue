@@ -38,6 +38,7 @@ fun NewsDetailResponse.toDomain(time: TimeConverter) = News(
     thumbnail = getThumbnail(content),
     content = content.toDomainBlocks(),
     displayTime = time.toDisplay(createdAt ?: "-"),
+    scrapCount = scrapCount
 )
 
 

@@ -44,6 +44,7 @@ class NewsDetailViewModel @Inject constructor(
                             newspaper = news.newspaper,
                             displayTime = news.displayTime,
                             blocks = news.content,
+                            scrapCount = news.scrapCount,
                             isBookmarked = bookmarked
                         )
                     }
