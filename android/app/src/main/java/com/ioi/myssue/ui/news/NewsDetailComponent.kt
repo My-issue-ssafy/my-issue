@@ -61,6 +61,7 @@ fun NewsDetail(
     viewModel: NewsDetailViewModel = hiltViewModel()
 ) {
     LaunchedEffect(newsId) {
+        Log.d("NewsDetail", "newsId: $newsId")
         viewModel.getNewsDetail(newsId)
     }
     val state = viewModel.uiState.collectAsState().value
@@ -74,7 +75,6 @@ fun NewsDetail(
             }
         }
     }
-
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

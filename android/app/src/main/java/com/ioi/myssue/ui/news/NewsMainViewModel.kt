@@ -42,6 +42,7 @@ class NewsMainViewModel @Inject constructor(
                     )
                 }
                 .onFailure {
+                    Log.d("NewsMainViewModel", "getNews: ${it}")
                     if (firstPage) _state.value = _state.value.copy(isInitialLoading = false)
                 }
         }

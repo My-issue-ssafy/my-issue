@@ -91,7 +91,7 @@ fun MyPageScreen(
             navigateToNews = viewModel::navigateToCartoonNews
         )
 
-        SwitchWithTitle("알림 설정", true, {})
+//        SwitchWithTitle("알림 설정", true, {})
     }
 
     if (state.selectedNewsId != null) {
@@ -194,6 +194,7 @@ fun ColumnScope.ScrappedCartoonNewsPager(
                 cartoon = items[page],
                 isExiting = false,
                 exitDir = 0,
+                isSmallMode = true,
                 modifier = Modifier
                     .onSizeChanged {
                         cardWidth = with(density) { it.width.toDp() }

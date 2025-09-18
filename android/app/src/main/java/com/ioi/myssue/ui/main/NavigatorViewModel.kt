@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import javax.inject.Inject
 
 @HiltViewModel
-internal class NavigatorViewModel @Inject constructor(
+class NavigatorViewModel @Inject constructor(
     navigator: Navigator,
 ) : ViewModel() {
     val sideEffect by lazy(LazyThreadSafetyMode.NONE) {

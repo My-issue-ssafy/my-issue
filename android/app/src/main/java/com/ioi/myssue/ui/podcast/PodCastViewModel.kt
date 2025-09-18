@@ -41,7 +41,7 @@ class PodcastViewModel @Inject constructor(
                 }
             }
         }
-        selectDate(LocalDate.now())
+        selectDate(LocalDate.now(), false)
     }
 
     fun toggleCalendarViewType() {
@@ -58,7 +58,7 @@ class PodcastViewModel @Inject constructor(
         _state.value = _state.value.copy(contentType = toggledContentType)
     }
 
-    fun selectDate(date: LocalDate) {
+    fun selectDate(date: LocalDate, playNow: Boolean = true) {
         val episode = dummyEpisodes.random()
         _state.value = _state.value.copy(
             selectedDate = date,
@@ -71,7 +71,9 @@ class PodcastViewModel @Inject constructor(
         viewModelScope.launch {
             audioController.connect()
             audioController.setPlaylist(listOf(episode.audioUrl.toUri()))
-            audioController.play()
+            if(playNow) {
+                audioController.play()
+            }
         }
     }
 

@@ -46,6 +46,7 @@ import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
+import com.google.common.math.Quantiles.scale
 import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background100
@@ -177,6 +178,7 @@ fun CartoonCard(
     cartoon: CartoonNews,
     isExiting: Boolean,
     exitDir: Int,
+    isSmallMode: Boolean = false,
     modifier: Modifier = Modifier,
     isFlippable: Boolean = true,
     onExitEnd: (() -> Unit)? = null,
@@ -263,7 +265,7 @@ fun CartoonCard(
                             .alpha(0.1f)
                             .graphicsLayer { rotationY = 180f }
                     )
-                    CartoonWithNewsSummary(cartoon)
+                    CartoonWithNewsSummary(cartoon = cartoon, scale = if(isSmallMode) 0.5f else 1.0f)
                 }
             }
         }
@@ -278,6 +280,7 @@ fun ExpandedCartoonCard(
     cartoon: CartoonNews,
     isExiting: Boolean,
     exitDir: Int,
+    scale: Float = 1.0f,
     isFlippable: Boolean = true,
     onExitEnd: (() -> Unit)? = null,
     onClick: () -> Unit = {},
@@ -355,7 +358,7 @@ fun ExpandedCartoonCard(
                             .alpha(0.1f)
                             .graphicsLayer { rotationY = 180f }
                     )
-                    CartoonWithNewsSummary(cartoon)
+                    CartoonWithNewsSummary(cartoon = cartoon, scale = scale)
                 }
             }
             expandedContent()
@@ -365,7 +368,10 @@ fun ExpandedCartoonCard(
 
 
 @Composable
-private fun CartoonWithNewsSummary(cartoon: CartoonNews) {
+private fun CartoonWithNewsSummary(
+    cartoon: CartoonNews,
+    scale: Float
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -376,8 +382,11 @@ private fun CartoonWithNewsSummary(cartoon: CartoonNews) {
         Text(
             modifier = Modifier.padding(4.dp),
             text = cartoon.newsTitle,
-            style = MaterialTheme.typography.titleLarge,
-            fontSize = 32.sp
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 32.sp * scale,
+                lineHeight = 44.sp * scale,
+            ),
+            maxLines = 3
         )
 
         Surface(
@@ -390,7 +399,10 @@ private fun CartoonWithNewsSummary(cartoon: CartoonNews) {
             Text(
                 modifier = Modifier.padding(16.dp),
                 text = cartoon.newsDescription,
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 20.sp * scale
+                ),
+                maxLines = 3
             )
         }
 

@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.cartoon
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.analytics.AnalyticsLogger
@@ -37,6 +38,7 @@ class CartoonViewModel @Inject constructor(
                 }
             }
             .onFailure {
+                Log.e("CartoonViewModel", "loadCartoon: ", it)
                 _state.update {
                     it.copy(isLoading = false, error = "문제가 발생했습니다.\n다시 시도해주세요.")
                 }

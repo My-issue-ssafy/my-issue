@@ -36,6 +36,7 @@ fun AppTopBar(
     isPlaying: Boolean = false,
     @DrawableRes logoRes: Int = R.drawable.logo,
     onBellClick: (() -> Unit)? = null,
+    onBack : (() -> Unit)? = null,
     containerColor: Color = BackgroundColors.Background50,
 ) {
     val topBarInsets = WindowInsets
@@ -62,45 +63,21 @@ fun AppTopBar(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = BackgroundColors.Background100,
-            ) {
+            if(onBack != null) {
                 IconButton(
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                    onClick = { onBellClick?.invoke() },
+                    onClick = { onBack.invoke() },
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_radio),
-                        contentDescription = "Notifications",
+                        painter = painterResource(R.drawable.ic_back_normal),
+                        contentDescription = "Back",
+                        tint = BackgroundColors.Background600,
                         modifier = Modifier.size(32.dp)
                     )
                 }
-
-                if(isPlaying) {
-                    IconButton(
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        onClick = { onBellClick?.invoke() },
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_radio),
-                            contentDescription = "Notifications",
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                    IconButton(
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        onClick = { onBellClick?.invoke() },
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_radio),
-                            contentDescription = "Notifications",
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-
-                }
+            } else {
+                TopBarMiniPlayer(onBellClick, isPlaying)
             }
+
             Spacer(Modifier.weight(1f))
 
             IconButton(
@@ -109,10 +86,53 @@ fun AppTopBar(
                 Icon(
                     imageVector = Icons.Rounded.Notifications,
                     contentDescription = "Notifications",
-                    tint = Color(0xFF5C6670), // 이미지처럼 약간 어두운 그레이
+                    tint = BackgroundColors.Background600,
                     modifier = Modifier.size(32.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun TopBarMiniPlayer(onBellClick: (() -> Unit)?, isPlaying: Boolean) {
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = BackgroundColors.Background100,
+    ) {
+        IconButton(
+            modifier = Modifier.padding(horizontal = 4.dp),
+            onClick = { onBellClick?.invoke() },
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_radio),
+                contentDescription = "Notifications",
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+        if (isPlaying) {
+            IconButton(
+                modifier = Modifier.padding(horizontal = 4.dp),
+                onClick = { onBellClick?.invoke() },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_radio),
+                    contentDescription = "Notifications",
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            IconButton(
+                modifier = Modifier.padding(horizontal = 4.dp),
+                onClick = { onBellClick?.invoke() },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_radio),
+                    contentDescription = "Notifications",
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
         }
     }
 }
