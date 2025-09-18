@@ -61,3 +61,7 @@ cloud:
 gms:
   key: ${GMS_KEY}
 
+app:
+  recommend:
+    url: ${APP_RECOMMEND_BASE_URL}
+    params: ${APP_RECOMMEND_DEFAULT_PARAMS}

@@ -16,10 +16,12 @@ import com.ssafy.myissue.common.exception.CustomException;      // [ADDED]
 import com.ssafy.myissue.common.exception.ErrorCode;          // [ADDED]
 import com.ssafy.myissue.news.infrastructure.NewsScrapRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -30,9 +32,14 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class NewsService {
-
-    private final RedisTemplate<String, Object> redisTemplate;
     private static final String HOT_KEY= "hot:news";
+    private static final String RECOMMEND_KEY_PREFIX = "recommend:news:";
+    private static final String RECOMMEND_TS_PREFIX = "recommend:timestamp:";
+    @Value("${app.recommend.url}")
+    private String recommendUrl;
+    @Value("${app.recommend.params}")
+    private String recommendParams;
+    private final RedisTemplate<String, Object> redisTemplate;
     private final NewsRepository newsRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final NewsScrapRepository scrapRepository;
@@ -41,18 +48,54 @@ public class NewsService {
     public NewsHomeResponse getHome(Long userId) {
         List<NewsCardResponse> hotCards = getMainHotNews();
 
-        List<News> recommendRows = newsRepository.findLatestPage(null, null, 5);
-        List<NewsCardResponse> recommendCards = toCards(recommendRows);
+        List<NewsCardResponse> recommendCards = getMainRecommendNews(userId);
 
-        List<News> latestRows = newsRepository.findLatestPage(null, null, 5);
-        List<NewsCardResponse> latestCards = toCards(latestRows);
+        List<NewsCardResponse> latestCards = toCards(newsRepository.findLatestPage(null, null, 5));
 
         return new NewsHomeResponse(hotCards, recommendCards, latestCards);
     }
 
+    private List<NewsCardResponse> getMainRecommendNews(Long userId) {
+        String redisKey = RECOMMEND_KEY_PREFIX + userId;
+        String tsKey = RECOMMEND_TS_PREFIX + userId;
+
+        String cachedTs = (String) redisTemplate.opsForValue().get(tsKey);
+
+        String url = recommendUrl + userId + recommendParams;
+        RestTemplate restTemplate = new RestTemplate();
+        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+
+        List<Map<String, Object>> recommendations = (List<Map<String, Object>>) response.get("recommendations");
+        if (recommendations == null || recommendations.isEmpty()) {
+            return List.of();
+        }
+
+        String apiTimestamp = (String) response.get("timestamp");
+
+        // 3. Redis 갱신 여부 확인
+        boolean needUpdate = (cachedTs == null) || apiTimestamp.compareTo(cachedTs) > 0;
+
+        if (needUpdate) {
+            redisTemplate.delete(redisKey);
+
+            for (Map<String, Object> rec : recommendations) {
+                Long newsId = Long.valueOf(rec.get("news_id").toString());
+                Double score = Double.valueOf(rec.get("score").toString());
+                redisTemplate.opsForList().rightPush(redisKey, newsId + ":" + score);
+            }
+            redisTemplate.opsForValue().set(tsKey, apiTimestamp);
+        }
+
+        // 4. Redis에서 상위 5개 꺼내서 DTO 변환
+
+        List<Long> topIds = getNewsIdListByRedis(redisKey, 0, 4);
+        List<News> newsList = newsRepository.findAllById(topIds);
+        return toCards(newsList);
+    }
+
 
     private List<NewsCardResponse> getMainHotNews() {
-        List<Long> ids = getNewsIdListByRedis(0,4);
+        List<Long> ids = getNewsIdListByRedis(HOT_KEY, 0,4);
 
         // DB 조회
         List<News> newsList = newsRepository.findAllById(ids);
@@ -65,11 +108,11 @@ public class NewsService {
         return toCards(newsList);
     }
 
-    private List<Long> getNewsIdListByRedis(int min, int max){
+    private List<Long> getNewsIdListByRedis(String redisKey, int min, int max){
         ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
 
         // Redis에서 상위 100개 ID 가져오기
-        Set<Object> newsIds = zset.reverseRange(HOT_KEY, min, max);
+        Set<Object> newsIds = zset.reverseRange(redisKey, min, max);
 
         if (newsIds == null || newsIds.isEmpty()) {
             return List.of(); // HOT 뉴스 없으면 빈 리스트 반환
@@ -246,7 +289,7 @@ public class NewsService {
 
     // HOT 뉴스 테스트용
     public List<NewsDetailResponse> getHotRecommendTop100() {
-        List<Long> ids = getNewsIdListByRedis(0,99);
+        List<Long> ids = getNewsIdListByRedis(HOT_KEY,0,99);
 
         List<News> newsList = newsRepository.findAllById(ids);
         // Map으로 변환 (id → News 매핑)
