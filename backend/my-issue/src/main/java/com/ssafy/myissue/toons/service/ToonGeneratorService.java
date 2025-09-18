@@ -46,6 +46,7 @@ public class ToonGeneratorService {
                     .title(news.getTitle())
                     .summary(summary)
                     .toonImage(null)
+                    .date(news.getCreatedAt().toLocalDate())
                     .build();
             toonsRepository.save(toon);
 

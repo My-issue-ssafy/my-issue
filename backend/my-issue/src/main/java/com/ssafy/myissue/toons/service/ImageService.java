@@ -35,19 +35,24 @@ public class ImageService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
-        String prompt = """
-            Create a 4-panel comic.
-            - Each panel must include characters and background.
-            - Absolutely NO text, NO words, NO captions, NO letters, NO numbers.
-            - No speech bubbles or labels.
-            - Only images, no writing at all.
-            - Style: colorful, simple characters, comic style, 4 separated panels in one image.
-            Avoid: text, captions, subtitles, speech bubbles, letters, numbers, words.
-            """ + summary;
+        // 사용자가 보낸 그대로의 영어 형식 프롬프트 (요구하신 포맷)
+        String promptTemplate = """
+        Create a 4-panel comic.
+        - Each panel must include characters and background.
+        - Absolutely NO text, NO words, NO captions, NO letters, NO numbers.
+        - No speech bubbles or labels.
+        - Only images, no writing at all.
+        - Style: colorful, simple characters, comic style, 4 separated panels in one image.
+        Avoid: text, captions, subtitles, speech bubbles, letters, numbers, words.
+        """;
+
+        // Summary가 null일 수 있으니 안전하게 처리 (불필요한 길이는 자르지 않음 — 원하시면 조절)
+        if (summary == null) summary = "";
+        String prompt = promptTemplate + "\nSummary: " + summary.trim();
 
         Map<String, Object> body = Map.of(
                 "instances", List.of(Map.of("prompt", prompt)),
-                "parameters", Map.of("sampleCount", 1) // 여기서 1개만 생성
+                "parameters", Map.of("sampleCount", 1) // 한 장만 생성
         );
 
         try {
@@ -60,19 +65,84 @@ public class ImageService {
             JsonNode root = objectMapper.readTree(resp.getBody());
             JsonNode prediction = root.path("predictions").get(0);
 
-            if (prediction != null && prediction.has("bytesBase64Encoded")) {
-                String base64 = prediction.get("bytesBase64Encoded").asText();
-                byte[] bytes = Base64.getDecoder().decode(base64);
-                String mimeType = "image/png"; // Imagen 기본은 PNG
-                return new ImageResult(bytes, mimeType);
+            if (prediction != null) {
+                // 이미지 데이터 위치: bytesBase64Encoded 또는 imageBytes 등 API 문서에 맞춰 확인
+                // 여기서는 docs 예시대로 bytesBase64Encoded 사용
+                JsonNode base64Node = prediction.get("bytesBase64Encoded");
+                if (base64Node != null && !base64Node.asText().isBlank()) {
+                    byte[] bytes = Base64.getDecoder().decode(base64Node.asText());
+                    return new ImageResult(bytes, "image/png");
+                }
+
+                // 일부 환경에서는 predictions[].data[0].b64_string 같은 구조일 수 있으므로 안전 체크
+                JsonNode dataNode = prediction.path("data");
+                if (dataNode.isArray() && dataNode.size() > 0) {
+                    JsonNode first = dataNode.get(0);
+                    JsonNode b64 = first.get("b64");
+                    if (b64 == null) b64 = first.get("b64_string");
+                    if (b64 != null && !b64.asText().isBlank()) {
+                        byte[] bytes = Base64.getDecoder().decode(b64.asText());
+                        return new ImageResult(bytes, "image/png");
+                    }
+                }
             }
 
-            throw new RuntimeException("Imagen 응답에 이미지 데이터가 없음: " + resp.getBody());
-
+            throw new RuntimeException("Imagen 응답에 이미지 데이터가 없습니다: " + resp.getBody());
+        } catch (HttpClientErrorException e) {
+            String err = e.getResponseBodyAsString(StandardCharsets.UTF_8);
+            throw new RuntimeException("Imagen API 요청 실패: " + e.getStatusCode() + " body=" + err, e);
         } catch (Exception e) {
             throw new RuntimeException("Imagen 이미지 생성 실패", e);
         }
     }
+
+
+//    public ImageResult generateToonImage(String summary) {
+//        String url = "https://gms.ssafy.io/gmsapi/generativelanguage.googleapis.com/v1beta/models/"
+//                + "imagen-3.0-generate-002:predict?key=" + gmsKey;
+//
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setContentType(MediaType.APPLICATION_JSON);
+//        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+//
+//        String prompt = """
+//            Create a 4-panel comic.
+//            - Each panel must include characters and background.
+//            - Absolutely NO text, NO words, NO captions, NO letters, NO numbers.
+//            - No speech bubbles or labels.
+//            - Only images, no writing at all.
+//            - Style: colorful, simple characters, comic style, 4 separated panels in one image.
+//            Avoid: text, captions, subtitles, speech bubbles, letters, numbers, words.
+//            """ + summary;
+//
+//        Map<String, Object> body = Map.of(
+//                "instances", List.of(Map.of("prompt", prompt)),
+//                "parameters", Map.of("sampleCount", 1) // 여기서 1개만 생성
+//        );
+//
+//        try {
+//            ResponseEntity<String> resp = restTemplate.exchange(
+//                    url, HttpMethod.POST,
+//                    new HttpEntity<>(body, headers),
+//                    String.class
+//            );
+//
+//            JsonNode root = objectMapper.readTree(resp.getBody());
+//            JsonNode prediction = root.path("predictions").get(0);
+//
+//            if (prediction != null && prediction.has("bytesBase64Encoded")) {
+//                String base64 = prediction.get("bytesBase64Encoded").asText();
+//                byte[] bytes = Base64.getDecoder().decode(base64);
+//                String mimeType = "image/png"; // Imagen 기본은 PNG
+//                return new ImageResult(bytes, mimeType);
+//            }
+//
+//            throw new RuntimeException("Imagen 응답에 이미지 데이터가 없음: " + resp.getBody());
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException("Imagen 이미지 생성 실패", e);
+//        }
+//    }
 
 
     /**
