@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -20,6 +20,14 @@ public class Podcast {
     private Long id;
 
     private String audio;
-    private LocalDateTime date;
+    private LocalDate date;
     private String keyword;
+
+    public static Podcast of(String audio, LocalDate date, String keyword) {
+        return Podcast.builder()
+                .audio(audio)
+                .date(date)
+                .keyword(keyword)
+                .build();
+    }
 }

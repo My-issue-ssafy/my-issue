@@ -25,4 +25,11 @@ public class PodcastNews {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "news_id")
     private News news;
+
+    public static PodcastNews of(Podcast podcast, News news) {
+        return PodcastNews.builder()
+                .podcast(podcast)
+                .news(news)
+                .build();
+    }
 }
