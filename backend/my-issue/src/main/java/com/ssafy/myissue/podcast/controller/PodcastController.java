@@ -1,13 +1,15 @@
 package com.ssafy.myissue.podcast.controller;
 
+import com.ssafy.myissue.podcast.dto.PodcastResponse;
 import com.ssafy.myissue.podcast.service.PodcastService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @Slf4j
 @RestController
@@ -26,5 +28,10 @@ public class PodcastController {
             log.error("팟캐스트 생성 실패", e);
             return ResponseEntity.internalServerError().body("❌ 팟캐스트 생성 실패: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/podcast")
+    public ResponseEntity<PodcastResponse> getPodcast(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
     }
 }

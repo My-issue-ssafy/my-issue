@@ -1,12 +1,16 @@
 package com.ssafy.myissue.podcast.service.Impl;
 
+import com.ssafy.myissue.common.exception.CustomException;
+import com.ssafy.myissue.common.exception.ErrorCode;
 import com.ssafy.myissue.common.util.AudioUtils;
 import com.ssafy.myissue.news.domain.News;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import com.ssafy.myissue.podcast.domain.Podcast;
 import com.ssafy.myissue.podcast.domain.PodcastNews;
 import com.ssafy.myissue.podcast.domain.PodcastSubtitle;
+import com.ssafy.myissue.podcast.dto.PodcastResponse;
 import com.ssafy.myissue.podcast.dto.PodcastResult;
+import com.ssafy.myissue.podcast.dto.Subtitles;
 import com.ssafy.myissue.podcast.infrastructure.PodcastNewsRepository;
 import com.ssafy.myissue.podcast.infrastructure.PodcastRepository;
 import com.ssafy.myissue.podcast.infrastructure.PodcastSubtitleRepository;
@@ -38,6 +42,24 @@ public class PodcastServiceImpl implements PodcastService {
     private final GptService gptService;
     private final TtsService ttsService;
     private final S3Service s3Service;
+
+    @Override
+    public PodcastResponse getPodcast(LocalDate date) {
+        if(date.isAfter(LocalDate.now())) throw new CustomException(ErrorCode.PODCAST_DATE_INVALID);
+
+        Podcast podcast = podcastRepository.findByDate(date);
+        if(podcast != null) throw new CustomException(ErrorCode.PODCAST_NOT_FOUND);
+
+        List<PodcastSubtitle> podcastSubtitles = podcastSubtitleRepository.findByPodcast_Id(podcast.getId());
+        List<Subtitles> subtitles = podcastSubtitles.stream()
+                        .map(sub -> new Subtitles(
+                                sub.getSpeaker(),
+                                sub.getLine(),
+                                sub.getStartTime()
+                        )).toList();
+
+        return PodcastResponse.of(podcast.getId(), )
+    }
 
     @Transactional
     @Override

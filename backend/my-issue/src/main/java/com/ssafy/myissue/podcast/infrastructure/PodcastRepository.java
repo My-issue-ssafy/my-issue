@@ -4,5 +4,5 @@ import com.ssafy.myissue.podcast.domain.Podcast;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PodcastRepository extends JpaRepository<Podcast, Long> {
-
+    Podcast findByDate(java.time.LocalDate date);
 }

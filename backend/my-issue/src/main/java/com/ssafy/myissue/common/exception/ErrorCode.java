@@ -28,6 +28,9 @@ public enum ErrorCode {
     // Notification
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "해당 알림을 찾을 수 없습니다."),
     UNAUTHORIZED_NOTIFICATION(HttpStatus.FORBIDDEN, "UNAUTHORIZED_NOTIFICATION", "해당 알림에 접근할 권한이 없습니다."),
+    // Podcast
+    PODCAST_DATE_INVALID(HttpStatus.BAD_REQUEST, "PODCAST_DATE_INVALID", "오늘 날짜 이후의 팟캐스트는 조회할 수 없습니다."),
+    PODCAST_NOT_FOUND(HttpStatus.NOT_FOUND, "PODCAST_NOT_FOUND", "해당 날짜의 팟캐스트를 찾을 수 없습니다."),
 
     /* -------- 진현 ----------*/
 
