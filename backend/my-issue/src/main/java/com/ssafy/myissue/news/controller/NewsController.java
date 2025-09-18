@@ -79,9 +79,9 @@ public class NewsController {
 
     /** 내가 저장한 뉴스 (lastId = scrapId) */
     @GetMapping("/bookmarks")
-    public ResponseEntity<CursorPage<NewsCardResponse>> myBookmarks(@AuthenticationPrincipal Long userId, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size, @RequestParam(value = "lastId", required = false) Long lastId) {
+    public ResponseEntity<CursorPage<NewsCardResponse>> myBookmarks(@AuthenticationPrincipal Long userId, @RequestParam(value = "cursor", required = false) String cursor) {
         if (userId == null) throw new CustomException(ErrorCode.UNAUTHORIZED_ACCESS);
-        return ResponseEntity.ok(scrapService.list(userId, safeSize(size, 20, 50), lastId));
+        return ResponseEntity.ok(scrapService.list(userId, cursor));
     }
 
     @PostMapping("/hot/update")
