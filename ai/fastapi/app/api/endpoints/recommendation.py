@@ -71,14 +71,33 @@ async def get_user_recommendations(
         )
         
         if result['total_recommendations'] == 0:
-            raise HTTPException(
-                status_code=404,
-                detail=f"사용자 {user_id}에 대한 추천을 생성할 수 없습니다. 모델에 해당 사용자 데이터가 없을 수 있습니다."
-            )
+            logger.info(f"사용자 {user_id}에 대한 추천 결과가 0개입니다 - 빈 응답 반환")
+            # 모델 상태 확인
+            cf_status = "로드됨" if recommendation_service.cf_model_data else "미로드"
+            cbf_status = "로드됨" if recommendation_service.cbf_model_data else "미로드"
+            logger.info(f"모델 상태 - CF: {cf_status}, CBF: {cbf_status}")
+
+            # 404 대신 빈 결과로 정상 응답 반환 (개별 엔드포인트와 일관성 유지)
+            return RecommendationResponse(**result)
         
         return RecommendationResponse(**result)
         
     except Exception as e:
+        logger.error(f"하이브리드 추천 API 오류 - user_id: {user_id}, cf_count: {cf_count}, cbf_count: {cbf_count}, strategy: {strategy}")
+        logger.error(f"오류 상세: {type(e).__name__}: {str(e)}")
+        logger.error(f"모델 상태 - CF: {'로드됨' if recommendation_service.cf_model_data else '미로드'}, CBF: {'로드됨' if recommendation_service.cbf_model_data else '미로드'}")
+
+        # 모델 로드 시도
+        try:
+            if not recommendation_service.cf_model_data:
+                logger.info("CF 모델 재로드 시도...")
+                recommendation_service.load_cf_model()
+            if not recommendation_service.cbf_model_data:
+                logger.info("CBF 모델 재로드 시도...")
+                recommendation_service.load_cbf_model()
+        except Exception as load_error:
+            logger.error(f"모델 재로드 실패: {load_error}")
+
         raise HTTPException(
             status_code=500,
             detail=f"추천 생성 중 오류가 발생했습니다: {str(e)}"

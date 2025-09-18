@@ -2,6 +2,7 @@ from enum import Enum
 from TTS.api import TTS
 import os
 from typing import Optional, List
+from loguru import logger
 
 
 class TTSModelName(str, Enum):
@@ -17,7 +18,7 @@ class TTSManager:
     def load_model(self, model_name: TTSModelName) -> TTS:
         """Load TTS model if not already loaded"""
         if model_name not in self.models:
-            print(f"Loading model: {model_name}")
+            logger.info(f"Loading model: {model_name}")
             self.models[model_name] = TTS(model_name=model_name.value)
 
         return self.models[model_name]

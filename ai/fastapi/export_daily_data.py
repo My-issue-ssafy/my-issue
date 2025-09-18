@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 from google.cloud import bigquery
 from google.cloud.bigquery import ScalarQueryParameter, QueryJobConfig
+from loguru import logger
 
 from app.bq import get_client, fetch_events
 from app.config import PROJECT_ID, DEFAULT_DATASET
@@ -94,30 +95,30 @@ def export_daily_events_to_csv(target_date: str, output_dir: str = "data"):
     ORDER BY ts
     """
     
-    print(f"[INFO] {target_date} 날짜 데이터 추출 시작...")
+    logger.info(f"{target_date} 날짜 데이터 추출 시작...")
     
     try:
         # 1. 기존 fetch_events 함수 활용해서 데이터 추출 (해당 날짜만)
-        print("[INFO] 이벤트 데이터 추출 중...")
+        logger.info("이벤트 데이터 추출 중...")
         raw_df = fetch_events(client, DEFAULT_DATASET, target_date, target_date)
         raw_csv_path = output_path / f"events_{target_date}.csv"
         raw_df.to_csv(raw_csv_path, index=False, encoding='utf-8-sig')
-        print(f"[OK] 이벤트 데이터 저장: {raw_csv_path} ({len(raw_df)}행)")
+        logger.success(f"이벤트 데이터 저장: {raw_csv_path} ({len(raw_df)}행)")
         
         # 2. 데이터 통계 출력
-        print(f"\n=== {target_date} 데이터 요약 ===")
-        print(f"총 이벤트 수: {len(raw_df):,}")
+        logger.info(f"\n=== {target_date} 데이터 요약 ===")
+        logger.info(f"총 이벤트 수: {len(raw_df):,}")
         if not raw_df.empty:
-            print(f"유니크 사용자 수: {raw_df['user_id'].nunique():,}")
-            print(f"유니크 뉴스 수: {raw_df['news_id'].nunique():,}")
-            print(f"이벤트별 분포:")
+            logger.info(f"유니크 사용자 수: {raw_df['user_id'].nunique():,}")
+            logger.info(f"유니크 뉴스 수: {raw_df['news_id'].nunique():,}")
+            logger.info(f"이벤트별 분포:")
             for event, count in raw_df['event_name'].value_counts().head(10).items():
-                print(f"  - {event}: {count:,}")
+                logger.info(f"  - {event}: {count:,}")
         
         return raw_df
         
     except Exception as e:
-        print(f"[ERROR] 데이터 추출 실패: {e}")
+        logger.error(f"데이터 추출 실패: {e}")
         return None
 
 def export_recent_days(days: int = 7, output_dir: str = "data"):
@@ -135,14 +136,14 @@ def export_recent_days(days: int = 7, output_dir: str = "data"):
         target_date = today - timedelta(days=i)
         date_str = target_date.strftime("%Y%m%d")
         
-        print(f"\n{'='*50}")
-        print(f"날짜: {date_str}")
-        print('='*50)
+        logger.info(f"\n{'='*50}")
+        logger.info(f"날짜: {date_str}")
+        logger.info('='*50)
         
         raw_df, scored_df = export_daily_events_to_csv(date_str, output_dir)
         
         if raw_df is None:
-            print(f"[SKIP] {date_str} 데이터 없음 또는 추출 실패")
+            logger.warning(f"{date_str} 데이터 없음 또는 추출 실패")
             continue
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ import pandas as pd
 from pathlib import Path
 import psutil
 import os
+from loguru import logger
 
 def measure_memory():
     """현재 프로세스의 메모리 사용량 (MB)"""
@@ -24,14 +25,14 @@ def test_model_loading():
     MODEL_PATH = Path("models/als_model.pkl")
     
     if not MODEL_PATH.exists():
-        print("모델 파일이 없습니다. 먼저 모델을 학습하세요.")
+        logger.error("모델 파일이 없습니다. 먼저 모델을 학습하세요.")
         return None
     
-    print("=== 모델 로딩 성능 테스트 ===")
+    logger.info("=== 모델 로딩 성능 테스트 ===")
     
     # 메모리 사용량 (로딩 전)
     memory_before = measure_memory()
-    print(f"로딩 전 메모리 사용량: {memory_before:.1f} MB")
+    logger.info(f"로딩 전 메모리 사용량: {memory_before:.1f} MB")
     
     # 모델 로딩 시간 측정
     start_time = time.time()
@@ -45,15 +46,15 @@ def test_model_loading():
     memory_after = measure_memory()
     memory_used = memory_after - memory_before
     
-    print(f"모델 로딩 시간: {loading_time:.3f}초")
-    print(f"로딩 후 메모리 사용량: {memory_after:.1f} MB")
-    print(f"모델이 사용하는 메모리: {memory_used:.1f} MB")
+    logger.info(f"모델 로딩 시간: {loading_time:.3f}초")
+    logger.info(f"로딩 후 메모리 사용량: {memory_after:.1f} MB")
+    logger.info(f"모델이 사용하는 메모리: {memory_used:.1f} MB")
     
     return model_data
 
 def test_recommendation_speed(model_data, num_tests=10):
     """추천 생성 시간 측정"""
-    print(f"\n=== 추천 생성 성능 테스트 (총 {num_tests}회) ===")
+    logger.info(f"=== 추천 생성 성능 테스트 (총 {num_tests}회) ===")
     
     model = model_data['model']
     user_categories = model_data['user_categories']
@@ -64,10 +65,10 @@ def test_recommendation_speed(model_data, num_tests=10):
     actual_user_embeddings = model.item_factors     # (50000, 64)
     actual_item_embeddings = model.user_factors     # (200000, 64)
     
-    print(f"사용자 수: {len(user_categories)}")
-    print(f"아이템 수: {len(item_categories)}")
-    print(f"사용자 임베딩 크기: {actual_user_embeddings.shape}")
-    print(f"아이템 임베딩 크기: {actual_item_embeddings.shape}")
+    logger.info(f"사용자 수: {len(user_categories)}")
+    logger.info(f"아이템 수: {len(item_categories)}")
+    logger.info(f"사용자 임베딩 크기: {actual_user_embeddings.shape}")
+    logger.info(f"아이템 임베딩 크기: {actual_item_embeddings.shape}")
     
     # 랜덤 사용자들로 테스트
     test_user_indices = np.random.choice(len(user_categories), num_tests, replace=False)
@@ -101,34 +102,34 @@ def test_recommendation_speed(model_data, num_tests=10):
             
             if i < 3:  # 처음 3개만 상세 출력
                 user_id = user_categories[user_idx]
-                print(f"\n[테스트 {i+1}] 사용자 {user_id}:")
-                print(f"  추천 생성 시간: {rec_time*1000:.2f}ms")
-                print(f"  상호작용 아이템 수: {len(interacted_items)}")
-                print(f"  추천 아이템: {[item_categories[idx] for idx in top_indices[:3]]}")
-                print(f"  점수: {top_scores[:3]}")
+                logger.info(f"[테스트 {i+1}] 사용자 {user_id}:")
+                logger.info(f"  추천 생성 시간: {rec_time*1000:.2f}ms")
+                logger.info(f"  상호작용 아이템 수: {len(interacted_items)}")
+                logger.info(f"  추천 아이템: {[item_categories[idx] for idx in top_indices[:3]]}")
+                logger.info(f"  점수: {top_scores[:3]}")
         
         except Exception as e:
-            print(f"사용자 {user_idx} 추천 실패: {e}")
+            logger.error(f"사용자 {user_idx} 추천 실패: {e}")
     
     if recommendation_times:
         avg_time = np.mean(recommendation_times)
         min_time = np.min(recommendation_times)
         max_time = np.max(recommendation_times)
         
-        print(f"\n=== 추천 성능 요약 ===")
-        print(f"평균 추천 시간: {avg_time*1000:.2f}ms")
-        print(f"최소 추천 시간: {min_time*1000:.2f}ms")
-        print(f"최대 추천 시간: {max_time*1000:.2f}ms")
-        print(f"초당 처리 가능 사용자: {1/avg_time:.1f}명")
+        logger.info("=== 추천 성능 요약 ===")
+        logger.info(f"평균 추천 시간: {avg_time*1000:.2f}ms")
+        logger.info(f"최소 추천 시간: {min_time*1000:.2f}ms")
+        logger.info(f"최대 추천 시간: {max_time*1000:.2f}ms")
+        logger.info(f"초당 처리 가능 사용자: {1/avg_time:.1f}명")
         
         return avg_time
     else:
-        print("모든 추천이 실패했습니다.")
+        logger.error("모든 추천이 실패했습니다.")
         return None
 
 def main():
     """메인 테스트 실행"""
-    print("추천 시스템 성능 측정 시작...")
+    logger.info("추천 시스템 성능 측정 시작...")
     
     # 1. 모델 로딩 테스트
     model_data = test_model_loading()
@@ -139,14 +140,14 @@ def main():
     avg_time = test_recommendation_speed(model_data, num_tests=20)
     
     if avg_time:
-        print(f"\n=== 최종 결론 ===")
-        print(f"FastAPI에서 예상 응답 시간: {avg_time*1000:.2f}ms + 네트워크 지연")
+        logger.info("=== 최종 결론 ===")
+        logger.info(f"FastAPI에서 예상 응답 시간: {avg_time*1000:.2f}ms + 네트워크 지연")
         if avg_time < 0.1:  # 100ms 미만
-            print("✅ 실시간 서비스에 적합한 성능")
+            logger.info("실시간 서비스에 적합한 성능")
         elif avg_time < 0.5:  # 500ms 미만
-            print("⚠️  양호한 성능, 캐싱 고려")
+            logger.warning("양호한 성능, 캐싱 고려")
         else:
-            print("❌ 성능 최적화 필요")
+            logger.error("성능 최적화 필요")
 
 if __name__ == "__main__":
     main()

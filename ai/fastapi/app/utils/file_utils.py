@@ -2,6 +2,7 @@ import os
 import uuid
 from pathlib import Path
 from typing import Optional
+from loguru import logger
 
 
 def ensure_directory_exists(directory: str) -> None:
@@ -41,7 +42,7 @@ def cleanup_old_files(directory: str, max_age_hours: int = 24) -> None:
             if file_age > max_age_seconds:
                 try:
                     os.remove(file_path)
-                    print(f"Removed old file: {file_path}")
+                    logger.info(f"Removed old file: {file_path}")
                 except OSError:
                     pass
 
