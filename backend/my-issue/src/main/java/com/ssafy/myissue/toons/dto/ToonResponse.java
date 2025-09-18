@@ -3,6 +3,8 @@ package com.ssafy.myissue.toons.dto;
 import com.ssafy.myissue.toons.domain.Toons;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -15,6 +17,7 @@ public class ToonResponse {
     private String toonImage;
     private String summary;
     private String title;
+    private LocalDate date;
 
     public static ToonResponse from(Toons toon) {
         return ToonResponse.builder()
@@ -23,6 +26,7 @@ public class ToonResponse {
                 .toonImage(toon.getToonImage())
                 .summary(toon.getSummary())
                 .title(toon.getTitle())
+                .date(toon.getDate())
                 .build();
     }
 }

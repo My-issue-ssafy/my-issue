@@ -2,6 +2,7 @@ package com.ssafy.myissue.toons.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -18,7 +19,7 @@ public class Toons {
     @Column(nullable = false)
     private Long newsId;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String toonImage;
 
     @Column(columnDefinition = "text")
@@ -26,4 +27,7 @@ public class Toons {
 
     @Column(nullable = false)
     private String title;
+
+    @Column(nullable = false)
+    private LocalDate date;
 }
