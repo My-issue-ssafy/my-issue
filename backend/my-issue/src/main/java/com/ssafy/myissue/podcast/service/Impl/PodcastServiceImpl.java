@@ -8,6 +8,7 @@ import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import com.ssafy.myissue.podcast.domain.Podcast;
 import com.ssafy.myissue.podcast.domain.PodcastNews;
 import com.ssafy.myissue.podcast.domain.PodcastSubtitle;
+import com.ssafy.myissue.podcast.dto.PodcastDetailNewsList;
 import com.ssafy.myissue.podcast.dto.PodcastResponse;
 import com.ssafy.myissue.podcast.dto.PodcastResult;
 import com.ssafy.myissue.podcast.dto.Subtitles;
@@ -66,7 +67,26 @@ public class PodcastServiceImpl implements PodcastService {
 
         PodcastNews podcastNews = podcastNewsRepository.findFirstByPodcast_Id(podcast.getId());
 
-        return PodcastResponse.of(podcast.getId(), podcastNews.getNews().getThumbnail(), podcast.getAudio(), subtitles);
+        return PodcastResponse.of(podcast.getId(), podcastNews.getNews().getThumbnail(), podcast.getAudio(), podcast.getKeyword(), subtitles);
+    }
+
+    @Override
+    public List<PodcastDetailNewsList> getPodcastNews(Long podcastId) {
+        List<PodcastNews> podcastNews = podcastNewsRepository.findByPodcast_Id(podcastId);
+
+        if(podcastNews.isEmpty()) {
+            log.debug("[podcast] podcast에 해당하는 뉴스가 비어있습니다. {}", podcastId);
+            throw new CustomException(ErrorCode.PODCAST_NOT_FOUND);
+        }
+
+        List<PodcastDetailNewsList> newsList = podcastNews.stream()
+                        .map( podnews -> PodcastDetailNewsList.of(
+                                podnews.getNews().getId(),
+                                podnews.getNews().getThumbnail(),
+                                podnews.getNews().getTitle()
+                        )).toList();
+
+        return newsList;
     }
 
     @Transactional
@@ -110,7 +130,7 @@ public class PodcastServiceImpl implements PodcastService {
             List<String> line = scripts.get(i);
             String speaker = line.get(0);
             String text = line.get(1);
-            double startTime = accumulatedTimes[i];
+            double startTime = Math.round(accumulatedTimes[i] * 100.0) / 100.0;
 
             podcastSubtitleRepository.save(PodcastSubtitle.of(podcast, Integer.parseInt(speaker), text, startTime));
         }

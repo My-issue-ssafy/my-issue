@@ -1,5 +1,6 @@
 package com.ssafy.myissue.podcast.controller;
 
+import com.ssafy.myissue.podcast.dto.PodcastDetailNewsList;
 import com.ssafy.myissue.podcast.dto.PodcastResponse;
 import com.ssafy.myissue.podcast.service.PodcastService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -30,8 +32,15 @@ public class PodcastController {
         }
     }
 
-    @GetMapping("/podcast")
+    @GetMapping()
     public ResponseEntity<PodcastResponse> getPodcast(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        log.debug("[podcast 조회] date: {}", date);
         return ResponseEntity.ok(podcastService.getPodcast(date));
+    }
+
+    @GetMapping("/{podcastId}/news")
+    public ResponseEntity<List<PodcastDetailNewsList>> getPodcastNews(@PathVariable Long podcastId) {
+        log.debug("[podcast news 조회] podcastId: {}", podcastId);
+        return ResponseEntity.ok(podcastService.getPodcastNews(podcastId));
     }
 }

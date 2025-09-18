@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface PodcastNewsRepository extends JpaRepository<PodcastNews, Long> {
     PodcastNews findFirstByPodcast_Id(Long podcastId);
+    List<PodcastNews> findByPodcast_Id(Long podcastId);
 }
