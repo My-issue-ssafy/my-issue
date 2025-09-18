@@ -20,6 +20,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -27,6 +28,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,6 +64,10 @@ fun MyPageScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    LaunchedEffect(Unit) {
+        viewModel.initData()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -72,25 +78,44 @@ fun MyPageScreen(
             modifier = Modifier.padding(top = 8.dp),
             onAllClick = if (state.newsSummaries.isNotEmpty()) ({ viewModel.navigateToAllScraps() }) else null
         )
-        ScrappedNewsPager(
-            items = state.newsSummaries,
-            navigateToCartoonNews = viewModel::navigateToNews,
-            openNewsDetail = viewModel::openNewsDetail
-        )
+        if(state.isLoadingScrapNews) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .align(Alignment.CenterHorizontally),
+                color = AppColors.Primary600,
+                strokeWidth = 2.dp
+            )
+        }
+        else {
+            ScrappedNewsPager(
+                items = state.newsSummaries,
+                navigateToCartoonNews = viewModel::navigateToNews,
+                openNewsDetail = viewModel::openNewsDetail
+            )
+        }
         Spacer(Modifier.height(12.dp))
         NewsSectionHeader(
             title = "내가 좋아한 네컷뉴스",
             modifier = Modifier.padding(top = 8.dp),
             onAllClick = if (state.myToons.isNotEmpty()) ({ viewModel.navigateToAllToons() }) else null
-
-
         )
-        ScrappedCartoonNewsPager(
-            items = state.myToons,
-            modifier = Modifier.weight(1f),
-            navigateToNews = viewModel::navigateToCartoonNews
-        )
-
+        if(state.isLoadingLikeToons) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .align(Alignment.CenterHorizontally),
+                color = AppColors.Primary600,
+                strokeWidth = 2.dp
+            )
+        }
+        else {
+            ScrappedCartoonNewsPager(
+                items = state.myToons,
+                modifier = Modifier.weight(1f),
+                navigateToNews = viewModel::navigateToCartoonNews
+            )
+        }
 //        SwitchWithTitle("알림 설정", true, {})
     }
 

@@ -2,17 +2,14 @@ package com.ioi.myssue.ui.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ioi.myssue.domain.model.CartoonNews
-import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.repository.CartoonRepository
 import com.ioi.myssue.domain.repository.NewsRepository
 import com.ioi.myssue.navigation.BottomTabRoute
 import com.ioi.myssue.navigation.Navigator
+import com.ioi.myssue.ui.mypage.myscrap.MyScrapUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
-import kotlinx.coroutines.flow.onSubscription
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,36 +22,39 @@ class MyPageViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var _state = MutableStateFlow(MyPageUiState())
-    val state = _state.onSubscription {
-        initData()
-    }.stateIn(
-        scope = viewModelScope,
-        started = WhileSubscribed(5_000),
-        initialValue = MyPageUiState()
-    )
+    val state = _state.asStateFlow()
 
-    private fun initData() {
+    fun initData() {
         loadMyScraps()
         loadMyToons()
     }
 
     private fun loadMyScraps() = viewModelScope.launch {
-        runCatching { newsRepository.getBookmarkedNews(lastId = null, size = 15) }
+        _state.update { it.copy(isLoadingScrapNews = true) }
+        runCatching { newsRepository.getBookmarkedNews(cursor = null, size = 15) }
             .onSuccess { cursorPage ->
                 _state.update {
                     it.copy(
                         newsSummaries = cursorPage.items,
+                        isLoadingScrapNews = false
                     )
                 }
+            }
+            .onFailure {
+                _state.update { it.copy(isLoadingScrapNews = false) }
             }
     }
 
     private fun loadMyToons() = viewModelScope.launch {
+        _state.update { it.copy(isLoadingLikeToons = true) }
         runCatching { cartoonRepository.getLikedCartoons(0L, 20) }
             .onSuccess { cartoonNews ->
                 _state.update {
-                    it.copy(myToons = cartoonNews)
+                    it.copy(myToons = cartoonNews, isLoadingLikeToons = false)
                 }
+            }
+            .onFailure {
+                _state.update { it.copy(isLoadingLikeToons = false) }
             }
     }
 
@@ -86,10 +86,3 @@ class MyPageViewModel @Inject constructor(
         }
     }
 }
-
-data class MyPageUiState(
-    val isNotificationEnabled: Boolean = true,
-    val newsSummaries: List<NewsSummary> = emptyList(),
-    val myToons: List<CartoonNews> = emptyList(),
-    val selectedNewsId: Long? = null,
-)

@@ -1,5 +1,6 @@
 package com.ioi.myssue.data.dto.response
 
+import android.R.attr.author
 import com.ioi.myssue.common.util.TimeConverter
 import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.model.NewsSummary
@@ -10,7 +11,6 @@ import kotlinx.serialization.Serializable
 data class NewsCardResponse(
     val newsId: Long,
     val title: String,
-    val author: String? = null,
     val newspaper: String? = null,
     val createdAt: String? = null,
     val views: Int,
@@ -37,7 +37,7 @@ data class NewsMainResponse(
 fun NewsCardResponse.toDomain(time: TimeConverter) = NewsSummary(
     newsId = newsId,
     title = title,
-    author = author ?: "-",
+    author = "-",
     newspaper = newspaper ?: "-",
     createdAt = createdAt ?: "-",
     views = views,

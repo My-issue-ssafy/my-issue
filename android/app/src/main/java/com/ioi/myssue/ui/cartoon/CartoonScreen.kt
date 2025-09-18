@@ -45,12 +45,15 @@ fun CartoonScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analytics = LocalAnalytics.current
 
+    LaunchedEffect(Unit) {
+        viewModel.loadCartoon()
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             viewModel.onExitFinished()
         }
     }
-
 
     Box(
         modifier = Modifier.fillMaxSize(),

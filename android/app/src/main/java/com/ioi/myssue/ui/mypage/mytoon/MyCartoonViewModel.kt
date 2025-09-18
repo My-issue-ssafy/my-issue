@@ -48,8 +48,3 @@ class MyCartoonViewModel @Inject constructor(
         }
     }
 }
-
-data class MyCartoonUiState(
-    val myToons: List<CartoonNews> = emptyList(),
-    val clickedToon: CartoonNews? = null,
-)

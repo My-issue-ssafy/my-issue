@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.podcast.component.bottomsheetplayer
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,12 +26,15 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.ui.common.clickableNoRipple
+import com.ioi.myssue.ui.podcast.PodcastContentType
 
 @Composable
 fun BottomPlayerHeader(
     thumbnailUrl: String,
     title: String,
     dateText: String,
+    contentType: PodcastContentType,
     toggleContentType: () -> Unit
 ) {
     Row(
@@ -68,16 +72,15 @@ fun BottomPlayerHeader(
             )
         }
 
-        IconButton(
-            onClick = toggleContentType,
-            modifier = Modifier.size(64.dp)
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_podcast_list),
-                contentDescription = null,
-                tint = BackgroundColors.Background50,
-                modifier = Modifier.size(48.dp)
-            )
-        }
+        Image(
+            painterResource(
+                if (contentType == PodcastContentType.NEWS) R.drawable.ic_podcast_list_pressed
+                else R.drawable.ic_podcast_list
+            ),
+            contentDescription = null,
+            modifier = Modifier
+                .size(64.dp)
+                .clickableNoRipple(toggleContentType)
+        )
     }
 }

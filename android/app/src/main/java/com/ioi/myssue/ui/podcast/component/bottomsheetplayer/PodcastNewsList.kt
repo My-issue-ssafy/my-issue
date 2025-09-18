@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,16 +27,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.podcast.KeyWordList
 
 @Composable
 fun PodcastNewsList(
-    news: List<String>,
+    news: List<NewsSummary>,
     modifier: Modifier = Modifier
 ) {
     Text(
@@ -53,23 +56,18 @@ fun PodcastNewsList(
 }
 
 @Composable
-private fun NewsSummaryList(news: List<String>) {
+private fun NewsSummaryList(news: List<NewsSummary>) {
     val listState = rememberLazyListState()
     LazyColumn(
         state = listState,
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .nestedScroll(rememberNestedScrollInteropConnection()),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(news) {
+        items(news) { item ->
             NewsSummary(
-                newsSummary = NewsSummary(
-                    0L,
-                "https://imgnews.pstatic.net/image/277/2025/09/12/0005651015_001_20250912132818390.jpg?type=w860",
-                "IT",
-                "삼성전자, 3분기 잠정실적 발표...영업이익 15.8조원"
-                ),
+                newsSummary = item,
                 fontColor = BackgroundColors.Background50
             )
         }
@@ -90,12 +88,16 @@ fun NewsSummary(
         Card(
             shape = RoundedCornerShape(4.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            modifier = Modifier.size(68.dp).aspectRatio(1f)
+            modifier = Modifier.size(68.dp).aspectRatio(1f),
+            colors = CardDefaults.cardColors(
+                containerColor = BackgroundColors.Background50
+            )
         ) {
             AsyncImage(
                 model = newsSummary.thumbnail,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.ic_empty_thumbnail),
             )
         }
 

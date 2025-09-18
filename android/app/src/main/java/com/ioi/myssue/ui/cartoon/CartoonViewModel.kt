@@ -22,11 +22,7 @@ class CartoonViewModel @Inject constructor(
     private var _state = MutableStateFlow(CartoonUiState())
     val state = _state.asStateFlow()
 
-    init {
-        loadCartoon()
-    }
-
-    private fun loadCartoon() = viewModelScope.launch {
+    fun loadCartoon() = viewModelScope.launch {
         _state.update {
             it.copy(isLoading = true, error = null)
         }

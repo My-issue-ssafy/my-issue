@@ -31,6 +31,10 @@ fun SearchScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    LaunchedEffect(Unit) {
+        viewModel.refresh()
+    }
+
     // 바닥에서 스크롤 시 다음 뉴스 로딩
     val loadMore by remember(uiState.newsItems.size, uiState.hasNext) {
         derivedStateOf {

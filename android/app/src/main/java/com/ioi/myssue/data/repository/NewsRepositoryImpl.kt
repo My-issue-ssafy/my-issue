@@ -74,7 +74,7 @@ class NewsRepositoryImpl @Inject constructor(
     override suspend fun bookMarkNews(newsId: Long) = newsApi.bookMarkNews(newsId).scrapped
 
     override suspend fun getBookmarkedNews(
-        size: Int?,
-        lastId: Long?
-    ) = newsApi.getBookMarkedNews(size, lastId).toDomain(time)
+        cursor: String?,
+        size: Int,
+    ) = newsApi.getBookMarkedNews(size, cursor).toDomain(time)
 }

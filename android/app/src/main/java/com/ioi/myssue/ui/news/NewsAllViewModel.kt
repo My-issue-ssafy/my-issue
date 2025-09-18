@@ -34,6 +34,8 @@ class NewsAllViewModel @Inject constructor(
         cursor: String?,
         call: suspend () -> CursorPage<NewsSummary>
     ) = viewModelScope.launch {
+        if(!_state.value.hasNext) return@launch
+
         val firstPage = cursor == null && _state.value.items.isEmpty()
         if (firstPage) _state.value = _state.value.copy(isInitialLoading = true)
 

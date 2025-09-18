@@ -89,11 +89,9 @@ fun MainScreen(
                 rememberSavedStateNavEntryDecorator(),
             ),
             backStack = navBackStack,
-            // 🔹 루트가 아닐 때의 Back은 NavDisplay에게 맡김 → 탭 내부 팝
             onBack = { navBackStack.removeLastOrNull() },
-            // 🔹 탭 전환(noAnim) vs 내부 이동(slideAnim)
-            transitionSpec = { if (isTabSwitch) noAnim() else slideAnim() },
-            popTransitionSpec = { if (isTabSwitch) noAnim() else slideAnim() },
+            transitionSpec = { if (isTabSwitch) noAnim() else slideLeft() },
+            popTransitionSpec = { if (isTabSwitch) noAnim() else slideRight() },
             modifier = Modifier.padding(innerPadding),
             entryProvider = { key ->
                 when (key) {
@@ -112,14 +110,19 @@ fun MainScreen(
     }
 }
 
-private fun AnimatedContentTransitionScope<*>.slideAnim(): ContentTransform =
-    slideIntoContainer(
-        AnimatedContentTransitionScope.SlideDirection.Left,
-        animationSpec = tween(400)
-    ) togetherWith slideOutOfContainer(
-        AnimatedContentTransitionScope.SlideDirection.Left,
-        animationSpec = tween(400)
-    )
+private fun AnimatedContentTransitionScope<*>.slideAnim(
+    to: AnimatedContentTransitionScope.SlideDirection,
+    durationMillis: Int = 400
+): ContentTransform =
+    slideIntoContainer(to, animationSpec = tween(durationMillis)) togetherWith
+            slideOutOfContainer(to, animationSpec = tween(durationMillis))
+
+// 편의 헬퍼
+private fun AnimatedContentTransitionScope<*>.slideLeft(durationMillis: Int = 400) =
+    slideAnim(AnimatedContentTransitionScope.SlideDirection.Left, durationMillis)
+
+private fun AnimatedContentTransitionScope<*>.slideRight(durationMillis: Int = 400) =
+    slideAnim(AnimatedContentTransitionScope.SlideDirection.Right, durationMillis)
 
 private fun noAnim(): ContentTransform =
     fadeIn(animationSpec = tween(0)) togetherWith fadeOut(animationSpec = tween(0))

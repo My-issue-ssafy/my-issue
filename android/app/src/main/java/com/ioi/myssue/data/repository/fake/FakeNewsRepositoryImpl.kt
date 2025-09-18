@@ -8,13 +8,12 @@ import com.ioi.myssue.domain.model.NewsBlock
 import com.ioi.myssue.domain.model.NewsPage
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.repository.NewsRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
-import java.time.LocalDateTime
 
 @Singleton
 class FakeNewsRepositoryImpl @Inject constructor(
@@ -98,7 +97,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
             ?: blocks.firstOrNull { it is NewsBlock.Image }?.let { (it as NewsBlock.Image).url },
         content = blocks,
         displayTime = time.toDisplay(createdAtRaw),
-        scrapCount = scrapCount
+        scrapCount = scrapCount,
+        isScraped = false
     )
 
     private fun <T> pageOf(list: List<T>, cursor: String?, size: Int?): CursorPage<T> {
@@ -159,8 +159,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getBookmarkedNews(
-        size: Int?,
-        lastId: Long?
+        cursor: String?,
+        size: Int
     ): CursorPage<NewsSummary> {
         TODO("Not yet implemented")
     }

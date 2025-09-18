@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
+import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.podcast.PodcastContentType
 import com.ioi.myssue.ui.podcast.ScriptLine
 
@@ -74,7 +75,8 @@ fun PodcastBottomSheet(
                     thumbnailUrl = thumbnailUrl,
                     title = title,
                     dateText = dateText,
-                    toggleContentType = toggleContentType
+                    toggleContentType = toggleContentType,
+                    contentType = contentType
                 )
 
                 if (contentType == PodcastContentType.SCRIPT) {
@@ -85,7 +87,7 @@ fun PodcastBottomSheet(
                     )
                 } else if (contentType == PodcastContentType.NEWS) {
                     PodcastNewsList(
-                        news = listOf("", "", "", "", "", "", "", "", ""),
+                        news = listOf(NewsSummary()),
                         modifier = Modifier.weight(1f)
                     )
                 }
