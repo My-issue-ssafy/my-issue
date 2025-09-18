@@ -2,7 +2,6 @@ package com.ioi.myssue.ui.podcast.component.bottomsheetplayer
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,7 +17,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import com.google.common.collect.Multimaps.index
 import com.ioi.myssue.ui.common.clickableNoRipple
 import com.ioi.myssue.ui.podcast.ScriptLine
 import kotlinx.coroutines.delay
@@ -69,7 +67,6 @@ fun ColumnScope.ScriptBlockAnimated(
                 awaitPointerEventScope {
                     while (true) {
                         awaitPointerEvent()
-                        // ✅ 터치 이벤트 감지 → 수동 모드로
                         lastUserInteractionTime = System.currentTimeMillis()
                         isAutoScrollEnabled = false
                     }

@@ -39,6 +39,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -149,6 +150,7 @@ fun CartoonCardStack(
                 isExiting = isExiting,
                 exitDir = exitDir,
                 modifier = Modifier
+                    .padding(16.dp)
                     .zIndex(if (isExiting) 1f else -layerOrder.toFloat())
                     .swipeWithAnimation(
                         key = item.toonImageUrl,
@@ -175,11 +177,11 @@ fun CartoonCardStack(
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun CartoonCard(
+    modifier: Modifier = Modifier,
     cartoon: CartoonNews,
     isExiting: Boolean,
     exitDir: Int,
     isSmallMode: Boolean = false,
-    modifier: Modifier = Modifier,
     isFlippable: Boolean = true,
     onExitEnd: (() -> Unit)? = null,
     onClick: () -> Unit = {},
@@ -222,7 +224,6 @@ fun CartoonCard(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .padding(16.dp)
             .graphicsLayer {
                 if (isExiting) {
                     translationX = tx.value
@@ -245,14 +246,14 @@ fun CartoonCard(
     ) {
         Card(
             elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(containerColor = Background100),
+            colors = CardDefaults.cardColors(containerColor = Background50),
         ) {
             if (showFront) {
                 CartoonImage(
                     url = cartoon.toonImageUrl,
                     contentDesc = cartoon.newsTitle,
                     modifier = Modifier
-                        .padding(8.dp)
+                        .padding(4.dp)
                         .align(Alignment.CenterHorizontally)
                 )
             } else {
@@ -261,7 +262,7 @@ fun CartoonCard(
                         url = cartoon.toonImageUrl,
                         contentDesc = cartoon.newsTitle,
                         modifier = Modifier
-                            .padding(8.dp)
+                            .padding(4.dp)
                             .alpha(0.1f)
                             .graphicsLayer { rotationY = 180f }
                     )
@@ -338,7 +339,7 @@ fun ExpandedCartoonCard(
     ) {
         Card(
             elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(containerColor = Background100),
+            colors = CardDefaults.cardColors(containerColor = Background50),
         ) {
             if (showFront) {
                 CartoonImage(
@@ -386,9 +387,11 @@ private fun CartoonWithNewsSummary(
                 fontSize = 32.sp * scale,
                 lineHeight = 44.sp * scale,
             ),
-            maxLines = 3
+            maxLines = if(scale < 1f) 5 else 3,
+            overflow = TextOverflow.Ellipsis
         )
 
+        if(scale < 1f) return@Column
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -402,7 +405,8 @@ private fun CartoonWithNewsSummary(
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 20.sp * scale
                 ),
-                maxLines = 3
+                maxLines = 5,
+                overflow = TextOverflow.Ellipsis
             )
         }
 

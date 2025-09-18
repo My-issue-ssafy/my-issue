@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,13 +13,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,21 +31,32 @@ import com.ioi.myssue.R
 import com.ioi.myssue.domain.model.CartoonNews
 import com.ioi.myssue.ui.cartoon.CartoonCard
 import com.ioi.myssue.ui.cartoon.ExpandedCartoonCard
+import com.ioi.myssue.ui.news.NewsDetail
+import com.ioi.myssue.ui.news.NewsSectionHeader
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyCartoonScreen(
     viewModel: MyCartoonViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        TwoColumnGridWithLazyVerticalGrid(
-            items = state.myToons,
-            onClick = viewModel::setClickedToon
-        )
+        Column {
+            NewsSectionHeader(
+                title = "내가 좋아한 네컷뉴스",
+                modifier = Modifier.padding(top = 8.dp),
+            )
+
+            TwoColumnGridWithLazyVerticalGrid(
+                items = state.myToons,
+                onClick = viewModel::setClickedToon
+            )
+        }
 
         state.clickedToon?.let {
             BackHandler {
@@ -55,14 +71,18 @@ fun MyCartoonScreen(
                 isFlippable = false,
                 exitDir = 0,
                 modifier = Modifier,
-                onClick = {}
+                onClick = { viewModel.openNewsDetail(it.newsId) }
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = "item.newsTitle")
+                    Text(
+                        text = it.newsTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                     Image(
                         painter = painterResource(R.drawable.ic_heart),
                         contentDescription = null
@@ -73,6 +93,13 @@ fun MyCartoonScreen(
         }
     }
 
+    if (state.selectedNewsId != null) {
+        NewsDetail(
+            newsId = state.selectedNewsId,
+            sheetState = sheetState,
+            onDismiss = { viewModel.closeNewsDetail() }
+        )
+    }
 }
 
 @Composable
@@ -90,9 +117,9 @@ fun TwoColumnGridWithLazyVerticalGrid(
                 cartoon = item,
                 isExiting = false,
                 exitDir = 0,
-                modifier = Modifier,
                 isFlippable = false,
-                onClick = { onClick(item) }
+                onClick = { onClick(item) },
+                modifier = Modifier.padding(4.dp)
             )
         }
     }

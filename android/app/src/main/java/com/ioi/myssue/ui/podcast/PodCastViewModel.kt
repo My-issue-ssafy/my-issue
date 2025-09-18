@@ -80,8 +80,10 @@ class PodcastViewModel @Inject constructor(
     fun updateIndex(index: Int) = viewModelScope.launch {
         if(index < 0 || index >= _state.value.episode.scripts.size) return@launch
         if(_state.value.isLoading) return@launch
+
         _state.update { it.copy(currentIndex = index) }
         seekTo(_state.value.episode.scripts[index].startMs)
+        play()
     }
 
     fun openPlayer() {

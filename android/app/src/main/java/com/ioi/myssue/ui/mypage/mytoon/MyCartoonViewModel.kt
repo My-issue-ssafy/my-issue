@@ -17,7 +17,6 @@ import javax.inject.Inject
 @HiltViewModel
 class MyCartoonViewModel @Inject constructor(
     private val cartoonRepository: CartoonRepository,
-    private val navigator: Navigator
 ): ViewModel() {
 
     private var _state = MutableStateFlow(MyCartoonUiState())
@@ -45,6 +44,18 @@ class MyCartoonViewModel @Inject constructor(
     fun setClickedToon(toon: CartoonNews?) {
         _state.update {
             it.copy(clickedToon = toon)
+        }
+    }
+
+    fun openNewsDetail(newsId: Long) = viewModelScope.launch {
+        _state.update {
+            it.copy(selectedNewsId = newsId)
+        }
+    }
+
+    fun closeNewsDetail() = viewModelScope.launch {
+        _state.update {
+            it.copy(selectedNewsId = null)
         }
     }
 }

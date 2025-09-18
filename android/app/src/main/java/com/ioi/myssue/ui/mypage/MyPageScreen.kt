@@ -94,10 +94,9 @@ fun MyPageScreen(
                 openNewsDetail = viewModel::openNewsDetail
             )
         }
-        Spacer(Modifier.height(12.dp))
         NewsSectionHeader(
             title = "내가 좋아한 네컷뉴스",
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier.padding(top = 12.dp),
             onAllClick = if (state.myToons.isNotEmpty()) ({ viewModel.navigateToAllToons() }) else null
         )
         if(state.isLoadingLikeToons) {
@@ -188,7 +187,7 @@ fun ColumnScope.ScrappedCartoonNewsPager(
     // 카드 폭을 알아야 peek 계산 가능
     val peek = remember(screenWidth, cardWidth) {
         if (cardWidth > 0.dp) {
-            ((screenWidth - cardWidth) / 2).coerceAtLeast(0.dp) - 4.dp
+            ((screenWidth - cardWidth) / 2).coerceAtLeast(0.dp)
         } else {
             0.dp
         }
@@ -203,9 +202,7 @@ fun ColumnScope.ScrappedCartoonNewsPager(
             pageSize = if (cardWidth > 0.dp) PageSize.Fixed(cardWidth) else PageSize.Fill,
             pageSpacing = pageSpacing,
             contentPadding = PaddingValues(start = peek, end = peek),
-            modifier = Modifier
-                .padding(vertical = 4.dp)
-                .weight(1f)
+            modifier = Modifier.weight(1f)
         ) { page ->
 
             val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
@@ -225,7 +222,8 @@ fun ColumnScope.ScrappedCartoonNewsPager(
                         cardWidth = with(density) { it.width.toDp() }
                     }
                     .blur(blur)
-                    .align(Alignment.CenterHorizontally),
+                    .align(Alignment.CenterHorizontally)
+                    .padding(12.dp),
                 onClick = {
                     scope.launch {
                         pagerState.animateScrollToPage(page)
@@ -238,7 +236,7 @@ fun ColumnScope.ScrappedCartoonNewsPager(
             count = items.size,
             current = pagerState.currentPage,
         )
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -306,7 +304,7 @@ fun ColumnScope.ScrappedNewsPager(
         val pageItems = pages.getOrNull(page).orEmpty()
 
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             pageItems.forEach { item ->
@@ -323,7 +321,7 @@ fun ColumnScope.ScrappedNewsPager(
         }
 
     }
-
+    Spacer(Modifier.height(8.dp))
     DotsIndicator(
         count = (items.size - 1) / pageSize + 1,
         current = pagerState.currentPage,
