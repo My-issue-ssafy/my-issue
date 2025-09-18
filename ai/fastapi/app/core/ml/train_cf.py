@@ -126,22 +126,32 @@ def fetch_interactions(client: bigquery.Client) -> pd.DataFrame:
     # 이벤트 종류별로 가중치를 다르게 적용하여 선호도 강도를 산출
     sql = f"""
     WITH base AS (
-      -- 전처리된 events_* 테이블에서 직접 데이터 추출
-      SELECT 
-        user_id,
-        news_id,
-        event_name,
-        ts,
-        event_date,
-        dwell_ms,
-        scroll_pct,
-        action,
-        feed_source,
-        from_source
-      FROM `{PROJECT_ID}.{DEFAULT_DATASET}.events_*`
-      WHERE user_id IS NOT NULL
-        AND news_id IS NOT NULL
-        AND (STARTS_WITH(event_name, 'news_') OR STARTS_WITH(event_name, 'toon_'))
+      -- GA4 원시 테이블에서 데이터 추출 (event_params 파싱)
+      SELECT
+        e.user_id,
+        COALESCE(
+          SAFE_CAST(ep_news_id.value.int_value AS INT64),
+          SAFE_CAST(ep_news_id.value.string_value AS INT64)
+        ) AS news_id,
+        e.event_name,
+        TIMESTAMP_MICROS(e.event_timestamp) AS ts,
+        e.event_date,
+        SAFE_CAST(ep_dwell.value.int_value AS INT64) AS dwell_ms,
+        SAFE_CAST(ep_scroll.value.int_value AS INT64) AS scroll_pct,
+        ep_action.value.string_value AS action,
+        ep_feed.value.string_value AS feed_source,
+        ep_from.value.string_value AS from_source
+      FROM `{PROJECT_ID}.{DEFAULT_DATASET}.events_*` e
+      LEFT JOIN UNNEST(e.event_params) ep_news_id ON ep_news_id.key = 'news_id'
+      LEFT JOIN UNNEST(e.event_params) ep_dwell ON ep_dwell.key = 'dwell_ms'
+      LEFT JOIN UNNEST(e.event_params) ep_scroll ON ep_scroll.key = 'scroll_pct'
+      LEFT JOIN UNNEST(e.event_params) ep_action ON ep_action.key = 'action'
+      LEFT JOIN UNNEST(e.event_params) ep_feed ON ep_feed.key = 'feed_source'
+      LEFT JOIN UNNEST(e.event_params) ep_from ON ep_from.key = 'from_source'
+      WHERE _TABLE_SUFFIX BETWEEN @from AND @to
+        AND e.user_id IS NOT NULL
+        AND (ep_news_id.value.int_value IS NOT NULL OR ep_news_id.value.string_value IS NOT NULL)
+        AND (STARTS_WITH(e.event_name, 'news_') OR STARTS_WITH(e.event_name, 'toon_'))
     ), scored AS (
       -- 이벤트 종류에 따른 점수 부여
       SELECT
@@ -163,21 +173,33 @@ def fetch_interactions(client: bigquery.Client) -> pd.DataFrame:
     GROUP BY user_id, news_id
     HAVING strength > 0  -- 양수 점수만 유지
     """
-    # 쿼리 매개변수 설정 (SQL 인젝션 방지) - STRING으로 설정  
+    # 쿼리 매개변수 설정 (SQL 인젝션 방지) - STRING으로 설정
     job_config = QueryJobConfig(
         query_parameters=[
-            ScalarQueryParameter("from","STRING", from_date.strftime("%Y-%m-%d")),
-            ScalarQueryParameter("to",  "STRING", to_date.strftime("%Y-%m-%d")),
+            ScalarQueryParameter("from","STRING", from_date.strftime("%Y%m%d")),
+            ScalarQueryParameter("to",  "STRING", to_date.strftime("%Y%m%d")),
         ]
     )
-    
+
     # 디버깅: 생성된 SQL 출력
     logger.debug("Generated SQL:")
     logger.debug(sql)
     logger.debug(f"Date range: {from_date} to {to_date}")
-    
+
     # 쿼리 실행 및 DataFrame으로 변환
-    df = client.query(sql, job_config=job_config).result().to_dataframe(create_bqstorage_client=True)
+    import pandas as pd
+    job = client.query(sql, job_config=job_config)
+
+    # 결과를 수동으로 DataFrame으로 변환 (타입 문제 해결)
+    rows = []
+    for row in job:
+        rows.append({
+            'user_id': str(row.user_id),
+            'news_id': int(row.news_id),
+            'strength': float(row.strength)
+        })
+
+    df = pd.DataFrame(rows)
     return df
 
 # 5) ALS (Alternating Least Squares) 알고리즘으로 모델 학습 (실시간 추천을 위한 모델만 생성)
@@ -209,8 +231,8 @@ def train_model(df: pd.DataFrame):
         logger.warning("null 값 제거 후 데이터가 비어있습니다.")
         return None, None, None, None
 
-    # 뉔자/뉴스 ID를 숫자 인덱스로 변환 (효율적인 행렬 연산을 위해)
-    users = df_clean["user_id"].astype("category")
+    # 사용자/뉴스 ID를 숫자 인덱스로 변환 (효율적인 행렬 연산을 위해)
+    users = df_clean["user_id"].astype(str).astype("category")
     items = df_clean["news_id"].astype("category")
     
     # 빈 카테고리 체크
@@ -485,8 +507,12 @@ def main():
 
     # 1. 오늘 날짜의 GA4 이벤트 테이블이 존재하는지 확인
     # GA4 데이터는 일반적으로 1일 지연되어 BigQuery에 도착
+    today_str = today_kst_str()
+    latest_date = get_latest_date(client, dataset)
+    logger.info(f"오늘 날짜: {today_str}, 최신 테이블 날짜: {latest_date}")
+
     if not has_today_table(client, dataset):
-        logger.info("today's GA table not ready yet.")
+        logger.info(f"오늘 날짜({today_str}) 테이블이 준비되지 않았습니다. 최신: {latest_date}")
         return
 
     # 2. 이미 오늘 모델 학습을 완료했는지 확인 (중복 학습 방지)
