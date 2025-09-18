@@ -1,6 +1,7 @@
 package com.ssafy.myissue.news.infrastructure;
 
 import com.ssafy.myissue.news.domain.News;
+import com.ssafy.myissue.news.dto.HotNewsCandidates;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

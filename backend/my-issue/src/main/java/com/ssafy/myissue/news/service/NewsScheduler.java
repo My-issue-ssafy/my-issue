@@ -1,7 +1,6 @@
 package com.ssafy.myissue.news.service;
 
-import com.ssafy.myissue.news.domain.News;
-import com.ssafy.myissue.news.infrastructure.HotNewsCandidates;
+import com.ssafy.myissue.news.dto.HotNewsCandidates;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
