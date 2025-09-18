@@ -32,6 +32,6 @@ public class PodcastController {
 
     @GetMapping("/podcast")
     public ResponseEntity<PodcastResponse> getPodcast(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-
+        return ResponseEntity.ok(podcastService.getPodcast(date));
     }
 }

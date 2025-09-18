@@ -45,10 +45,16 @@ public class PodcastServiceImpl implements PodcastService {
 
     @Override
     public PodcastResponse getPodcast(LocalDate date) {
-        if(date.isAfter(LocalDate.now())) throw new CustomException(ErrorCode.PODCAST_DATE_INVALID);
+        if(date.isAfter(LocalDate.now())) {
+            log.debug("[podcast] date = {}", date);
+            throw new CustomException(ErrorCode.PODCAST_DATE_INVALID);
+        }
 
         Podcast podcast = podcastRepository.findByDate(date);
-        if(podcast != null) throw new CustomException(ErrorCode.PODCAST_NOT_FOUND);
+        if(podcast == null) {
+            log.debug("[podcast] 해당 날짜의 팟캐스트가 없습니다. : {}", date);
+            throw new CustomException(ErrorCode.PODCAST_NOT_FOUND);
+        }
 
         List<PodcastSubtitle> podcastSubtitles = podcastSubtitleRepository.findByPodcast_Id(podcast.getId());
         List<Subtitles> subtitles = podcastSubtitles.stream()
@@ -58,7 +64,9 @@ public class PodcastServiceImpl implements PodcastService {
                                 sub.getStartTime()
                         )).toList();
 
-        return PodcastResponse.of(podcast.getId(), )
+        PodcastNews podcastNews = podcastNewsRepository.findFirstByPodcast_Id(podcast.getId());
+
+        return PodcastResponse.of(podcast.getId(), podcastNews.getNews().getThumbnail(), podcast.getAudio(), subtitles);
     }
 
     @Transactional
