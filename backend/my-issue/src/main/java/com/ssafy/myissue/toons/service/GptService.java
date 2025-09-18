@@ -33,7 +33,7 @@ public class GptService {
         body.put("model", "gpt-5-nano");
         body.put("messages", List.of(
                 Map.of("role","developer","content","Answer in Korean"),
-                Map.of("role","user","content", "다음 기사를 3~4문장으로 요약해줘 :\n" + content)
+                Map.of("role","user","content", "다음 기사를 1문장으로 요약해줘 :\n" + content)
         ));
 
         // HttpEntity는 Jackson이 직렬화
