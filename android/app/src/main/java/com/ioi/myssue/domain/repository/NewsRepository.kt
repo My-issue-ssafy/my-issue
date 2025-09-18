@@ -3,9 +3,12 @@ package com.ioi.myssue.domain.repository
 import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.model.MainNewsList
 import com.ioi.myssue.domain.model.News
+import com.ioi.myssue.domain.model.NewsPage
 import com.ioi.myssue.domain.model.NewsSummary
 
 interface NewsRepository {
+    suspend fun getNews(keyword: String? = null, category: String? = null, size: Int, lastId : Long?): NewsPage
+
     suspend fun getMainNews(): MainNewsList
 
     suspend fun getHotNews(cursor: String? = null, size: Int = 20): CursorPage<NewsSummary>

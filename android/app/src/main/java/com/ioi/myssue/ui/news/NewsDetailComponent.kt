@@ -134,8 +134,7 @@ fun NewsDetailSheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.9f)
-            .padding(bottom = 32.dp),
+            .fillMaxHeight(0.9f),
         horizontalAlignment = Alignment.Start
     ) {
         NewsDetailHeader(

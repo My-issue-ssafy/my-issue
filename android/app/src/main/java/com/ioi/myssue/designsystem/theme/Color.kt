@@ -27,6 +27,7 @@ object BackgroundColors {
     val Background50 = Color(0xFFFFFFFF)
     val Background100 = Color(0xFFF2F3F5)
     val Background200 = Color(0xFFE6ECEF)
+    val Background250 = Color(0xFFE0E5E8)
     val Background300 = Color(0xFFBECAD2)
     val Background400 = Color(0xFF8A969E)
     val Background500 = Color(0xFF5A656C)

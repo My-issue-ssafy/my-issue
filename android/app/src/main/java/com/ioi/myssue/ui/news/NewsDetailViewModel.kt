@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val TAG = "NewsDetailViewModel"
 sealed interface NewsDetailEffect {
     data class Toast(val message: String): NewsDetailEffect
 }
@@ -26,21 +27,13 @@ class NewsDetailViewModel @Inject constructor(
     private val _effect = MutableSharedFlow<NewsDetailEffect>()
     val effect = _effect.asSharedFlow()
 
-    fun open(newsId: Long) {
-        _uiState.update { it.copy(newsId = newsId, isOpen = true) }
-        getNewsDetail(newsId)
-    }
-
-    fun close() {
-        _uiState.update { it.copy(isOpen = false) }
-    }
-
     fun getNewsDetail(newsId: Long?) {
         if(newsId == null) return
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
             runCatching { newsRepository.getNewsDetail(newsId) }
                 .onSuccess { news ->
+                    Log.d(TAG, "getNewsDetail: $newsId")
                     _uiState.update {
                         it.copy(
                             loading = false,
@@ -50,11 +43,14 @@ class NewsDetailViewModel @Inject constructor(
                             newspaper = news.newspaper,
                             displayTime = news.displayTime,
                             blocks = news.content,
-                            isBookmarked = false
+                            scrapCount = news.scrapCount,
+//                            isBookmarked = news.bookmarked
                         )
                     }
                 }
-                .onFailure { }
+                .onFailure { e ->
+                    Log.e(TAG, "getNewsDetail failed: id=$newsId, ${e::class.simpleName}: ${e.message}", e)
+                }
         }
     }
 

@@ -5,6 +5,7 @@ import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.model.MainNewsList
 import com.ioi.myssue.domain.model.News
 import com.ioi.myssue.domain.model.NewsBlock
+import com.ioi.myssue.domain.model.NewsPage
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.repository.NewsRepository
 import java.time.ZoneId
@@ -31,7 +32,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
         val views: Int,
         val category: String,
         val thumb: String?,
-        val blocks: List<NewsBlock>
+        val blocks: List<NewsBlock>,
+        val scrapCount: Int
     )
 
     private val categories = listOf("정치", "경제", "사회", "세계", "생활/문화", "IT/과학")
@@ -62,7 +64,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
                 views = 5000 - idx, // 값은 있지만 정렬엔 사용하지 않음
                 category = categories[idx % categories.size],
                 thumb = thumbs[idx % thumbs.size],
-                blocks = makeBlocks(idx)
+                blocks = makeBlocks(idx),
+                scrapCount = 0
             )
         }
     }
@@ -94,15 +97,25 @@ class FakeNewsRepositoryImpl @Inject constructor(
         thumbnail = thumb
             ?: blocks.firstOrNull { it is NewsBlock.Image }?.let { (it as NewsBlock.Image).url },
         content = blocks,
-        displayTime = time.toDisplay(createdAtRaw)
+        displayTime = time.toDisplay(createdAtRaw),
+        scrapCount = scrapCount
     )
 
-    private fun <T> pageOf(list: List<T>, cursor: String?, size: Int): CursorPage<T> {
+    private fun <T> pageOf(list: List<T>, cursor: String?, size: Int?): CursorPage<T> {
         val start = cursor?.toIntOrNull() ?: 0
-        val safeSize = if (size <= 0) 20 else size
+        val safeSize = size ?: 20
         val slice = list.drop(start).take(safeSize)
         val next = if (start + safeSize < list.size) (start + safeSize).toString() else null
         return CursorPage(items = slice, nextCursor = next, hasNext = next != null)
+    }
+
+    override suspend fun getNews(
+        keyword: String?,
+        category: String?,
+        size: Int,
+        lastId: Long?
+    ): NewsPage {
+        TODO("Not yet implemented")
     }
 
 

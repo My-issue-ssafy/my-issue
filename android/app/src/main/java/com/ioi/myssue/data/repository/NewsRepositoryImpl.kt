@@ -8,6 +8,7 @@ import com.ioi.myssue.data.network.api.NewsApi
 import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.model.MainNewsList
 import com.ioi.myssue.domain.model.News
+import com.ioi.myssue.domain.model.NewsPage
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.repository.NewsRepository
 import javax.inject.Inject
@@ -16,6 +17,27 @@ class NewsRepositoryImpl @Inject constructor(
     private val newsApi: NewsApi,
     private val time: TimeConverter
 ) : NewsRepository {
+
+    override suspend fun getNews(
+        keyword: String?,
+        category: String?,
+        size: Int,
+        lastId: Long?
+    ): NewsPage {
+        val res = newsApi.getNews(
+            keyword = keyword?.ifBlank { null },
+            category = category,
+            size = size,
+            lastId = lastId
+        )
+        val newsItems = res.items.map { it.toDomain(time) }
+        val newsLastId = res.items.lastOrNull()?.newsId
+        return NewsPage(
+            newsItems = newsItems,
+            lastId = newsLastId,
+            hasNext = res.hasNext
+        )
+    }
 
     override suspend fun getMainNews(): MainNewsList {
         val res: NewsMainResponse = newsApi.getMainNews()

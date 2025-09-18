@@ -11,6 +11,7 @@ data class NewsDetailUiState(
     val blocks: List<NewsBlock> = emptyList(),
     val isOpen: Boolean = false,
     val isBookmarked: Boolean = false,
+    val scrapCount: Int = 0,
 
     val loading: Boolean = true,
     val error: String? = null,
