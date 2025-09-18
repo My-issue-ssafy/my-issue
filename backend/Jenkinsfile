@@ -15,6 +15,8 @@ pipeline {
     AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY')
     AWS_SECRET_KEY = credentials('AWS_SECRET_KEY')
     GMS_KEY = credentials('GMS_KEY')
+    APP_RECOMMEND_BASE_URL = credentials('APP_RECOMMEND_BASE_URL')
+    APP_RECOMMEND_DEFAULT_PARAMS = credentials('APP_RECOMMEND_DEFAULT_PARAMS')
   }
 
   options {
@@ -116,6 +118,8 @@ pipeline {
           string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY'),
           string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_KEY'),
           string(credentialsId: 'GMS_KEY', variable: 'GMS_KEY'),
+          string(credentialsId: 'APP_RECOMMEND_BASE_URL', variable: 'APP_RECOMMEND_BASE_URL'),
+          string(credentialsId: 'APP_RECOMMEND_DEFAULT_PARAMS', variable: 'APP_RECOMMEND_DEFAULT_PARAMS'),
           sshUserPrivateKey(
             credentialsId: 'ec2-ssh-key-pem',
             keyFileVariable: 'SSH_KEY',
@@ -133,6 +137,8 @@ pipeline {
             export AWS_ACCESS_KEY=${env.AWS_ACCESS_KEY}
             export AWS_SECRET_KEY=${env.AWS_SECRET_KEY}
             export GMS_KEY=${env.GMS_KEY}
+            export APP_RECOMMEND_DEFAULT_PARAMS=${env.APP_RECOMMEND_DEFAULT_PARAMS}
+            export APP_RECOMMEND_BASE_URL=${env.APP_RECOMMEND_BASE_URL}
             export SPRING_PROFILES_ACTIVE=prod
 
             bash -c '
@@ -148,6 +154,8 @@ pipeline {
                  export AWS_ACCESS_KEY='${env.AWS_ACCESS_KEY}' && \\
                  export AWS_SECRET_KEY='${env.AWS_SECRET_KEY}' && \\
                  export GMS_KEY='${env.GMS_KEY}' && \\
+                 export APP_RECOMMEND_DEFAULT_PARAMS='${env.APP_RECOMMEND_DEFAULT_PARAMS}' && \\
+                 export APP_RECOMMEND_BASE_URL='${env.APP_RECOMMEND_BASE_URL}' && \\
 
                  export SPRING_PROFILES_ACTIVE=prod && \\
                  chmod +x ~/deploy.sh && \\

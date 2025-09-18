@@ -52,6 +52,8 @@ docker run -d --name "${NEW_NAME}" \
   -e AWS_ACCESS_KEY="${AWS_ACCESS_KEY:-}" \
   -e AWS_SECRET_KEY="${AWS_SECRET_KEY:-}" \
   -e GMS_KEY="${GMS_KEY:-}" \
+  -e APP_RECOMMEND_BASE_URL="${APP_RECOMMEND_BASE_URL:-}" \
+  -e APP_RECOMMEND_DEFAULT_PARAMS="${APP_RECOMMEND_DEFAULT_PARAMS:-}" \
   "${APP_IMAGE}"
 
 echo "⏳ Waiting for service to be healthy..."
