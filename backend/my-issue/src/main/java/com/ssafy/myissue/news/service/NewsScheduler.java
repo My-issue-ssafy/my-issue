@@ -23,7 +23,7 @@ public class NewsScheduler {
     private final RedisTemplate<String, Object> redisTemplate;
     private static final String HOT_KEY = "hot:news";
 
-    @Scheduled(fixedRate = 100000) // 30분마다 실행
+    @Scheduled(fixedRate = 1800000) // 30분마다 실행
     public void startScheduler() {
         log.info("뉴스 스케줄러 시작 - HOT 뉴스 업데이트");
         updateHotNews();
