@@ -2,6 +2,10 @@ import edge_tts
 import asyncio
 import uuid
 import os
+import io
+import numpy as np
+import soundfile as sf
+import librosa
 from typing import List, Dict
 
 
@@ -67,13 +71,50 @@ class EdgeTTSEngine:
         communicate = edge_tts.Communicate(
             text, edge_voice, rate=voice_rate, pitch=voice_pitch)
 
-        # Collect audio data
-        audio_data = b""
+        # Collect audio data (MP3 format from Edge TTS)
+        mp3_data = b""
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
-                audio_data += chunk["data"]
+                mp3_data += chunk["data"]
 
-        return audio_data, safe_filename
+        # Convert MP3 to PCM WAV
+        wav_data = self._convert_mp3_to_wav(mp3_data)
+
+        return wav_data, safe_filename
+
+    def _convert_mp3_to_wav(self, mp3_data: bytes) -> bytes:
+        """
+        MP3 바이너리 데이터를 PCM WAV 포맷으로 변환
+
+        Args:
+            mp3_data: MP3 바이너리 데이터
+
+        Returns:
+            PCM WAV 바이너리 데이터
+        """
+        try:
+            # 임시 파일 생성 (librosa가 파일 경로를 요구함)
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_mp3:
+                temp_mp3.write(mp3_data)
+                temp_mp3_path = temp_mp3.name
+
+            # librosa로 MP3 파일 로드
+            audio_data, sample_rate = librosa.load(temp_mp3_path, sr=44100, mono=True)
+
+            # 임시 파일 삭제
+            os.unlink(temp_mp3_path)
+
+            # numpy array를 WAV 바이너리로 변환
+            wav_buffer = io.BytesIO()
+            sf.write(wav_buffer, audio_data, sample_rate, format='WAV', subtype='PCM_16')
+
+            return wav_buffer.getvalue()
+
+        except Exception as e:
+            # 변환 실패 시 원본 데이터 반환 (fallback)
+            print(f"MP3 to WAV conversion failed: {e}")
+            return mp3_data
 
     def synthesize_speech(
         self,
