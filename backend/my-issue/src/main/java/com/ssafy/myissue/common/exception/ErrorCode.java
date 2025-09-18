@@ -21,13 +21,17 @@ public enum ErrorCode {
     INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "INVALID_ACCESS_TOKEN","해당 Access Token이 존재하지 않습니다."),
     EMPTY_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "EMPTY_ACCESS_TOKEN","Access Token이 비어있습니다."),
     BEARER_PREFIX_INVALID(HttpStatus.UNAUTHORIZED, "BEARER_PREFIX_INVALID","Bearer 접두사로 시작하지 않습니다."),
-
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "해당 유저를 찾을 수 없습니다."),
     EMPTY_FCM_TOKEN(HttpStatus.NOT_FOUND, "FCM_TOKEN_NOT_FOUND", "FCM Token이 비어있습니다."),
     // Notification
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_NOT_FOUND", "해당 알림을 찾을 수 없습니다."),
     UNAUTHORIZED_NOTIFICATION(HttpStatus.FORBIDDEN, "UNAUTHORIZED_NOTIFICATION", "해당 알림에 접근할 권한이 없습니다."),
+    // Podcast
+    PODCAST_DATE_INVALID(HttpStatus.BAD_REQUEST, "PODCAST_DATE_INVALID", "오늘 날짜 이후의 팟캐스트는 조회할 수 없습니다."),
+    PODCAST_NOT_FOUND(HttpStatus.NOT_FOUND, "PODCAST_NOT_FOUND", "해당 날짜의 팟캐스트를 찾을 수 없습니다."),
+    PODCAST_ID_NOT_FOUNT(HttpStatus.NOT_FOUND, "PODCAST_ID_NOT_FOUND", "해당 팟캐스트를 찾을 수 없습니다."),
+    PODCAST_NEWS_NOT_FOUND(HttpStatus.NOT_FOUND,  "PODCAST_NEWS_NOT_FOUND", "팟캐스트에 해당하는 뉴스를 찾을 수 없습니다."),
 
     /* -------- 진현 ----------*/
 
