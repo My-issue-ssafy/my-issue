@@ -32,7 +32,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
         val views: Int,
         val category: String,
         val thumb: String?,
-        val blocks: List<NewsBlock>
+        val blocks: List<NewsBlock>,
+        val scrapCount: Int
     )
 
     private val categories = listOf("정치", "경제", "사회", "세계", "생활/문화", "IT/과학")
@@ -63,7 +64,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
                 views = 5000 - idx, // 값은 있지만 정렬엔 사용하지 않음
                 category = categories[idx % categories.size],
                 thumb = thumbs[idx % thumbs.size],
-                blocks = makeBlocks(idx)
+                blocks = makeBlocks(idx),
+                scrapCount = 0
             )
         }
     }
@@ -95,7 +97,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
         thumbnail = thumb
             ?: blocks.firstOrNull { it is NewsBlock.Image }?.let { (it as NewsBlock.Image).url },
         content = blocks,
-        displayTime = time.toDisplay(createdAtRaw)
+        displayTime = time.toDisplay(createdAtRaw),
+        scrapCount = scrapCount
     )
 
     private fun <T> pageOf(list: List<T>, cursor: String?, size: Int?): CursorPage<T> {
