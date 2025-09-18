@@ -3,12 +3,18 @@ package com.ioi.myssue.ui.search
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.runtime.*
@@ -24,7 +30,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.domain.model.NewsSummary
+import com.ioi.myssue.ui.news.NewsItem
 import com.ioi.myssue.R
+import com.ioi.myssue.designsystem.theme.BackgroundColors.Background400
 
 @Composable
 fun SearchBar(
@@ -86,7 +95,6 @@ fun SearchBar(
             Text(
                 text = stringResource(R.string.search_news),
                 style = typography.titleMedium,
-                color = BackgroundColors.Background400
             )
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -178,7 +186,7 @@ fun SearchedEmpty() {
             text = stringResource(R.string.no_searched_news),
             style = typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = BackgroundColors.Background400,
+            color = Background400,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .align(Alignment.Center)
