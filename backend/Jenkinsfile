@@ -143,7 +143,7 @@ pipeline {
               export APP_RECOMMEND_BASE_URL='$APP_RECOMMEND_BASE_URL' &&
               export APP_RECOMMEND_DEFAULT_PARAMS='$APP_RECOMMEND_DEFAULT_PARAMS' &&
               export SPRING_PROFILES_ACTIVE=prod &&
-              bash /home/ubuntu/deploy.sh ${COMMIT_SHA}
+              sudo -E bash /home/ubuntu/deploy.sh ${COMMIT_SHA}
             "
           '''
         }
