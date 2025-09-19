@@ -118,6 +118,14 @@ pipeline {
         ]) {
           sh """
             echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
+    
+            # 1. deploy.sh 원격 서버에 복사
+            scp -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh $SSH_USER@$NGINX_HOST:/home/$SSH_USER/deploy.sh
+
+            # 2. 원격 서버에서 권한 주기
+            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "chmod +x /home/$SSH_USER/deploy.sh"
+
+            # 3. 원격 서버에서 환경변수 붙여 실행
             ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \\
               SPRING_DATASOURCE_URL="$SPRING_DATASOURCE_URL" \\
               SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \\
@@ -130,7 +138,7 @@ pipeline {
               APP_RECOMMEND_BASE_URL="$APP_RECOMMEND_BASE_URL" \\
               APP_RECOMMEND_DEFAULT_PARAMS="$APP_RECOMMEND_DEFAULT_PARAMS" \\
               SPRING_PROFILES_ACTIVE=prod \\
-              bash -s < /home/ubuntu/deploy.sh ${COMMIT_SHA}
+              /home/$SSH_USER/deploy.sh ${COMMIT_SHA}
           """
         }
       }
