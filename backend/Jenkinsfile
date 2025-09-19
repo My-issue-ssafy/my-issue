@@ -126,7 +126,7 @@ pipeline {
             usernameVariable: 'SSH_USER'
           )
         ]) {
-          sh """
+          sh '''
             echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
             ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \\
               env \\
@@ -142,7 +142,7 @@ pipeline {
                 APP_RECOMMEND_DEFAULT_PARAMS="$APP_RECOMMEND_DEFAULT_PARAMS" \\
                 SPRING_PROFILES_ACTIVE=prod \\
               sudo -E ~/deploy.sh ${COMMIT_SHA}
-          """
+          '''
         }
       }
     }
