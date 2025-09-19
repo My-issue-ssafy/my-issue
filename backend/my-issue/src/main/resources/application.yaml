@@ -20,6 +20,7 @@ spring:
     scheduling:
       pool:
         size: 4
+      thread-name-prefix: scheduling-
 
 # Spring Boot Actuator configuration ( Jenkins 에서 접근 가능하도록 설정 )
 # health: 시스템 상태 확인(헬스체크용)
@@ -49,11 +50,6 @@ logging:
 jwt:
   secret-base64: ${JWT_SECRET_BASE64}
 
-fcm:
-    fire_path: ${FIREBASE_PATH} # Firebase 서비스 계정 JSON 파일 경로
-    url: https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send
-    google-api: https://www.googleapis.com/auth/cloud-platform
-    project_id: ${PROJECT_ID}
 
 cloud:
   aws:
@@ -70,3 +66,7 @@ cloud:
 gms:
   key: ${GMS_KEY}
 
+app:
+  recommend:
+    url: ${APP_RECOMMEND_BASE_URL}
+    params: ${APP_RECOMMEND_DEFAULT_PARAMS}

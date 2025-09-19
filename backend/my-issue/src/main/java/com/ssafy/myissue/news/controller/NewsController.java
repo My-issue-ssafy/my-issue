@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/news")
 @RequiredArgsConstructor
@@ -53,8 +55,8 @@ public class NewsController {
 
     /** 뉴스 상세 */
     @GetMapping("/{newsId}")
-    public ResponseEntity<NewsDetailResponse> getDetail(@PathVariable("newsId") long newsId) { // [CHANGED]
-        return ResponseEntity.ok(newsService.getDetailAndIncreaseView(newsId));
+    public ResponseEntity<NewsDetailResponse> getDetail(@PathVariable("newsId") long newsId, @AuthenticationPrincipal Long userId) { // [CHANGED]
+        return ResponseEntity.ok(newsService.getDetailAndIncreaseView(newsId, userId));
     }
 
     /**
@@ -77,9 +79,9 @@ public class NewsController {
 
     /** 내가 저장한 뉴스 (lastId = scrapId) */
     @GetMapping("/bookmarks")
-    public ResponseEntity<CursorPage<NewsCardResponse>> myBookmarks(@AuthenticationPrincipal Long userId, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size, @RequestParam(value = "lastId", required = false) Long lastId) {
+    public ResponseEntity<CursorPage<NewsCardResponse>> myBookmarks(@AuthenticationPrincipal Long userId, @RequestParam(value = "cursor", required = false) String cursor) {
         if (userId == null) throw new CustomException(ErrorCode.UNAUTHORIZED_ACCESS);
-        return ResponseEntity.ok(scrapService.list(userId, safeSize(size, 20, 50), lastId));
+        return ResponseEntity.ok(scrapService.list(userId, cursor));
     }
 
     @PostMapping("/hot/update")
@@ -88,6 +90,11 @@ public class NewsController {
         return ResponseEntity.ok().build();
     }
 
+    // 인기도 기반 추천 모델 확인 TEST
+    @GetMapping("/hot/recommend/top100")
+    public ResponseEntity<List<NewsDetailResponse>> getHotRecommendTop100() {
+        return ResponseEntity.ok(newsService.getHotRecommendTop100());
+    }
     // ---------- helpers ----------
 
     /** size 하한/상한 고정 */

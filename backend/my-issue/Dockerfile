@@ -11,6 +11,9 @@ FROM eclipse-temurin:21-jre
 # 2) 컨테이너 안의 작업 디렉토리
 WORKDIR /app
 
+# 타임존 환경 변수 설정 (서울)
+ENV TZ=Asia/Seoul
+
 # 3) 빌드된 JAR 파일 복사
 COPY --from=builder /src/build/libs/*.jar app.jar
 

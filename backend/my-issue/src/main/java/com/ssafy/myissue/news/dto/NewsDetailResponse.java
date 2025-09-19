@@ -1,5 +1,7 @@
 package com.ssafy.myissue.news.dto;
 
+import com.ssafy.myissue.news.domain.News;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -12,5 +14,22 @@ public record NewsDetailResponse(
         String author,
         String newspaper,
         LocalDateTime createdAt,
-        int views
-) {}
+        int views,
+        int scrapCount,
+        boolean isScraped
+) {
+    public static NewsDetailResponse from(News news, List<ContentBlock> blocks, boolean isScraped) {
+        return new NewsDetailResponse(
+                news.getId(),
+                news.getTitle(),
+                blocks,
+                news.getCategory(),
+                news.getAuthor(),
+                news.getNewsPaper(),
+                news.getCreatedAt(),
+                news.getViews(),
+                news.getScrapCount(),
+                isScraped
+        );
+    }
+}
