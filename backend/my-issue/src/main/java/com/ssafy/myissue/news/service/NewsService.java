@@ -368,21 +368,4 @@ public class NewsService {
             return Collections.emptyList();
         }
     }
-
-    // HOT 뉴스 테스트용
-    public List<NewsDetailResponse> getHotRecommendTop100() {
-        List<Long> ids = getNewsIdListByRedis(HOT_KEY,0,99);
-
-        List<News> newsList = newsRepository.findAllById(ids);
-        // Map으로 변환 (id → News 매핑)
-        Map<Long, News> newsMap = newsList.stream()
-                .collect(Collectors.toMap(News::getId, n -> n));
-
-        // Redis 순서 보존 + DTO 변환
-        return ids.stream()
-                .map(newsMap::get)
-                .filter(Objects::nonNull)
-                .map(n -> NewsDetailResponse.from(n, parseBlocks(n.getContent()), false)) // 엔티티 → DTO 변환
-                .toList();
-    }
 }
