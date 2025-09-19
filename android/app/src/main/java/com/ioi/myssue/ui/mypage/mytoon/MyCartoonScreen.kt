@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.mypage.mytoon
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.domain.model.CartoonNews
 import com.ioi.myssue.ui.cartoon.CartoonCard
@@ -34,6 +36,7 @@ import com.ioi.myssue.ui.cartoon.ExpandedCartoonCard
 import com.ioi.myssue.ui.news.NewsDetail
 import com.ioi.myssue.ui.news.NewsSectionHeader
 
+private const val TAG = "MyCartoonScreen"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyCartoonScreen(
@@ -41,6 +44,7 @@ fun MyCartoonScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val analytics = LocalAnalytics.current
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -71,10 +75,16 @@ fun MyCartoonScreen(
                 isFlippable = false,
                 exitDir = 0,
                 modifier = Modifier,
-                onClick = { viewModel.openNewsDetail(it.newsId) }
+                onClick = {
+                    viewModel.openNewsDetail(it.newsId)
+                    analytics.logNewsClick(it.newsId, feedSource = "likedCartoon")
+                    Log.d(TAG, "logNewsClick: ${it.newsId} likedCartoon")
+                }
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.mypage.myscrap
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,11 +17,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.ui.news.NewsDetail
 import com.ioi.myssue.ui.news.NewsItem
 import com.ioi.myssue.ui.news.NewsSectionHeader
 
+private const val TAG = "MyScrapScreen"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyScrapScreen(
@@ -29,6 +32,7 @@ fun MyScrapScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
+    val analytics = LocalAnalytics.current
 
     val loadMore by remember(state.newsSummaries.size, state.cursor) {
         derivedStateOf {
@@ -60,13 +64,17 @@ fun MyScrapScreen(
                     modifier = Modifier,
                     news = item,
                     isMarked = true,
-                    onClick = { viewModel.openNewsDetail(item.newsId) }
+                    onClick = {
+                        viewModel.openNewsDetail(item.newsId)
+                        analytics.logNewsClick(item.newsId, feedSource = "scrap")
+                        Log.d(TAG, "logNewsClick: ${item.newsId} scrap")
+                    }
                 )
             }
         }
     }
 
-    if(state.selectedNewsId != null) {
+    if (state.selectedNewsId != null) {
         NewsDetail(
             newsId = state.selectedNewsId,
             sheetState = sheetState,

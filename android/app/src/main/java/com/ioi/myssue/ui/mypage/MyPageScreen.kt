@@ -2,6 +2,7 @@ package com.ioi.myssue.ui.mypage
 
 import android.R.attr.strokeWidth
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -46,6 +47,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.domain.model.CartoonNews
@@ -58,6 +60,8 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import com.ioi.myssue.ui.podcast.component.bottomsheetplayer.NewsSummary
 
+private const val TAG = "MyPageScreen"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyPageScreen(
@@ -65,6 +69,7 @@ fun MyPageScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val analytics = LocalAnalytics.current
 
     LaunchedEffect(Unit) {
         viewModel.initData()
@@ -80,19 +85,23 @@ fun MyPageScreen(
             modifier = Modifier.padding(top = 8.dp),
             onAllClick = if (state.newsSummaries.isNotEmpty()) ({ viewModel.navigateToAllScraps() }) else null
         )
-        if(state.isLoadingScrapNews) {
+        if (state.isLoadingScrapNews) {
             CircularProgressIndicator(
-                modifier = Modifier.padding(vertical = 128.dp)
+                modifier = Modifier
+                    .padding(vertical = 128.dp)
                     .align(Alignment.CenterHorizontally),
                 color = AppColors.Primary600,
                 strokeWidth = 2.dp
             )
-        }
-        else {
+        } else {
             ScrappedNewsPager(
                 items = state.newsSummaries,
                 navigateToCartoonNews = viewModel::navigateToNews,
-                openNewsDetail = viewModel::openNewsDetail
+                openNewsDetail = { id ->
+                    viewModel.openNewsDetail(id)
+                    analytics.logNewsClick(id, feedSource = "scrap")
+                    Log.d(TAG, "logNewsClick: $id scrap")
+                }
             )
         }
         NewsSectionHeader(
@@ -100,7 +109,7 @@ fun MyPageScreen(
             modifier = Modifier.padding(top = 12.dp),
             onAllClick = if (state.myToons.isNotEmpty()) ({ viewModel.navigateToAllToons() }) else null
         )
-        if(state.isLoadingLikeToons) {
+        if (state.isLoadingLikeToons) {
             Box(modifier = Modifier.weight(1f)) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center),
@@ -108,8 +117,7 @@ fun MyPageScreen(
                     strokeWidth = 2.dp
                 )
             }
-        }
-        else {
+        } else {
             ScrappedCartoonNewsPager(
                 items = state.myToons,
                 modifier = Modifier.weight(1f),

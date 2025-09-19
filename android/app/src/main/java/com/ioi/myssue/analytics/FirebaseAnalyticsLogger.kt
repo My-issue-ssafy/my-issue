@@ -15,24 +15,6 @@ class FirebaseAnalyticsLogger(
         fa.setUserId(userId.toString())
     }
 
-    /**
-     * 화면 진입 이벤트 로깅
-     * @param screenName 화면 이름
-     * @param screenClass 화면 클래스 이름 (기본적으로 screenName과 동일하게 사용 가능)
-     */
-    override fun logScreenView(screenName: String, screenClass: String) {
-        fa.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW) {
-            putString(FirebaseAnalytics.Param.SCREEN_NAME, screenName)
-            putString(FirebaseAnalytics.Param.SCREEN_CLASS, screenClass)
-        }
-    }
-    override fun logNewsImpression(newsId: Long, feedSource: String) {
-        fa.logEvent("news_impression") {
-            putLong("news_id", newsId)
-            putString("feed_source", feedSource)
-        }
-    }
-
     override fun logNewsClick(newsId: Long, feedSource: String) {
         fa.logEvent("news_click") {
             putLong("news_id", newsId)
@@ -40,12 +22,11 @@ class FirebaseAnalyticsLogger(
         }
     }
 
-    override fun logNewsViewEnd(newsId: Long, dwellMs: Long, scrollPct: Int, fromSource: String) {
+    override fun logNewsViewEnd(newsId: Long, dwellMs: Long, scrollPct: Int) {
         fa.logEvent("news_view_end") {
             putLong("news_id", newsId)
             putLong("dwell_ms", dwellMs)
             putInt("scroll_pct", scrollPct)
-            putString("from_source", fromSource)
         }
     }
 

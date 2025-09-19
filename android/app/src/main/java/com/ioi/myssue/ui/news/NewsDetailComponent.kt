@@ -1,8 +1,10 @@
 package com.ioi.myssue.ui.news
 
+import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,9 +28,16 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -45,12 +54,16 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
+import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background500
 import com.ioi.myssue.domain.model.NewsBlock
 import com.ioi.myssue.ui.common.clickableNoRipple
 import kotlinx.coroutines.flow.collectLatest
+
+private const val TAG = "NewsDetailComponent"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,11 +73,13 @@ fun NewsDetail(
     onDismiss: () -> Unit,
     viewModel: NewsDetailViewModel = hiltViewModel()
 ) {
+    val state = viewModel.uiState.collectAsState().value
+    val scroll = rememberScrollState()
+    val analytics = LocalAnalytics.current
+
     LaunchedEffect(newsId) {
-        Log.d("NewsDetail", "newsId: $newsId")
         viewModel.getNewsDetail(newsId)
     }
-    val state = viewModel.uiState.collectAsState().value
 
     val context = LocalContext.current
     LaunchedEffect(Unit) {
@@ -75,6 +90,12 @@ fun NewsDetail(
             }
         }
     }
+
+    TrackNewsViewEnd(
+        newsId = state.newsId,
+        scrollState = scroll,
+        analytics = analytics
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -90,7 +111,15 @@ fun NewsDetail(
             displayTime = state.displayTime,
             blocks = state.blocks,
             isBookmarked = state.isBookmarked,
-            onToggleBookmark = { viewModel.toggleBookmark() }
+            onToggleBookmark = {
+                if (state.newsId != null) {
+                    val action = if (state.isBookmarked) "remove" else "add"
+                    analytics.logNewsBookmark(state.newsId, action)
+                    Log.d(TAG, "logNewsBookmark: newsId:$newsId action:$action")
+                }
+                viewModel.toggleBookmark()
+            },
+            scrollState = scroll
         )
     }
 }
@@ -129,7 +158,8 @@ fun NewsDetailSheet(
     displayTime: String,
     blocks: List<NewsBlock>,
     isBookmarked: Boolean,
-    onToggleBookmark: () -> Unit
+    onToggleBookmark: () -> Unit,
+    scrollState: ScrollState
 ) {
     Column(
         modifier = Modifier
@@ -147,7 +177,8 @@ fun NewsDetailSheet(
         )
         Spacer(Modifier.height(12.dp))
         NewsDetailBody(
-            blocks
+            blocks = blocks,
+            scrollState = scrollState
         )
     }
 }
@@ -246,14 +277,14 @@ fun NewsDetailHeader(
 @Composable
 fun NewsDetailBody(
     blocks: List<NewsBlock>,
+    scrollState: ScrollState
 ) {
-    val scroll = rememberScrollState()
     val blockSheetDrag = rememberBlockSheetDragConnection()
 
     Column(
         modifier = Modifier
             .nestedScroll(blockSheetDrag)
-            .verticalScroll(scroll)
+            .verticalScroll(scrollState)
     ) {
         blocks.forEach { block ->
             when (block) {
@@ -305,4 +336,37 @@ private fun NewsContentText(text: String) {
         softWrap = true,
         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
     )
+}
+
+
+@Composable
+private fun TrackNewsViewEnd(
+    newsId: Long?,
+    scrollState: ScrollState,
+    analytics: AnalyticsLogger,
+) {
+    if (newsId == null) return
+    val sessionStart = remember(newsId) { SystemClock.elapsedRealtime() }
+    var maxPct by remember(newsId) {
+        mutableIntStateOf(if (scrollState.maxValue <= 0) 100 else 0)
+    }
+
+    LaunchedEffect(newsId, scrollState) {
+        snapshotFlow { scrollState.value to scrollState.maxValue }
+            .collectLatest { (value, max) ->
+                val pct = if (max > 0) {
+                    ((value.toFloat() / max.toFloat()) * 100f).toInt().coerceIn(0, 100)
+                } else 100
+                if (pct > maxPct) maxPct = pct
+            }
+    }
+    DisposableEffect(newsId) {
+        onDispose {
+            val dwell = SystemClock.elapsedRealtime() - sessionStart
+            if (dwell < 300) return@onDispose
+
+            analytics.logNewsViewEnd(newsId, dwellMs = dwell, scrollPct = maxPct)
+            Log.d("logNewsViewEnd", "newsId=$newsId dwell=$dwell scroll=$maxPct")
+        }
+    }
 }

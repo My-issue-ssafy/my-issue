@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.search
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.news.Loading
 import com.ioi.myssue.ui.news.NewsDetail
@@ -21,6 +23,7 @@ import com.ioi.myssue.ui.news.NewsEmpty
 import com.ioi.myssue.ui.news.NewsItem
 import kotlinx.coroutines.launch
 
+private const val TAG = "SearchScreen"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
@@ -30,6 +33,7 @@ fun SearchScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val analytics = LocalAnalytics.current
 
     LaunchedEffect(Unit) {
         viewModel.refresh()
@@ -91,7 +95,11 @@ fun SearchScreen(
                         NewsItem(
                             modifier = Modifier,
                             news = item,
-                            onClick = { viewModel.onItemClick(item.newsId) }
+                            onClick = {
+                                viewModel.onItemClick(item.newsId)
+                                analytics.logNewsClick(item.newsId, feedSource = "search")
+                                Log.d(TAG, "logNewsClick: ${item.newsId} search")
+                            }
                         )
                     }
                 }
