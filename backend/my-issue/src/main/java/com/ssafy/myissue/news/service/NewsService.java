@@ -2,14 +2,7 @@ package com.ssafy.myissue.news.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssafy.myissue.news.dto.CursorCodec;
-import com.ssafy.myissue.news.dto.CursorPage;
-import com.ssafy.myissue.news.dto.HotCursor;
-import com.ssafy.myissue.news.dto.LatestCursor;
-import com.ssafy.myissue.news.dto.NewsCardResponse;
-import com.ssafy.myissue.news.dto.NewsDetailResponse;
-import com.ssafy.myissue.news.dto.NewsHomeResponse;
-import com.ssafy.myissue.news.dto.ContentBlock;
+import com.ssafy.myissue.news.dto.*;
 import com.ssafy.myissue.news.domain.News;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import com.ssafy.myissue.common.exception.CustomException;      // [ADDED]
@@ -94,20 +87,95 @@ public class NewsService {
         return toCards(newsList);
     }
 
+    // HOT: Redis ZSET 기반 무한스크롤 (순서 보존)
+    public CursorPage<NewsCardResponse> getHotByRedis(String cursor, int size) {
+        final int pageSize = (size <= 0) ? 10 : size;
+
+        // 1) 커서 해석 (offset)
+        int offset = 0;
+        if (cursor != null && !cursor.isBlank()) {
+            HotZOffsetCursor c = CursorCodec.decode(cursor, HotZOffsetCursor.class);
+            offset = Math.max(0, c.offset());
+        }
+
+        // 2) 총 개수
+        ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
+        Long totalL = zset.zCard(HOT_KEY);
+        int total = (totalL == null) ? 0 : totalL.intValue();
+        if (total == 0) return new CursorPage<>(List.of(), null, false);
+
+        // 3) 범위 계산 (ZSET은 end inclusive)
+        int start = offset;
+        int endInclusive = Math.min(offset + pageSize, total) - 1;
+        if (start > endInclusive) return new CursorPage<>(List.of(), null, false);
+
+        // 4) Redis ZSET → ID들 (이미 reverseRange 순서 유지됨)
+        List<Long> ids = getNewsIdListByRedis(HOT_KEY, start, endInclusive);
+        if (ids.isEmpty()) return new CursorPage<>(List.of(), null, false);
+
+        // 5) DB 조회 후 Redis 순서대로 재정렬
+        List<News> found   = newsRepository.findAllById(ids);
+        List<News> ordered = reorderByIds(found, ids);
+
+        // 6) nextCursor 구성
+        boolean hasNext = (endInclusive + 1) < total;
+        String next = hasNext ? CursorCodec.encode(new HotZOffsetCursor(endInclusive + 1)) : null;
+
+        return new CursorPage<>(toCards(ordered), next, hasNext);
+    }
+
+    // 추천: Redis LIST("id:score") 기반 무한스크롤 (10개씩)
+    public CursorPage<NewsCardResponse> getRecommendByRedis(Long userId, String cursor, int size) {
+        final int pageSize = (size <= 0) ? 10 : size;
+
+        String listKey = RECOMMEND_KEY_PREFIX + userId; // LIST: "id:score"
+
+        RecommendListOffsetCursor c = null;
+        if (cursor != null && !cursor.isBlank()) {
+            c = CursorCodec.decode(cursor, RecommendListOffsetCursor.class);
+        }
+        int start = (c == null) ? 0 : Math.max(0, c.offset());
+
+        Long llenL = redisTemplate.opsForList().size(listKey);
+        int llen = (llenL == null) ? 0 : llenL.intValue();
+        if (llen == 0) return new CursorPage<>(List.of(), null, false);
+
+        int endExclusive = Math.min(start + pageSize, llen);
+        if (start >= endExclusive) return new CursorPage<>(List.of(), null, false);
+
+        List<Long> ids = getIdsFromList(listKey, start, endExclusive - 1); // inclusive
+        if (ids.isEmpty()) return new CursorPage<>(List.of(), null, false);
+
+        List<News> found = newsRepository.findAllById(ids);
+        List<News> ordered = reorderByIds(found, ids); // 리스트 순서 보존
+
+        boolean hasNext = endExclusive < llen;
+        String next = hasNext ? CursorCodec.encode(new RecommendListOffsetCursor(endExclusive)) : null;
+
+        return new CursorPage<>(toCards(ordered), next, hasNext);
+    }
+
+    // Redis에서 받은 id 순서대로 DB 결과 재정렬 (반드시 사용!)
+    private List<News> reorderByIds(List<News> found, List<Long> ids) {
+        Map<Long, News> map = found.stream().collect(Collectors.toMap(News::getId, n -> n));
+        List<News> ordered = new ArrayList<>(ids.size());
+        for (Long id : ids) {
+            News n = map.get(id);
+            if (n != null) ordered.add(n);
+        }
+        return ordered;
+    }
+
 
     private List<NewsCardResponse> getMainHotNews() {
-        List<Long> ids = getNewsIdListByRedis(HOT_KEY, 0,4);
+        List<Long> ids = getNewsIdListByRedis(HOT_KEY, 0, 4); // TOP5
+        if (ids.isEmpty()) return List.of();
 
-        // DB 조회
-        List<News> newsList = newsRepository.findAllById(ids);
-
-        // Map으로 변환 (id → News 매핑)
-        Map<Long, News> newsMap = newsList.stream()
-                .collect(Collectors.toMap(News::getId, n -> n));
-
-        // Redis 순서 보존 + DTO 변환
-        return toCards(newsList);
+        List<News> found   = newsRepository.findAllById(ids);
+        List<News> ordered = reorderByIds(found, ids);        // ★ 순서 보존
+        return toCards(ordered);
     }
+
 
     private List<Long> getIdsFromList(String key, int start, int end) {
         List<Object> items = redisTemplate.opsForList().range(key, start, end);
@@ -121,8 +189,6 @@ public class NewsService {
         }
         return ids;
     }
-
-
 
     private List<Long> getNewsIdListByRedis(String redisKey, int min, int max){
         ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
