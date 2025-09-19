@@ -4,6 +4,9 @@ pipeline {
   environment { // 전역 환경변수 정의
     IMAGE_REPO = 'xioz19/my-issue' // 빌드/푸시할 Docker 이미지 경로.
     COMMIT_SHA = 'manual' // 이미지에 버전 태그로 붙여서 이력 추적 가능
+    NGINX_HOST = credentials('NGINX_HOST')
+    NGINX_USER = credentials('NGINX_USER')
+    NGINX_CONF = credentials('NGINX_CONF')
   }
 
   options {
