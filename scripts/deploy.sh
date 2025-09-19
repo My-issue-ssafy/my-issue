@@ -17,6 +17,9 @@ HEALTH_PATH="/actuator/health"
 
 echo "▶ IMAGE=${APP_IMAGE}"
 
+echo "== deploy.sh ENV CHECK =="
+env | grep SPRING
+
 # 1) 현재 활성 포트 판정
 if [[ -f "${NGINX_UPSTREAM_FILE}" ]]; then
   FIRST_LINE=$(head -n 1 "${NGINX_UPSTREAM_FILE}")
