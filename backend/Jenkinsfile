@@ -131,21 +131,19 @@ pipeline {
             ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "chmod +x /home/$SSH_USER/deploy.sh"
 
             # 3. 원격 서버에서 환경변수 붙여 실행
-            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" << EOF
-              export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}"
-              export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}"
-              export SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}"
-              export JWT_SECRET_BASE64="${JWT_SECRET_BASE64}"
-              export REDIS_PASSWORD="${REDIS_PASSWORD}"
-              export AWS_ACCESS_KEY="${AWS_ACCESS_KEY}"
-              export AWS_SECRET_KEY="${AWS_SECRET_KEY}"
-              export GMS_KEY="${GMS_KEY}"
-              export APP_RECOMMEND_BASE_URL="${APP_RECOMMEND_BASE_URL}"
-              export APP_RECOMMEND_DEFAULT_PARAMS="${APP_RECOMMEND_DEFAULT_PARAMS}"
-              export SPRING_PROFILES_ACTIVE=prod
-
-              /home/ubuntu/deploy.sh ${COMMIT_SHA}
-            EOF
+            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \
+              SPRING_DATASOURCE_URL="$SPRING_DATASOURCE_URL" \
+              SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \
+              SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD" \
+              JWT_SECRET_BASE64="$JWT_SECRET_BASE64" \
+              REDIS_PASSWORD="$REDIS_PASSWORD" \
+              AWS_ACCESS_KEY="$AWS_ACCESS_KEY" \
+              AWS_SECRET_KEY="$AWS_SECRET_KEY" \
+              GMS_KEY="$GMS_KEY" \
+              APP_RECOMMEND_BASE_URL="$APP_RECOMMEND_BASE_URL" \
+              APP_RECOMMEND_DEFAULT_PARAMS="$APP_RECOMMEND_DEFAULT_PARAMS" \
+              SPRING_PROFILES_ACTIVE=prod \
+              bash /home/ubuntu/deploy.sh ${COMMIT_SHA}
           '''
         }
       }
