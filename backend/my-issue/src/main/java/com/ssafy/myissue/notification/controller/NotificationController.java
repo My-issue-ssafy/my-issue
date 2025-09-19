@@ -26,6 +26,7 @@ import java.util.List;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final FcmPersonalizedSender sender;
 
     @GetMapping
     @Operation(
