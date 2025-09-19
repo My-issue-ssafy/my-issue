@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.news
 
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -22,10 +23,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
+import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.domain.model.NewsSummary
 import kotlinx.coroutines.launch
+
+
+private const val TAG = "NewsScreen"
 
 val NewsFeedType.title: String
     @Composable get() = stringResource(titleRes)
@@ -39,6 +45,7 @@ fun NewsScreen(
     val uiState by viewModel.state.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val analytics = LocalAnalytics.current
 
     LaunchedEffect(Unit) {
         viewModel.getNews()
@@ -51,6 +58,7 @@ fun NewsScreen(
                     .fillMaxSize()
             ) { Loading() }
         }
+
         else -> {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -58,17 +66,21 @@ fun NewsScreen(
                 NewsHOT(
                     list = uiState.main.hot,
                     onItemClick = viewModel::onItemClick,
-                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.HOT) }
+                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.HOT) },
+                    analytics = analytics
                 )
                 NewsRecommend(
                     list = uiState.main.recommend,
                     onItemClick = viewModel::onItemClick,
-                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) }
+                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) },
+                    analytics = analytics
+
                 )
                 NewsLatest(
                     list = uiState.main.latest,
                     onItemClick = viewModel::onItemClick,
-                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.LATEST) }
+                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.LATEST) },
+                    analytics = analytics
                 )
             }
         }
@@ -100,6 +112,7 @@ fun NewsAllScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val analytics = LocalAnalytics.current
 
     LaunchedEffect(type) {
         when (type) {
@@ -133,18 +146,24 @@ fun NewsAllScreen(
                     .fillMaxSize()
             ) { Loading() }
         }
+
         else -> {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(BackgroundColors.Background50),
+                    .fillMaxSize(),
                 contentPadding = PaddingValues(4.dp)
             ) {
                 item { NewsSectionHeader(type.title, onAllClick = null) }
                 NewsAll(
                     list = uiState.items,
                     onItemClick = viewModel::onItemClick,
+                    analytics = analytics,
+                    feedSource = when (type) {
+                        NewsFeedType.HOT -> "hot"
+                        NewsFeedType.RECOMMEND -> "recommend"
+                        NewsFeedType.LATEST -> "latest"
+                    }
                 )
             }
         }
@@ -169,6 +188,7 @@ fun LazyListScope.NewsHOT(
     list: List<NewsSummary>,
     onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
+    analytics: AnalyticsLogger
 ) {
     item {
         NewsSectionHeader(
@@ -184,7 +204,11 @@ fun LazyListScope.NewsHOT(
         item {
             HotNewsPager(
                 items = list,
-                onClick = { news -> onItemClick(news.newsId) }
+                onClick = { news ->
+                    onItemClick(news.newsId)
+                    analytics.logNewsClick(news.newsId, feedSource = "hot")
+                    Log.d(TAG, "logNewsClick: ${news.newsId} hot")
+                }
             )
         }
     }
@@ -194,6 +218,7 @@ fun LazyListScope.NewsRecommend(
     list: List<NewsSummary>,
     onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
+    analytics: AnalyticsLogger
 ) {
     item {
         NewsSectionHeader(
@@ -206,7 +231,17 @@ fun LazyListScope.NewsRecommend(
             NewsEmpty()
         }
     } else {
-        items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
+        items(list) { item ->
+            NewsItem(
+                modifier = Modifier,
+                news = item,
+                onClick = {
+                    onItemClick(item.newsId)
+                    analytics.logNewsClick(item.newsId, feedSource = "recommend")
+                    Log.d(TAG, "logNewsClick: ${item.newsId} recommend")
+                }
+            )
+        }
     }
 
 }
@@ -215,6 +250,7 @@ private fun LazyListScope.NewsLatest(
     list: List<NewsSummary>,
     onItemClick: (Long) -> Unit,
     onAllClick: () -> Unit,
+    analytics: AnalyticsLogger
 ) {
     item {
         NewsSectionHeader(
@@ -227,13 +263,25 @@ private fun LazyListScope.NewsLatest(
             NewsEmpty()
         }
     } else {
-        items(list) { item -> NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) }) }
+        items(list) { item ->
+            NewsItem(
+                modifier = Modifier,
+                news = item,
+                onClick = {
+                    onItemClick(item.newsId)
+                    analytics.logNewsClick(item.newsId, feedSource = "latest")
+                    Log.d(TAG, "logNewsClick: ${item.newsId} latest")
+                }
+            )
+        }
     }
 }
 
 private fun LazyListScope.NewsAll(
     list: List<NewsSummary>,
     onItemClick: (Long) -> Unit,
+    feedSource: String,
+    analytics: AnalyticsLogger
 ) {
     if (list.isEmpty()) {
         item {
@@ -241,7 +289,15 @@ private fun LazyListScope.NewsAll(
         }
     } else {
         items(list) { item ->
-            NewsItem(Modifier, item, onClick = { onItemClick(item.newsId) })
+            NewsItem(
+                modifier = Modifier,
+                news = item,
+                onClick = {
+                    analytics.logNewsClick(item.newsId, feedSource = feedSource)
+                    onItemClick(item.newsId)
+                    Log.d(TAG, "logNewsClick: ${item.newsId} $feedSource")
+                }
+            )
         }
     }
 }

@@ -27,8 +27,8 @@ class NewsAllViewModel @Inject constructor(
     fun getAllRecommendNews(cursor: String? = _state.value.nextCursor, pageSize: Int = 10) =
         loadNews(cursor) { newsRepository.getRecommendNews(cursor, pageSize) }
 
-    fun getAllRecentNews(cursor: String? = _state.value.nextCursor, size: Int = 10) =
-        loadNews(cursor) { newsRepository.getTrendNews(cursor, size) }
+    fun getAllRecentNews(cursor: String? = _state.value.nextCursor, pageSize: Int = 10) =
+        loadNews(cursor) { newsRepository.getTrendNews(cursor, pageSize) }
 
     private fun loadNews(
         cursor: String?,
