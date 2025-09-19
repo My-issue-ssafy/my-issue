@@ -17,6 +17,12 @@ HEALTH_PATH="/actuator/health"
 
 echo "▶ IMAGE=${APP_IMAGE}"
 
+# Firebase secrets 체크
+if [[ ! -f /home/ubuntu/secrets/myissue-firebase.json ]]; then
+  echo "❌ Firebase secrets file not found!"
+  exit 1
+fi
+
 echo "== deploy.sh ENV CHECK =="
 echo "SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}"
 echo "SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}"
@@ -48,6 +54,7 @@ docker rm -f "${NEW_NAME}" >/dev/null 2>&1 || true
 echo "🚀 run ${NEW_NAME} on :${NEW_PORT}"
 docker run -d --name "${NEW_NAME}" \
   -p ${NEW_PORT}:8080 \
+  -e TZ=Asia/Seoul \
   -e SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-prod}" \
   -e SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL:-}" \
   -e SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME:-}" \
@@ -59,6 +66,7 @@ docker run -d --name "${NEW_NAME}" \
   -e GMS_KEY="${GMS_KEY:-}" \
   -e APP_RECOMMEND_BASE_URL="${APP_RECOMMEND_BASE_URL:-}" \
   -e APP_RECOMMEND_DEFAULT_PARAMS="${APP_RECOMMEND_DEFAULT_PARAMS:-}" \
+  -v /home/ubuntu/secrets/myissue-firebase.json:/app/config/myissue-firebase.json \
   "${APP_IMAGE}"
 
 echo "⏳ Waiting for service to be healthy..."
