@@ -4,19 +4,9 @@ pipeline {
   environment { // 전역 환경변수 정의
     IMAGE_REPO = 'xioz19/my-issue' // 빌드/푸시할 Docker 이미지 경로.
     COMMIT_SHA = 'manual' // 이미지에 버전 태그로 붙여서 이력 추적 가능
-    SPRING_DATASOURCE_URL = credentials('SPRING_DATASOURCE_URL')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
-    SPRING_DATASOURCE_USERNAME = credentials('SPRING_DATASOURCE_USERNAME')  // Jenkins에 등록된 보안값
-    SPRING_DATASOURCE_PASSWORD = credentials('SPRING_DATASOURCE_PASSWORD') // Jenkins에 등록된 보안값
     NGINX_HOST = credentials('NGINX_HOST')
     NGINX_USER = credentials('NGINX_USER')
     NGINX_CONF = credentials('NGINX_CONF')
-    JWT_SECRET_BASE64 = credentials('JWT_SECRET_BASE64')
-    REDIS_PASSWORD = credentials('REDIS_PASSWORD')
-    AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY')
-    AWS_SECRET_KEY = credentials('AWS_SECRET_KEY')
-    GMS_KEY = credentials('GMS_KEY')
-    APP_RECOMMEND_BASE_URL = credentials('APP_RECOMMEND_BASE_URL')
-    APP_RECOMMEND_DEFAULT_PARAMS = credentials('APP_RECOMMEND_DEFAULT_PARAMS')
   }
 
   options {
@@ -126,25 +116,36 @@ pipeline {
             usernameVariable: 'SSH_USER'
           )
         ]) {
-          sh """
+          sh '''
             echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
-            scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh "$SSH_USER@$NGINX_HOST:~/deploy.sh"
 
-            ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \\
-              env \\
-                SPRING_DATASOURCE_URL="$SPRING_DATASOURCE_URL" \\
-                SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \\
-                SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD" \\
-                JWT_SECRET_BASE64="$JWT_SECRET_BASE64" \\
-                REDIS_PASSWORD="$REDIS_PASSWORD" \\
-                AWS_ACCESS_KEY="$AWS_ACCESS_KEY" \\
-                AWS_SECRET_KEY="$AWS_SECRET_KEY" \\
-                GMS_KEY="$GMS_KEY" \\
-                APP_RECOMMEND_BASE_URL="$APP_RECOMMEND_BASE_URL" \\
-                APP_RECOMMEND_DEFAULT_PARAMS="$APP_RECOMMEND_DEFAULT_PARAMS" \\
-                SPRING_PROFILES_ACTIVE=prod \\
-              sudo -E ~/deploy.sh ${COMMIT_SHA}
-          """
+            echo "🔎 Checking DB ENV before deploy"
+            echo "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL"
+            echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME"
+            echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD"
+    
+            # 1. deploy.sh 원격 서버에 복사
+            scp -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh $SSH_USER@$NGINX_HOST:/home/$SSH_USER/deploy.sh
+
+            # 2. 원격 서버에서 권한 주기
+            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "chmod +x /home/$SSH_USER/deploy.sh"
+
+            # 3. 원격 서버에서 환경변수 붙여 실행
+            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "
+              export SPRING_DATASOURCE_URL='$SPRING_DATASOURCE_URL' &&
+              export SPRING_DATASOURCE_USERNAME='$SPRING_DATASOURCE_USERNAME' &&
+              export SPRING_DATASOURCE_PASSWORD='$SPRING_DATASOURCE_PASSWORD' &&
+              export JWT_SECRET_BASE64='$JWT_SECRET_BASE64' &&
+              export REDIS_PASSWORD='$REDIS_PASSWORD' &&
+              export AWS_ACCESS_KEY='$AWS_ACCESS_KEY' &&
+              export AWS_SECRET_KEY='$AWS_SECRET_KEY' &&
+              export GMS_KEY='$GMS_KEY' &&
+              export APP_RECOMMEND_BASE_URL='$APP_RECOMMEND_BASE_URL' &&
+              export APP_RECOMMEND_DEFAULT_PARAMS='$APP_RECOMMEND_DEFAULT_PARAMS' &&
+              export SPRING_PROFILES_ACTIVE=prod &&
+              sudo -E bash /home/ubuntu/deploy.sh ${COMMIT_SHA}
+            "
+          '''
         }
       }
     }
