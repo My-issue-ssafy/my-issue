@@ -116,8 +116,13 @@ pipeline {
             usernameVariable: 'SSH_USER'
           )
         ]) {
-          sh """
+          sh '''
             echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
+
+            echo "🔎 Checking DB ENV before deploy"
+            echo "SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL"
+            echo "SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME"
+            echo "SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD"
     
             # 1. deploy.sh 원격 서버에 복사
             scp -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh $SSH_USER@$NGINX_HOST:/home/$SSH_USER/deploy.sh
@@ -139,7 +144,7 @@ pipeline {
               APP_RECOMMEND_DEFAULT_PARAMS="$APP_RECOMMEND_DEFAULT_PARAMS" \\
               SPRING_PROFILES_ACTIVE=prod \\
               /home/$SSH_USER/deploy.sh ${COMMIT_SHA}
-          """
+          '''
         }
       }
     }
