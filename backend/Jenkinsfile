@@ -127,40 +127,23 @@ pipeline {
           )
         ]) {
           sh """
-            export IMAGE_REPO=${env.IMAGE_REPO}
-            export COMMIT_SHA=${env.COMMIT_SHA}
-            export SPRING_DATASOURCE_URL=${env.SPRING_DATASOURCE_URL}
-            export SPRING_DATASOURCE_USERNAME=${env.SPRING_DATASOURCE_USERNAME}
-            export SPRING_DATASOURCE_PASSWORD=${env.SPRING_DATASOURCE_PASSWORD}
-            export JWT_SECRET_BASE64=${env.JWT_SECRET_BASE64}
-            export REDIS_PASSWORD=${env.REDIS_PASSWORD}
-            export AWS_ACCESS_KEY=${env.AWS_ACCESS_KEY}
-            export AWS_SECRET_KEY=${env.AWS_SECRET_KEY}
-            export GMS_KEY=${env.GMS_KEY}
-            export APP_RECOMMEND_DEFAULT_PARAMS=${env.APP_RECOMMEND_DEFAULT_PARAMS}
-            export APP_RECOMMEND_BASE_URL=${env.APP_RECOMMEND_BASE_URL}
-            export SPRING_PROFILES_ACTIVE=prod
+            echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
+            scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh "$SSH_USER@$NGINX_HOST:~/deploy.sh"
 
-            bash -c '
-              set -euo pipefail
-              echo "🚀 Start Deploying \$IMAGE_REPO:\$COMMIT_SHA"
-              scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" scripts/deploy.sh "\$SSH_USER@\$NGINX_HOST:~/deploy.sh"
-              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SSH_USER@\$NGINX_HOST" \\
-                "export SPRING_DATASOURCE_URL='${env.SPRING_DATASOURCE_URL}' && \\
-                 export SPRING_DATASOURCE_USERNAME='${env.SPRING_DATASOURCE_USERNAME}' && \\
-                 export SPRING_DATASOURCE_PASSWORD='${env.SPRING_DATASOURCE_PASSWORD}' && \\
-                 export JWT_SECRET_BASE64='${env.JWT_SECRET_BASE64}' && \\
-                 export REDIS_PASSWORD='${env.REDIS_PASSWORD}' && \\
-                 export AWS_ACCESS_KEY='${env.AWS_ACCESS_KEY}' && \\
-                 export AWS_SECRET_KEY='${env.AWS_SECRET_KEY}' && \\
-                 export GMS_KEY='${env.GMS_KEY}' && \\
-                 export APP_RECOMMEND_DEFAULT_PARAMS='${env.APP_RECOMMEND_DEFAULT_PARAMS}' && \\
-                 export APP_RECOMMEND_BASE_URL='${env.APP_RECOMMEND_BASE_URL}' && \\
-
-                 export SPRING_PROFILES_ACTIVE=prod && \\
-                 chmod +x ~/deploy.sh && \\
-                 sudo -E ~/deploy.sh \$COMMIT_SHA"
-            '
+            ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \\
+              env \\
+                SPRING_DATASOURCE_URL="$SPRING_DATASOURCE_URL" \\
+                SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \\
+                SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD" \\
+                JWT_SECRET_BASE64="$JWT_SECRET_BASE64" \\
+                REDIS_PASSWORD="$REDIS_PASSWORD" \\
+                AWS_ACCESS_KEY="$AWS_ACCESS_KEY" \\
+                AWS_SECRET_KEY="$AWS_SECRET_KEY" \\
+                GMS_KEY="$GMS_KEY" \\
+                APP_RECOMMEND_BASE_URL="$APP_RECOMMEND_BASE_URL" \\
+                APP_RECOMMEND_DEFAULT_PARAMS="$APP_RECOMMEND_DEFAULT_PARAMS" \\
+                SPRING_PROFILES_ACTIVE=prod \\
+              sudo -E ~/deploy.sh ${COMMIT_SHA}
           """
         }
       }
