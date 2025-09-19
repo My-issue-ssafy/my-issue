@@ -69,7 +69,7 @@ done
 [[ "${ok:-0}" -eq 1 ]] || { echo "❌ health FAILED"; docker logs --tail=200 "${NEW_NAME}" || true; exit 1; }
 
 # 4) 업스트림 스위칭(127.0.0.1:포트)
-cat > "${NGINX_UPSTREAM_FILE}" <<EOF
+sudo cat > "${NGINX_UPSTREAM_FILE}" <<EOF
 server 127.0.0.1:${NEW_PORT} max_fails=3 fail_timeout=5s;
 server 127.0.0.1:${ACTIVE_PORT} backup max_fails=3 fail_timeout=5s;
 EOF
