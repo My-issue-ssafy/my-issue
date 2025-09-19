@@ -2,15 +2,21 @@ package com.ssafy.myissue.notification.controller;
 
 import com.ssafy.myissue.notification.dto.NotificationsResponse;
 import com.ssafy.myissue.notification.dto.SliceResponseDto;
+import com.ssafy.myissue.notification.dto.fcm.PersonalizedPush;
+import com.ssafy.myissue.notification.dto.fcm.SendSummary;
 import com.ssafy.myissue.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Hidden;
+import com.ssafy.myissue.notification.service.impl.FcmPersonalizedSender;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.models.responses.ApiResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -20,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final FcmPersonalizedSender sender;
 
     @GetMapping
     @Operation(
@@ -41,7 +48,7 @@ public class NotificationController {
 
     @GetMapping("/unread")
     @Operation(
-            summary = "내 알림 중 읽지 않은 알림 존재 여부 조회(헤더 동그라미 표시용)",
+            summary = "내 알림 중 읽지 않은 알림 존재 여부 조회",
             description = "### - 읽지 않은 알림이 하나라도 있으면 true, 없으면 false 반환"
     )
     public ResponseEntity<Boolean> findUnreadNotification(@AuthenticationPrincipal Long userId) {
@@ -107,6 +114,11 @@ public class NotificationController {
 
         notificationService.updateNotificationReadStatus(userId, notificationId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/send-personalized")
+    public ResponseEntity<SendSummary> send(@RequestBody List<PersonalizedPush> req) {
+        return ResponseEntity.ok(sender.sendPersonalized(req));
     }
 
 }

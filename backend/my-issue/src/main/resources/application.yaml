@@ -50,7 +50,6 @@ logging:
 jwt:
   secret-base64: ${JWT_SECRET_BASE64}
 
-
 cloud:
   aws:
     s3:
@@ -70,3 +69,7 @@ app:
   recommend:
     url: ${APP_RECOMMEND_BASE_URL}
     params: ${APP_RECOMMEND_DEFAULT_PARAMS}
+
+fcm:
+  fire_path: ${FIREBASE_PATH}
+  project-id: ${PROJECT_ID}
