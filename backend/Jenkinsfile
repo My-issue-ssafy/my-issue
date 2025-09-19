@@ -128,8 +128,6 @@ pipeline {
         ]) {
           sh """
             echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
-            scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh "$SSH_USER@$NGINX_HOST:~/deploy.sh"
-
             ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" \\
               env \\
                 SPRING_DATASOURCE_URL="$SPRING_DATASOURCE_URL" \\
