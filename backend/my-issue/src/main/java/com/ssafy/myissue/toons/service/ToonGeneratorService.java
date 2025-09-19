@@ -34,7 +34,7 @@ import java.util.List;
 
         // 어제 기준 TOP 10 뉴스 가져오기
 //        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(0, 10)); // 원래는 이건데 지금 1개로 실험중
-        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(0, 1));
+        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(1, 1));
 
         for (News news : topNews) {
             // 1. GPT 요약본 생성
