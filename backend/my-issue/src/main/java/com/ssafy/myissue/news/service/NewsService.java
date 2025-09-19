@@ -16,6 +16,7 @@ import com.ssafy.myissue.common.exception.CustomException;      // [ADDED]
 import com.ssafy.myissue.common.exception.ErrorCode;          // [ADDED]
 import com.ssafy.myissue.news.infrastructure.NewsScrapRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -28,6 +29,7 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -49,7 +51,6 @@ public class NewsService {
         List<NewsCardResponse> hotCards = getMainHotNews();
 
         List<NewsCardResponse> recommendCards = getMainRecommendNews(userId);
-
         List<NewsCardResponse> latestCards = toCards(newsRepository.findLatestPage(null, null, 5));
 
         return new NewsHomeResponse(hotCards, recommendCards, latestCards);
@@ -88,7 +89,7 @@ public class NewsService {
 
         // 4. Redis에서 상위 5개 꺼내서 DTO 변환
 
-        List<Long> topIds = getNewsIdListByRedis(redisKey, 0, 4);
+        List<Long> topIds = getIdsFromList(redisKey, 0, 4);
         List<News> newsList = newsRepository.findAllById(topIds);
         return toCards(newsList);
     }
@@ -107,6 +108,21 @@ public class NewsService {
         // Redis 순서 보존 + DTO 변환
         return toCards(newsList);
     }
+
+    private List<Long> getIdsFromList(String key, int start, int end) {
+        List<Object> items = redisTemplate.opsForList().range(key, start, end);
+        if (items == null || items.isEmpty()) return List.of();
+        List<Long> ids = new ArrayList<>(items.size());
+        for (Object it : items) {
+            String s = String.valueOf(it);
+            int colon = s.indexOf(':');
+            String idPart = (colon >= 0) ? s.substring(0, colon) : s;
+            try { ids.add(Long.valueOf(idPart)); } catch (NumberFormatException ignore) {}
+        }
+        return ids;
+    }
+
+
 
     private List<Long> getNewsIdListByRedis(String redisKey, int min, int max){
         ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
