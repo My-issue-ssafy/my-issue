@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 
 @Configuration
@@ -22,17 +23,17 @@ public class FcmConfig {
             @Value("${fcm.project-id}") String projectId
         ) throws IOException {
         // resources 폴더에서 Firebase Admin SDK JSON 파일을 읽어옴
-        ClassPathResource resource = new ClassPathResource(firebasePath);
+        try (FileInputStream serviceAccount = new FileInputStream(firebasePath)) {
+            FirebaseOptions options = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setProjectId(projectId)
+                    .build();
 
-        FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(resource.getInputStream()))
-                .setProjectId(projectId)
-                .build();
-
-        if (FirebaseApp.getApps().isEmpty()) {
-            return FirebaseApp.initializeApp(options);
+            if (FirebaseApp.getApps().isEmpty()) {
+                return FirebaseApp.initializeApp(options);
+            }
+            return FirebaseApp.getInstance();
         }
-        return FirebaseApp.getInstance();
     }
 
     @Bean
