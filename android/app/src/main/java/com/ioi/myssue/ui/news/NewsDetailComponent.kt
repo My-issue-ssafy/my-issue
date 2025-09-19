@@ -3,20 +3,26 @@ package com.ioi.myssue.ui.news
 import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,19 +33,19 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -59,7 +65,10 @@ import com.ioi.myssue.R
 import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background500
+import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsBlock
+import com.ioi.myssue.domain.model.NewsSummary
+import com.ioi.myssue.ui.chat.ChatBotContent
 import com.ioi.myssue.ui.common.clickableNoRipple
 import kotlinx.coroutines.flow.collectLatest
 
@@ -68,7 +77,7 @@ private const val TAG = "NewsDetailComponent"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsDetail(
-    newsId: Long?,
+    newsId: Long,
     sheetState: SheetState,
     onDismiss: () -> Unit,
     viewModel: NewsDetailViewModel = hiltViewModel()
@@ -76,6 +85,7 @@ fun NewsDetail(
     val state = viewModel.uiState.collectAsState().value
     val scroll = rememberScrollState()
     val analytics = LocalAnalytics.current
+    val chatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(newsId) {
         viewModel.getNewsDetail(newsId)
@@ -97,30 +107,48 @@ fun NewsDetail(
         analytics = analytics
     )
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
-        containerColor = Color.White,
-        dragHandle = { SheetDragHandle() },
-    ) {
-        NewsDetailSheet(
-            title = state.title,
-            author = state.author,
-            newspaper = state.newspaper,
-            displayTime = state.displayTime,
-            blocks = state.blocks,
-            isBookmarked = state.isBookmarked,
-            onToggleBookmark = {
-                if (state.newsId != null) {
+    if(state.c) {
+        MyssueBottomSheet(
+            sheetState = chatSheetState,
+            onDismissRequest = viewModel::closeChat
+        ) {
+            ChatBotContent(
+                newsSummary = NewsSummary(
+                    newsId = state.newsId,
+                    title = state.title,
+                    author = state.author,
+                    newspaper = state.newspaper,
+                    thumbnail = state.thumbnail,
+                )
+            )
+        }
+    }
+    else {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+            containerColor = Color.White,
+            dragHandle = { SheetDragHandle() },
+            modifier = Modifier.systemBarsPadding()
+        ) {
+            NewsDetailSheet(
+                title = state.title,
+                author = state.author,
+                newspaper = state.newspaper,
+                displayTime = state.displayTime,
+                blocks = state.blocks,
+                isBookmarked = state.isBookmarked,
+                onToggleBookmark = {
                     val action = if (state.isBookmarked) "remove" else "add"
                     analytics.logNewsBookmark(state.newsId, action)
                     Log.d(TAG, "logNewsBookmark: newsId:$newsId action:$action")
-                }
-                viewModel.toggleBookmark()
-            },
-            scrollState = scroll
-        )
+                    viewModel.toggleBookmark()
+                },
+                scrollState = scroll,
+                openChat = { viewModel.openChat() },
+            )
+        }
     }
 }
 
@@ -159,29 +187,79 @@ fun NewsDetailSheet(
     blocks: List<NewsBlock>,
     isBookmarked: Boolean,
     onToggleBookmark: () -> Unit,
-    scrollState: ScrollState
+    scrollState: ScrollState,
+    openChat: (NewsSummary) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.9f),
-        horizontalAlignment = Alignment.Start
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopStart
     ) {
-        NewsDetailHeader(
-            title = title,
-            author = author,
-            newspaper = newspaper,
-            displayTime = displayTime,
-            isBookmarked = isBookmarked,
-            onToggleBookmark = onToggleBookmark
-        )
-        Spacer(Modifier.height(12.dp))
-        NewsDetailBody(
-            blocks = blocks,
-            scrollState = scrollState
-        )
+        Column {
+            NewsDetailHeader(
+                title = title,
+                author = author,
+                newspaper = newspaper,
+                displayTime = displayTime,
+                isBookmarked = isBookmarked,
+                onToggleBookmark = onToggleBookmark
+            )
+            Spacer(Modifier.height(12.dp))
+            NewsDetailBody(
+                blocks = blocks,
+                scrollState = scrollState
+            )
+        }
+
+        ChatbotButton {
+            openChat(
+                NewsSummary(
+                    newsId = -1,
+                    title = title,
+                    author = author,
+                    newspaper = newspaper,
+                    thumbnail = (blocks.firstOrNull { it is NewsBlock.Image } as? NewsBlock.Image)?.url
+                        ?: "",
+                    category = ""
+                )
+            )
+        }
     }
 }
+
+@Composable
+fun BoxScope.ChatbotButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val iconRes = if (isPressed) {
+        R.drawable.ic_chatbot_pressed
+    } else {
+        R.drawable.ic_chatbot
+    }
+
+    Image(
+        painter = painterResource(iconRes),
+        contentDescription = null,
+        modifier = modifier
+            .padding(12.dp)
+            .size(60.dp)
+            .shadow(
+                elevation = 2.dp,
+                shape = CircleShape
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                onClick()
+            }
+            .align(Alignment.BottomEnd)
+    )
+}
+
 
 // 시트 핸들
 @Composable
@@ -230,8 +308,7 @@ fun NewsDetailHeader(
                 .fillMaxWidth()
 
         ) {
-            // 신문사, 기자
-            Row() {
+            Row {
                 Text(
                     text = newspaper,
                     style = typography.bodyMedium,
@@ -285,6 +362,7 @@ fun NewsDetailBody(
         modifier = Modifier
             .nestedScroll(blockSheetDrag)
             .verticalScroll(scrollState)
+            .padding(bottom = 72.dp)
     ) {
         blocks.forEach { block ->
             when (block) {
@@ -352,6 +430,7 @@ private fun TrackNewsViewEnd(
     }
 
     LaunchedEffect(newsId, scrollState) {
+        if(newsId < 0) return@LaunchedEffect
         snapshotFlow { scrollState.value to scrollState.maxValue }
             .collectLatest { (value, max) ->
                 val pct = if (max > 0) {
@@ -362,9 +441,8 @@ private fun TrackNewsViewEnd(
     }
     DisposableEffect(newsId) {
         onDispose {
+            if(newsId < 0) return@onDispose
             val dwell = SystemClock.elapsedRealtime() - sessionStart
-            if (dwell < 300) return@onDispose
-
             analytics.logNewsViewEnd(newsId, dwellMs = dwell, scrollPct = maxPct)
             Log.d("logNewsViewEnd", "newsId=$newsId dwell=$dwell scroll=$maxPct")
         }

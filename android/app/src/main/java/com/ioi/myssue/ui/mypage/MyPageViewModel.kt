@@ -9,7 +9,10 @@ import com.ioi.myssue.navigation.Navigator
 import com.ioi.myssue.ui.mypage.myscrap.MyScrapUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,15 +25,21 @@ class MyPageViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var _state = MutableStateFlow(MyPageUiState())
-    val state = _state.asStateFlow()
+    val state = _state.onSubscription {
+        initData()
+    }.stateIn(
+        scope = viewModelScope,
+        started = WhileSubscribed(5_000),
+        initialValue = MyPageUiState()
+    )
 
-    fun initData() {
+    private fun initData() {
+        _state.update { it.copy(isLoadingScrapNews = true, isLoadingLikeToons = true) }
         loadMyScraps()
         loadMyToons()
     }
 
-    private fun loadMyScraps() = viewModelScope.launch {
-        _state.update { it.copy(isLoadingScrapNews = true) }
+    fun loadMyScraps() = viewModelScope.launch {
         runCatching { newsRepository.getBookmarkedNews(cursor = null, size = 15) }
             .onSuccess { cursorPage ->
                 _state.update {
@@ -45,8 +54,7 @@ class MyPageViewModel @Inject constructor(
             }
     }
 
-    private fun loadMyToons() = viewModelScope.launch {
-        _state.update { it.copy(isLoadingLikeToons = true) }
+    fun loadMyToons() = viewModelScope.launch {
         runCatching { cartoonRepository.getLikedCartoons(0L, 20) }
             .onSuccess { cartoonNews ->
                 _state.update {

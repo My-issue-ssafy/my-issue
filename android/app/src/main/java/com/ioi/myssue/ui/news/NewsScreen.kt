@@ -92,10 +92,7 @@ fun NewsScreen(
             newsId = id,
             sheetState = sheetState,
             onDismiss = {
-                scope.launch {
-                    sheetState.hide()
-                    viewModel.onItemClose()
-                }
+                viewModel.onItemClose()
             }
         )
     }
@@ -175,10 +172,7 @@ fun NewsAllScreen(
             newsId = id,
             sheetState = sheetState,
             onDismiss = {
-                scope.launch {
-                    sheetState.hide()
-                    viewModel.onItemClose()
-                }
+                viewModel.onItemClose()
             }
         )
     }

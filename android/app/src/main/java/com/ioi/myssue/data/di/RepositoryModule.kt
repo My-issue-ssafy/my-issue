@@ -1,8 +1,10 @@
 package com.ioi.myssue.data.di
 
 import com.ioi.myssue.data.repository.CartoonRepositoryImpl
+import com.ioi.myssue.data.repository.ChatBotRepositoryImpl
 import com.ioi.myssue.data.repository.NewsRepositoryImpl
 import com.ioi.myssue.domain.repository.CartoonRepository
+import com.ioi.myssue.domain.repository.ChatBotRepository
 import com.ioi.myssue.domain.repository.NewsRepository
 import dagger.Binds
 import dagger.Module
@@ -22,4 +24,7 @@ interface RepositoryModule {
     @Binds
     fun bindCartoonRepository(repository: CartoonRepositoryImpl): CartoonRepository
 
+    @Singleton
+    @Binds
+    fun bindChatBotRepository(repository: ChatBotRepositoryImpl) : ChatBotRepository
 }

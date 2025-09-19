@@ -120,3 +120,51 @@ fun NewsSummary(
         }
     }
 }
+
+
+@Composable
+fun NewsSummaryWithPublisher(
+    modifier: Modifier = Modifier,
+    newsSummary: NewsSummary,
+    fontColor: Color = Color.Black,
+    onClick: (Long) -> Unit = { }
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.clickable{onClick(newsSummary.newsId)}
+    ) {
+        Card(
+            shape = RoundedCornerShape(4.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            modifier = Modifier.size(68.dp).aspectRatio(1f),
+            colors = CardDefaults.cardColors(
+                containerColor = BackgroundColors.Background50
+            )
+        ) {
+            AsyncImage(
+                model = newsSummary.thumbnail,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.ic_empty_thumbnail),
+            )
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            Text(
+                text = newsSummary.title,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = fontColor,
+                maxLines = 2
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = newsSummary.newspaper,
+                style = MaterialTheme.typography.labelSmall,
+                color = BackgroundColors.Background50
+            )
+        }
+    }
+}

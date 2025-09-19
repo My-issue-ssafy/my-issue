@@ -1,5 +1,7 @@
 package com.ioi.myssue.domain.model
 
+import androidx.compose.material3.MaterialTheme
+
 data class NewsSummary (
     val newsId: Long = -1L,
     val title: String = "",

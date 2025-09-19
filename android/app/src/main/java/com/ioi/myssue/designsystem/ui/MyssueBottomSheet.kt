@@ -1,5 +1,6 @@
 package com.ioi.myssue.designsystem.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
@@ -21,7 +22,7 @@ fun MyssueBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 55.dp, topEnd = 55.dp),
+        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
         containerColor = AppColors.Primary300,
         dragHandle = {
             BottomSheetDefaults.DragHandle(
@@ -29,7 +30,7 @@ fun MyssueBottomSheet(
                 width = 80.dp
             )
         },
-        modifier = Modifier.systemBarsPadding()
+        modifier = Modifier.fillMaxSize().systemBarsPadding()
     ) {
         content()
     }

@@ -71,10 +71,6 @@ fun MyPageScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analytics = LocalAnalytics.current
 
-    LaunchedEffect(Unit) {
-        viewModel.initData()
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -124,49 +120,13 @@ fun MyPageScreen(
                 navigateToNews = viewModel::navigateToCartoonNews
             )
         }
-//        SwitchWithTitle("알림 설정", true, {})
     }
 
-    if (state.selectedNewsId != null) {
+    state.selectedNewsId?.let{
         NewsDetail(
-            newsId = state.selectedNewsId,
+            newsId = it,
             sheetState = sheetState,
             onDismiss = { viewModel.closeNewsDetail() }
-        )
-    }
-}
-
-@Composable
-fun SwitchWithTitle(
-    title: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .background(BackgroundColors.Background300.copy(0.35f), RoundedCornerShape(24.dp))
-            .padding(horizontal = 24.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            color = AppColors.Primary600,
-            style = MaterialTheme.typography.titleMedium,
-        )
-
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors().copy(
-                checkedTrackColor = AppColors.Primary400,
-                checkedBorderColor = AppColors.Primary400,
-                uncheckedTrackColor = BackgroundColors.Background400,
-                uncheckedBorderColor = BackgroundColors.Background400,
-                uncheckedThumbColor = BackgroundColors.Background50
-            )
         )
     }
 }

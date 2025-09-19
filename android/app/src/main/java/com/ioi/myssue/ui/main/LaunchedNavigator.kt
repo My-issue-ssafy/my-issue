@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.main
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -21,7 +22,7 @@ fun LaunchedNavigator(
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(routerViewModel, lifecycleOwner) {
+    LaunchedEffect(routerViewModel, lifecycleOwner, currentTab) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
             routerViewModel.sideEffect.collectLatest { sideEffect ->
                 when (sideEffect) {
