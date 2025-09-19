@@ -3,6 +3,7 @@ package com.ssafy.myissue.notification.controller;
 import com.ssafy.myissue.notification.dto.NotificationsResponse;
 import com.ssafy.myissue.notification.dto.SliceResponseDto;
 import com.ssafy.myissue.notification.service.NotificationService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
@@ -40,7 +41,7 @@ public class NotificationController {
 
     @GetMapping("/unread")
     @Operation(
-            summary = "내 알림 중 읽지 않은 알림 존재 여부 조회",
+            summary = "내 알림 중 읽지 않은 알림 존재 여부 조회(헤더 동그라미 표시용)",
             description = "### - 읽지 않은 알림이 하나라도 있으면 true, 없으면 false 반환"
     )
     public ResponseEntity<Boolean> findUnreadNotification(@AuthenticationPrincipal Long userId) {
@@ -95,6 +96,7 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.getNotificationStatus(userId));
     }
 
+    @Hidden
     @PatchMapping("/{notificationId}/read")
     @Operation(
             summary = "내 알림 읽음 처리",
