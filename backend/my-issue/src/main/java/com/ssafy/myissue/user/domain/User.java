@@ -27,9 +27,10 @@ public class User {
 
     private Instant lastSeen;
 
-    public static User newOf(String uuid) {
+    public static User newOf(String uuid, String fcmToken) {
         return User.builder()
                 .uuid(uuid)
+                .fcmToken(fcmToken)
                 .lastSeen(Instant.now())
                 .build();
     }
