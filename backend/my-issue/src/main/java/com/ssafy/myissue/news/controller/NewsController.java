@@ -38,7 +38,7 @@ public class NewsController {
     @GetMapping("/hot")
     public ResponseEntity<CursorPage<NewsCardResponse>> getHot(@RequestParam(value = "cursor", required = false) String cursor, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
     ) {
-        return ResponseEntity.ok(newsService.getHot(cursor, safeSize(size, 20, 50)));
+        return ResponseEntity.ok(newsService.getHotByRedis(cursor, safeSize(size, 20, 50)));
     }
 
     /** 최신 전체 (무한 스크롤) */
