@@ -124,6 +124,36 @@ public class NewsService {
         return new CursorPage<>(toCards(ordered), next, hasNext);
     }
 
+    // 추천: Redis LIST("id:score") 기반 무한스크롤 (10개씩)
+    public CursorPage<NewsCardResponse> getRecommendByRedis(Long userId, String cursor, int size) {
+        final int pageSize = (size <= 0) ? 10 : size;
+
+        String listKey = RECOMMEND_KEY_PREFIX + userId; // LIST: "id:score"
+
+        RecommendListOffsetCursor c = null;
+        if (cursor != null && !cursor.isBlank()) {
+            c = CursorCodec.decode(cursor, RecommendListOffsetCursor.class);
+        }
+        int start = (c == null) ? 0 : Math.max(0, c.offset());
+
+        Long llenL = redisTemplate.opsForList().size(listKey);
+        int llen = (llenL == null) ? 0 : llenL.intValue();
+        if (llen == 0) return new CursorPage<>(List.of(), null, false);
+
+        int endExclusive = Math.min(start + pageSize, llen);
+        if (start >= endExclusive) return new CursorPage<>(List.of(), null, false);
+
+        List<Long> ids = getIdsFromList(listKey, start, endExclusive - 1); // inclusive
+        if (ids.isEmpty()) return new CursorPage<>(List.of(), null, false);
+
+        List<News> found = newsRepository.findAllById(ids);
+        List<News> ordered = reorderByIds(found, ids); // 리스트 순서 보존
+
+        boolean hasNext = endExclusive < llen;
+        String next = hasNext ? CursorCodec.encode(new RecommendListOffsetCursor(endExclusive)) : null;
+
+        return new CursorPage<>(toCards(ordered), next, hasNext);
+    }
 
     // Redis에서 받은 id 순서대로 DB 결과 재정렬 (반드시 사용!)
     private List<News> reorderByIds(List<News> found, List<Long> ids) {
