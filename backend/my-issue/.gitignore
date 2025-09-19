@@ -37,3 +37,4 @@ out/
 .vscode/
 
 *.env
+**/myissue-firebase.json

@@ -38,7 +38,7 @@ public class NewsController {
     @GetMapping("/hot")
     public ResponseEntity<CursorPage<NewsCardResponse>> getHot(@RequestParam(value = "cursor", required = false) String cursor, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
     ) {
-        return ResponseEntity.ok(newsService.getHot(cursor, safeSize(size, 20, 50)));
+        return ResponseEntity.ok(newsService.getHotByRedis(cursor, safeSize(size, 20, 50)));
     }
 
     /** 최신 전체 (무한 스크롤) */
@@ -49,8 +49,8 @@ public class NewsController {
 
     /** 추천 전체 (무한 스크롤) — 추천 엔진 전까지 최신과 동일 동작 */
     @GetMapping("/recommend")
-    public ResponseEntity<CursorPage<NewsCardResponse>> getRecommend(@RequestParam(value = "cursor", required = false) String cursor, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size) {
-        return ResponseEntity.ok(newsService.getLatest(cursor, safeSize(size, 20, 50)));
+    public ResponseEntity<CursorPage<NewsCardResponse>> getRecommend(@AuthenticationPrincipal Long userId, @RequestParam(value = "cursor", required = false) String cursor, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size) {
+        return ResponseEntity.ok(newsService.getRecommendByRedis(userId, cursor, safeSize(size, 20, 50)));
     }
 
     /** 뉴스 상세 */

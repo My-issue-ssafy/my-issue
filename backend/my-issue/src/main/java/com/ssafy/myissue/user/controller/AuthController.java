@@ -5,6 +5,7 @@ import com.ssafy.myissue.user.dto.RegisterDeviceResponse;
 import com.ssafy.myissue.user.dto.RegisterFcmTokenRequest;
 import com.ssafy.myissue.user.dto.TokenPairResponse;
 import com.ssafy.myissue.user.service.AuthService;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,16 +29,16 @@ public class AuthController {
     // HttpServletResponse header에 accessToken 담아야 하니 받아야 함
     @PostMapping("/device")
     @Operation(
-        summary = "device 등록 및 jwt 토큰 발급",
+        summary = "device/FCM 토큰 등록 및 jwt 토큰 발급",
         description = """
-                ### - 클라이언트에서 디바이스 UUID를 전달하면, 신규 가입 또는 기존 사용자 로그인 처리</li>
+                ### - 클라이언트에서 디바이스 UUID와 FCM 토큰을 전달하면, 신규 가입 또는 기존 사용자 로그인 처리</li>
                 ### - 성공 시 AccessToken은 <b>응답 헤더(Authorization: Bearer ...)</b>, RefreshToken은 <b>쿠키(refreshToken)</b>로 내려감</li>
                 """
     )
     public ResponseEntity<RegisterDeviceResponse> registerDevice(@RequestBody RegisterDeviceRequest req, HttpServletResponse response) {
         log.debug("[Device 등록 - RequestBody] deviceUuid: {}", req.deviceUuid());
 
-        TokenPairResponse tokenPairResponse = authService.registerOrLogin(req.deviceUuid(), response);
+        TokenPairResponse tokenPairResponse = authService.registerOrLogin(req.deviceUuid(), req.fcmToken(), response);
 
         return ResponseEntity.ok(RegisterDeviceResponse.from(tokenPairResponse.userId()));
     }
@@ -59,7 +60,7 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
-
+    @Hidden
     @PostMapping("/fcm")
     @Operation(
         summary = "유저 FCM 토큰 등록",
