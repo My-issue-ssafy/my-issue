@@ -42,7 +42,7 @@ pipeline {
 
     stage('Build & Test') {
       steps {
-        gitlabCommitStatus(name: 'jenkins-ci') {
+        gitlabCommitStatus(name: 'Build & Test') {
           dir('backend/my-issue') {
             sh './gradlew clean build -x test'
           }
@@ -55,22 +55,24 @@ pipeline {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        sh '''
-          echo "=== Docker Build (backend/my-issue) ==="
-          export DOCKER_BUILDKIT=1
-          # 이전 빌드 결과 캐시로 활용
-          docker pull ${IMAGE_REPO}:latest || true
+        gitlabCommitStatus(name: 'Docker Build') {
+          sh '''
+            echo "=== Docker Build (backend/my-issue) ==="
+            export DOCKER_BUILDKIT=1
+            # 이전 빌드 결과 캐시로 활용
+            docker pull ${IMAGE_REPO}:latest || true
 
-          docker build \
-            --pull \
-            --cache-from=${IMAGE_REPO}:latest \
-            -f backend/my-issue/Dockerfile \
-            -t ${IMAGE_REPO}:latest \
-            -t ${IMAGE_REPO}:${COMMIT_SHA} \
-            backend/my-issue
-        '''
-        // Dockerfile 경로 지정 -> 최신 태그로도 빌드 -> 커밋 SHA 태그로도 빌드
-        // Docker 이미지 2개 태그로 빌더 (latest + 커밋 버전)
+            docker build \
+              --pull \
+              --cache-from=${IMAGE_REPO}:latest \
+              -f backend/my-issue/Dockerfile \
+              -t ${IMAGE_REPO}:latest \
+              -t ${IMAGE_REPO}:${COMMIT_SHA} \
+              backend/my-issue
+          '''
+          // Dockerfile 경로 지정 -> 최신 태그로도 빌드 -> 커밋 SHA 태그로도 빌드
+          // Docker 이미지 2개 태그로 빌더 (latest + 커밋 버전)
+        }
       }
     }
 
@@ -79,17 +81,19 @@ pipeline {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        withCredentials([usernamePassword( // Jenkins에 등록된 Docker Hub 크리덴셜 사용
-          credentialsId: 'dockerhub-cred',
-          usernameVariable: 'DOCKER_USER',
-          passwordVariable: 'DOCKER_PASS'
-        )]) { // Docker Hub 로그인/푸시/로그아웃
-          sh '''
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-            docker push ${IMAGE_REPO}:${COMMIT_SHA}
-            docker push ${IMAGE_REPO}:latest
-            docker logout || true
-          '''
+        gitlabCommitStatus(name: 'Push to Docker Hub') {
+          withCredentials([usernamePassword( // Jenkins에 등록된 Docker Hub 크리덴셜 사용
+            credentialsId: 'dockerhub-cred',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )]) { // Docker Hub 로그인/푸시/로그아웃
+            sh '''
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+              docker push ${IMAGE_REPO}:${COMMIT_SHA}
+              docker push ${IMAGE_REPO}:latest
+              docker logout || true
+            '''
+          }
         }
       }
     }
@@ -99,57 +103,59 @@ pipeline {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        withCredentials([
-          string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
-          string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
-          string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
-          string(credentialsId: 'JWT_SECRET_BASE64', variable: 'JWT_SECRET_BASE64'),
-          string(credentialsId: 'REDIS_PASSWORD', variable: 'REDIS_PASSWORD'),
-          string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY'),
-          string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_KEY'),
-          string(credentialsId: 'GMS_KEY', variable: 'GMS_KEY'),
-          string(credentialsId: 'APP_RECOMMEND_BASE_URL', variable: 'APP_RECOMMEND_BASE_URL'),
-          string(credentialsId: 'APP_RECOMMEND_DEFAULT_PARAMS', variable: 'APP_RECOMMEND_DEFAULT_PARAMS'),
-          string(credentialsId: 'FIREBASE_TOKEN', variable: 'FIREBASE_TOKEN'),
-          sshUserPrivateKey(
-            credentialsId: 'ec2-ssh-key-pem',
-            keyFileVariable: 'SSH_KEY',
-            usernameVariable: 'SSH_USER'
-          )
-        ]) {
-          sh '''
-            echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
+        gitlabCommitStatus(name: 'Deploy') {
+          withCredentials([
+            string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
+            string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
+            string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
+            string(credentialsId: 'JWT_SECRET_BASE64', variable: 'JWT_SECRET_BASE64'),
+            string(credentialsId: 'REDIS_PASSWORD', variable: 'REDIS_PASSWORD'),
+            string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY'),
+            string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_KEY'),
+            string(credentialsId: 'GMS_KEY', variable: 'GMS_KEY'),
+            string(credentialsId: 'APP_RECOMMEND_BASE_URL', variable: 'APP_RECOMMEND_BASE_URL'),
+            string(credentialsId: 'APP_RECOMMEND_DEFAULT_PARAMS', variable: 'APP_RECOMMEND_DEFAULT_PARAMS'),
+            string(credentialsId: 'FIREBASE_TOKEN', variable: 'FIREBASE_TOKEN'),
+            sshUserPrivateKey(
+              credentialsId: 'ec2-ssh-key-pem',
+              keyFileVariable: 'SSH_KEY',
+              usernameVariable: 'SSH_USER'
+            )
+          ]) {
+            sh '''
+              echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
 
-            # 원격 서버에 secrets 디렉토리 보장
-            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "mkdir -p /home/$SSH_USER/secrets"
+              # 원격 서버에 secrets 디렉토리 보장
+              ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "mkdir -p /home/$SSH_USER/secrets"
 
-            # Firebase secrets 파일 생성 및 전송
-            echo "$FIREBASE_TOKEN" > myissue-firebase.json
-            scp -o StrictHostKeyChecking=no -i "$SSH_KEY" myissue-firebase.json $SSH_USER@$NGINX_HOST:/home/$SSH_USER/secrets/myissue-firebase.json
-            rm -f myissue-firebase.json
+              # Firebase secrets 파일 생성 및 전송
+              echo "$FIREBASE_TOKEN" > myissue-firebase.json
+              scp -o StrictHostKeyChecking=no -i "$SSH_KEY" myissue-firebase.json $SSH_USER@$NGINX_HOST:/home/$SSH_USER/secrets/myissue-firebase.json
+              rm -f myissue-firebase.json
 
-            # 1. deploy.sh 원격 서버에 복사
-            scp -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh $SSH_USER@$NGINX_HOST:/home/$SSH_USER/deploy.sh
+              # 1. deploy.sh 원격 서버에 복사
+              scp -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh $SSH_USER@$NGINX_HOST:/home/$SSH_USER/deploy.sh
 
-            # 2. 원격 서버에서 권한 주기
-            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "chmod +x /home/$SSH_USER/deploy.sh"
+              # 2. 원격 서버에서 권한 주기
+              ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "chmod +x /home/$SSH_USER/deploy.sh"
 
-            # 3. 원격 서버에서 환경변수 붙여 실행
-            ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "
-              export SPRING_DATASOURCE_URL='$SPRING_DATASOURCE_URL' &&
-              export SPRING_DATASOURCE_USERNAME='$SPRING_DATASOURCE_USERNAME' &&
-              export SPRING_DATASOURCE_PASSWORD='$SPRING_DATASOURCE_PASSWORD' &&
-              export JWT_SECRET_BASE64='$JWT_SECRET_BASE64' &&
-              export REDIS_PASSWORD='$REDIS_PASSWORD' &&
-              export AWS_ACCESS_KEY='$AWS_ACCESS_KEY' &&
-              export AWS_SECRET_KEY='$AWS_SECRET_KEY' &&
-              export GMS_KEY='$GMS_KEY' &&
-              export APP_RECOMMEND_BASE_URL='$APP_RECOMMEND_BASE_URL' &&
-              export APP_RECOMMEND_DEFAULT_PARAMS='$APP_RECOMMEND_DEFAULT_PARAMS' &&
-              export SPRING_PROFILES_ACTIVE=prod &&
-              sudo -E bash /home/ubuntu/deploy.sh ${COMMIT_SHA}
-            "
-          '''
+              # 3. 원격 서버에서 환경변수 붙여 실행
+              ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "
+                export SPRING_DATASOURCE_URL='$SPRING_DATASOURCE_URL' &&
+                export SPRING_DATASOURCE_USERNAME='$SPRING_DATASOURCE_USERNAME' &&
+                export SPRING_DATASOURCE_PASSWORD='$SPRING_DATASOURCE_PASSWORD' &&
+                export JWT_SECRET_BASE64='$JWT_SECRET_BASE64' &&
+                export REDIS_PASSWORD='$REDIS_PASSWORD' &&
+                export AWS_ACCESS_KEY='$AWS_ACCESS_KEY' &&
+                export AWS_SECRET_KEY='$AWS_SECRET_KEY' &&
+                export GMS_KEY='$GMS_KEY' &&
+                export APP_RECOMMEND_BASE_URL='$APP_RECOMMEND_BASE_URL' &&
+                export APP_RECOMMEND_DEFAULT_PARAMS='$APP_RECOMMEND_DEFAULT_PARAMS' &&
+                export SPRING_PROFILES_ACTIVE=prod &&
+                sudo -E bash /home/ubuntu/deploy.sh ${COMMIT_SHA}
+              "
+            '''
+          }
         }
       }
     }
@@ -169,7 +175,7 @@ pipeline {
           )
         }
         echo "✅ Pushed: ${IMAGE_REPO}:${COMMIT_SHA} & :latest"
-        updateGitlabCommitStatus name: 'jenkins-ci', state: 'success'
+        updateGitlabCommitStatus name: 'jenkins/overall', state: 'success'
     }
     failure {
       script {
@@ -182,7 +188,7 @@ pipeline {
             message: "❌ 빌드 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${authorName} (${authorEmail})\n(<${env.BUILD_URL}|Details>)"
           )
         }
-        updateGitlabCommitStatus name: 'jenkins-ci', state: 'failed'
+        updateGitlabCommitStatus name: 'jenkins/overall', state: 'failed'
     }
     always  { sh 'docker image prune -f || true' }
   }
