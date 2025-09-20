@@ -29,7 +29,7 @@ pipeline {
   }
 
   stages {
-    stage('Checkout') { // GitLab 에서 코드 가져옴
+    stage('01-Checkout') { // GitLab 에서 코드 가져옴
       steps {
         checkout scm
 
@@ -38,11 +38,11 @@ pipeline {
           env.COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
           echo "BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}, COMMIT_SHA=${env.COMMIT_SHA}"
           gitlabBuilds(builds: [
-            'Checkout',
-            'Build & Test',
-            'Docker Build',
-            'Push to Docker Hub',
-            'Deploy'
+            '01-Checkout',
+            '02-Build & Test',
+            '03-Docker Build',
+            '04-Push to Docker Hub',
+            '05-Deploy'
           ]) {
             echo "GitLab job names 등록 완료"
           }
@@ -50,7 +50,7 @@ pipeline {
       }
     }
 
-    stage('Build & Test') {
+    stage('02-Build & Test') {
       steps {
         gitlabCommitStatus(name: 'Build & Test') {
           dir('backend/my-issue') {
@@ -60,7 +60,7 @@ pipeline {
       }
     }
 
-    stage('Docker Build') { // Docker BuildKit 활성화
+    stage('03-Docker Build') { // Docker BuildKit 활성화
       when {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
@@ -86,7 +86,7 @@ pipeline {
       }
     }
 
-    stage('Push to Docker Hub') {
+    stage('04-Push to Docker Hub') {
       when {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
@@ -108,7 +108,7 @@ pipeline {
       }
     }
 
-    stage('Deploy') {
+    stage('05-Deploy') {
       when {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
