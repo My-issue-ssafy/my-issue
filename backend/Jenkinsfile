@@ -52,7 +52,7 @@ pipeline {
 
     stage('01-Build & Test') {
       steps {
-        gitlabCommitStatus(name: 'Build & Test') {
+        gitlabCommitStatus(name: '01-Build & Test') {
           dir('backend/my-issue') {
             sh './gradlew clean build -x test'
           }
@@ -65,7 +65,7 @@ pipeline {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        gitlabCommitStatus(name: 'Docker Build') {
+        gitlabCommitStatus(name: '02-Docker Build') {
           sh '''
             echo "=== Docker Build (backend/my-issue) ==="
             export DOCKER_BUILDKIT=1
@@ -91,7 +91,7 @@ pipeline {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        gitlabCommitStatus(name: 'Push to Docker Hub') {
+        gitlabCommitStatus(name: '03-Push to Docker Hub') {
           withCredentials([usernamePassword( // Jenkins에 등록된 Docker Hub 크리덴셜 사용
             credentialsId: 'dockerhub-cred',
             usernameVariable: 'DOCKER_USER',
@@ -113,7 +113,7 @@ pipeline {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        gitlabCommitStatus(name: 'Deploy') {
+        gitlabCommitStatus(name: '04-Deploy') {
           withCredentials([
             string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
             string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
