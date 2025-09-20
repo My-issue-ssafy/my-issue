@@ -29,14 +29,22 @@ pipeline {
   }
 
   stages {
-    stage('Checkout') { // GitLab 에서 코드 가져옴
+    stage('Init') {
       steps {
-        checkout scm
         script {
-          // 브랜치/커밋 정보 세팅 및 로깅
           env.COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
           echo "BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}, COMMIT_SHA=${env.COMMIT_SHA}"
-          gitlabBuilds(builds: ['Build & Test', 'Docker Build', 'Push to Docker Hub', 'Deploy', 'jenkins/overall'])
+
+          // GitLab에 job 이름 등록 (여기서만 1번 호출)
+          gitlabBuilds(builds: ['Checkout', 'Build & Test', 'Docker Build', 'Push to Docker Hub', 'Deploy'])
+        }
+      }
+    }
+
+    stage('Checkout') {
+      steps {
+        gitlabCommitStatus(name: 'Checkout') {
+          checkout scm
         }
       }
     }
