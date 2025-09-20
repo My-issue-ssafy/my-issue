@@ -37,12 +37,12 @@ pipeline {
           // 브랜치/커밋 정보 세팅 및 로깅
           env.COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
           echo "BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}, COMMIT_SHA=${env.COMMIT_SHA}"
+
           gitlabBuilds(builds: [
-            'Checkout',
-            'Build & Test',
-            'Docker Build',
-            'Push to Docker Hub',
-            'Deploy'
+            '01-Build & Test',
+            '02-Docker Build',
+            '03-Push to Docker Hub',
+            '04-Deploy'
           ]) {
             echo "GitLab job names 등록 완료"
           }
@@ -50,7 +50,7 @@ pipeline {
       }
     }
 
-    stage('Build & Test') {
+    stage('01-Build & Test') {
       steps {
         gitlabCommitStatus(name: 'Build & Test') {
           dir('backend/my-issue') {
@@ -60,7 +60,7 @@ pipeline {
       }
     }
 
-    stage('Docker Build') { // Docker BuildKit 활성화
+    stage('02-Docker Build') { // Docker BuildKit 활성화
       when {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
@@ -86,7 +86,7 @@ pipeline {
       }
     }
 
-    stage('Push to Docker Hub') {
+    stage('03-Push to Docker Hub') {
       when {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
@@ -108,7 +108,7 @@ pipeline {
       }
     }
 
-    stage('Deploy') {
+    stage('04-Deploy') {
       when {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
