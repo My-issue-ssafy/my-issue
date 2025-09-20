@@ -36,6 +36,7 @@ pipeline {
           // 브랜치/커밋 정보 세팅 및 로깅
           env.COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
           echo "BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}, COMMIT_SHA=${env.COMMIT_SHA}"
+          gitlabBuilds(builds: ['Build & Test', 'Docker Build', 'Push to Docker Hub', 'Deploy', 'jenkins/overall'])
         }
       }
     }
