@@ -71,8 +71,8 @@ app:
     params: ${APP_RECOMMEND_DEFAULT_PARAMS}
 
 fcm:
-#  fire_path: /app/config/myissue-firebase.json
-#  project-id: myssue-7e186
-  fire_path: ${FIREBASE_PATH}
-  project-id: ${PROJECT_ID}
+  fire_path: /app/config/myissue-firebase.json
+  project-id: myssue-7e186
+#  fire_path: ${FIREBASE_PATH}
+#  project-id: ${PROJECT_ID}
 
