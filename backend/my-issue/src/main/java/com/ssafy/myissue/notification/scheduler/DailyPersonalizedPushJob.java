@@ -25,10 +25,21 @@ public class DailyPersonalizedPushJob {
 
     private final NewsRepository newsRepository;
 
-    //    @Scheduled(cron = "0 30 8,20 * * *", /* 매일 오전 8시 30분 */ zone = "Asia/Seoul")
-    @Scheduled(cron = "0 37 17 * * *", /* 매일 오전 8시 30분 */ zone = "Asia/Seoul")
+        @Scheduled(cron = "0 30 8,20 * * *", /* 매일 오전 8시 30분 */ zone = "Asia/Seoul")
+//    @Scheduled(cron = "0 37 17 * * *", zone = "Asia/Seoul")
     private void run() {
         // TODO: 개인화 푸시 알림 발송 작업
+//        log.debug("Running DailyPersonalizedPushJob");
+//
+//        // 대상자 조회 : FcmToken이 null이 아니고 알림 설정이 true일 경우
+//        List<User> users = userRepository.findByFcmTokenIsNotNullAndNotificationEnabledTrue();
+//        if(users == null || users.isEmpty()) return;
+//
+//        // 유저 별 추천 기사 1개 조회
+//        for(User user : users) {
+//            List<String> recommendedNewsIds = stringRedisTemplate.opsForList()
+//                    .range("recommend:news:" + user.getId(), 0, -1);
+//        }
         // 대상자 조회
         // 유저 별 추천 기사 1개 조회
         // 오류 처리 ( 추천 기사 없을 경우, 파이썬에 요청 / 요청 후에도 응답이 없을 경우 해당 유저 제외 )

@@ -11,6 +11,7 @@ import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByUuid(String uuid);
+//    List<User> findByFcmTokenIsNotNullAndNotificationEnabledTrue();
     List<User> findByFcmTokenIsNotNull();
 
     @Transactional
