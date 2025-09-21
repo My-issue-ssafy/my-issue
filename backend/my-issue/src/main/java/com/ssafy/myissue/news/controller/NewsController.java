@@ -1,10 +1,6 @@
 package com.ssafy.myissue.news.controller;
 
-import com.ssafy.myissue.news.dto.CursorPage;
-import com.ssafy.myissue.news.dto.NewsCardResponse;
-import com.ssafy.myissue.news.dto.NewsDetailResponse;
-import com.ssafy.myissue.news.dto.NewsHomeResponse;
-import com.ssafy.myissue.news.dto.ScrapToggleResponse;
+import com.ssafy.myissue.news.dto.*;
 import com.ssafy.myissue.news.service.NewsScheduler;
 import com.ssafy.myissue.news.service.NewsScrapService;
 import com.ssafy.myissue.news.service.NewsService;
@@ -15,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.ssafy.myissue.news.service.NewsChatService;
+
 
 import java.util.List;
 
@@ -27,6 +25,7 @@ public class NewsController {
     private final NewsService newsService;
     private final NewsScrapService scrapService;
     private final NewsScheduler newsScheduler;
+    private final NewsChatService newsChatService;
 
     /** 홈: HOT 5, 추천 5, 최신 5 */
     @GetMapping("/main")
@@ -94,6 +93,18 @@ public class NewsController {
     @GetMapping("/hot/recommend/top100")
     public ResponseEntity<List<NewsDetailResponse>> getHotRecommendTop100() {
         return ResponseEntity.ok(newsService.getHotRecommendTop100());
+    }
+
+    @PostMapping("/{newsId}/chat")                                   // [ADDED]
+    public ResponseEntity<NewsChatResponse> chatAboutNews(           // [CHANGED]
+                                                                     @PathVariable Long newsId,                               // [ADDED]
+                                                                     @RequestBody ChatQuestionRequest req) {                  // [ADDED]
+        if (req == null || req.question() == null || req.question().isBlank()) { // [ADDED]
+            throw new CustomException(ErrorCode.INVALID_PARAMETER);              // [ADDED]
+        }
+        return ResponseEntity.ok(                                    // [CHANGED]
+                newsChatService.answerAboutNews(newsId, req.question())
+        );
     }
     // ---------- helpers ----------
 
