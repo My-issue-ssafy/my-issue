@@ -73,7 +73,8 @@ public class FcmPersonalizedSender {
         // 기본 Message 빌더 생성 (토큰 + 알림)
         Message.Builder builder = Message.builder()
                 .setToken(push.token())
-                .setNotification(notification);
+                .setNotification(notification)
+                .putData("newsId", String.valueOf(push.newsId()));
 
         return builder.build();
     }
