@@ -1,7 +1,10 @@
 package com.ssafy.myissue.notification.scheduler;
 
+import com.ssafy.myissue.news.domain.News;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
+import com.ssafy.myissue.notification.domain.Notification;
 import com.ssafy.myissue.notification.dto.fcm.PersonalizedPush;
+import com.ssafy.myissue.notification.infrastructure.NotificationRepository;
 import com.ssafy.myissue.notification.service.impl.FcmPersonalizedSender;
 import com.ssafy.myissue.user.domain.User;
 import com.ssafy.myissue.user.infrastructure.UserRepository;
@@ -17,59 +20,89 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class DailyPersonalizedPushJob {
-    // 개인화 컨텐츠 조회
 
     private final FcmPersonalizedSender sender;
     private final UserRepository userRepository;
     private final StringRedisTemplate stringRedisTemplate;
 
     private final NewsRepository newsRepository;
+    private final NotificationRepository notificationRepository;
 
-    //    @Scheduled(cron = "0 30 8,20 * * *", /* 매일 오전 8시 30분 */ zone = "Asia/Seoul")
-    @Scheduled(cron = "0 37 17 * * *", /* 매일 오전 8시 30분 */ zone = "Asia/Seoul")
-    private void run() {
+    @Scheduled(cron = "0 30 8,20 * * *", /* 매일 오전 8시 30분 */ zone = "Asia/Seoul")
+    public void run() {
         // TODO: 개인화 푸시 알림 발송 작업
-        // 대상자 조회
-        // 유저 별 추천 기사 1개 조회
-        // 오류 처리 ( 추천 기사 없을 경우, 파이썬에 요청 / 요청 후에도 응답이 없을 경우 해당 유저 제외 )
-        // DTO 변환 및 GPT 통한 알림 내용 생성
-        // 전송
-        // 만료/실패 토큰 정리
-
-        // 임시 작업
         log.debug("Running DailyPersonalizedPushJob");
-        List<User> users = userRepository.findByFcmTokenIsNotNull();
+
+        // 대상자 조회 : FcmToken이 null이 아니고 알림 설정이 true일 경우
+        List<User> users = userRepository.findByFcmTokenIsNotNullAndNotificationEnabledTrue();
         if(users == null || users.isEmpty()) return;
 
-        // 가장 인기있는 뉴스 1개 조회 (예시)
-        String topNewsId = stringRedisTemplate
-                .opsForZSet()
-                .reverseRange("hot:news", 0, 0)
-                .stream().findFirst().orElse(null);
-
-        // 뉴스 ID로 뉴스 정보 조회 후, 개인화된 제목/내용 생성 (생략)
-        var newsOpt = newsRepository.findById(Long.valueOf(topNewsId));
-        if (newsOpt.isEmpty()) return;
-        String newsTitle = newsOpt.get().getTitle();
-
-        final String title = "개인화 푸시 알림 제목: " + newsTitle  ;
-        final String body = "지금 들어가서 당신을 위한 맞춤 뉴스를 확인해보세요!";
-
-        log.debug("title: {}, body: {}", title, body);
+        // 유저 별 추천 기사 1개 조회
         List<PersonalizedPush> pushes = users.stream()
-                .map(User::getFcmToken)
-                .filter(t -> t != null && !t.isBlank())
-                .map(t -> PersonalizedPush.of(t, title, body))
-                .toList();
+            .map(user -> {
+                // 유저별 추천 기사 조회
+                List<String> recommendedNewsIds = stringRedisTemplate.opsForList()
+                        .range("recommend:news:" + user.getId(), 0, 0);
 
-        if(pushes.isEmpty()) return;
+                // 추천 기사 없으면 제외
+                if (recommendedNewsIds == null || recommendedNewsIds.isEmpty()) {
+                    log.debug("No recommended news for userId={}", user.getId());
+                    return null;
+                }
 
+                String rawNewsId = recommendedNewsIds.getFirst();
+
+                // ":" 기준으로 잘라서 앞부분만 사용
+                String newsId = rawNewsId.replace("\"", "").trim().split(":")[0];
+                var newsOpt = newsRepository.findById(Long.valueOf(newsId));
+                if (newsOpt.isEmpty()) {
+                    log.debug("News not found for newsId={}", newsId);
+                    return null;
+                }
+                News news = newsOpt.get();
+
+                // 알림 제목/본문 생성
+                String newsTitle = newsOpt.get().getTitle();
+                final String title = "당신을 위한 맞춤 뉴스가 도착했습니다!🔔" ;
+                final String body = newsTitle;
+
+                log.debug("Prepared push for userId={}, title={}", user.getId(), newsTitle);
+                return PersonalizedPush.of(user, news, title, body);
+            })
+            .filter(push -> push != null) // null 제외
+            .toList();
+
+        if (pushes.isEmpty()) return;
+
+        // 한 번에 전송
         var result = sender.sendPersonalized(pushes);
-        log.debug("Sent {} personalized push notifications", result);
+        log.debug("Sent {} personalized push notifications", pushes.size());
 
-        if (!result.invalidTokens().isEmpty()) {
-            log.debug("Sent {} personalized push notifications", result.invalidTokens().size());
-            userRepository.clearFcmTokens(result.invalidTokens());
+        List<String> invalidTokens = result.invalidTokens();
+
+        // 성공한 push만 필터링
+        List<PersonalizedPush> successPushes = pushes.stream()
+            .filter(push -> !invalidTokens.contains(push.token()))
+            .toList();
+
+        // 성공한 push만 DB 저장
+        successPushes.forEach(push -> {
+            User user = userRepository.findById(push.userId()).orElse(null);
+            News news = newsRepository.findById(push.newsId()).orElse(null);
+
+            if (user == null || news == null) {
+                log.warn("Skip saving notification: userId={}, newsId={}", push.userId(), push.newsId());
+                return;
+            }
+
+            Notification notification = Notification.of(user, news, push.body());
+            notificationRepository.save(notification);
+        });
+
+        // 만료/실패 토큰 정리
+        if (!invalidTokens.isEmpty()) {
+            log.debug("Invalid tokens detected: {}", invalidTokens);
+            userRepository.clearFcmTokens(invalidTokens);
         }
     }
 }

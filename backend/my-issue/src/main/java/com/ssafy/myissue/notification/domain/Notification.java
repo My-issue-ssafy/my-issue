@@ -36,4 +36,14 @@ public class Notification {
     public void markAsRead() {
         this.read = true;
     }
+
+    public static Notification of(User user, News news, String content) {
+        return Notification.builder()
+            .user(user)
+            .news(news)
+            .content(content)
+            .createdAt(LocalDateTime.now())
+            .read(false)
+            .build();
+    }
 }
