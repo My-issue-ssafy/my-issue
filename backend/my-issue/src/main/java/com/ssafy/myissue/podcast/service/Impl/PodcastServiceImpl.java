@@ -20,7 +20,6 @@ import com.ssafy.myissue.toons.domain.Toons;
 import com.ssafy.myissue.toons.infrastructure.ToonsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,7 +66,7 @@ public class PodcastServiceImpl implements PodcastService {
 
         PodcastNews podcastNews = podcastNewsRepository.findFirstByPodcast_Id(podcast.getId());
 
-        return PodcastResponse.of(podcast.getId(), podcastNews.getNews().getThumbnail(), podcast.getAudio(), podcast.getKeyword(), subtitles);
+        return PodcastResponse.of(podcast, podcastNews, subtitles);
     }
 
     @Override
@@ -118,7 +117,7 @@ public class PodcastServiceImpl implements PodcastService {
 
     // db 저장
     private void savePodcast(List<List<String>> scripts, List<Toons> topNews, List<String> keywords, String podcastUrl, double[] accumulatedTimes) {
-        Podcast podcast = Podcast.of(podcastUrl, LocalDate.now().minusDays(1), String.join(",", keywords));
+        Podcast podcast = Podcast.of(podcastUrl, LocalDate.now().minusDays(1), keywords);
         podcastRepository.save(podcast);
 
         for(Toons toons: topNews) {
@@ -130,7 +129,7 @@ public class PodcastServiceImpl implements PodcastService {
             List<String> line = scripts.get(i);
             String speaker = line.get(0);
             String text = line.get(1);
-            double startTime = Math.round(accumulatedTimes[i] * 100.0) / 100.0;
+            long startTime = Math.round(accumulatedTimes[i] * 1000);
 
             podcastSubtitleRepository.save(PodcastSubtitle.of(podcast, Integer.parseInt(speaker), text, startTime));
         }
