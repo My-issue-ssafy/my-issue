@@ -9,12 +9,16 @@ import com.ssafy.myissue.news.dto.NewsChatResponse;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -24,11 +28,17 @@ public class NewsChatService {
     private static final int GPT_INPUT_MAX_CHARS = 12000;
     private static final int GPT_INPUT_MIN_CHARS = 4000;
 
+    private static final String KEY_PREFIX = "chat:news:";
+    private static final int MAX_TURNS = 6; // 최대 6번 대화까지
+    private static final Duration TTL = Duration.ofMinutes(30);
+
     private final NewsRepository newsRepository;
     private final NewsGptService newsGptService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public NewsChatResponse answerAboutNews(Long newsId, String question) {
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    public NewsChatResponse answerAboutNews(Long newsId, String question, String sid) {
         if (newsId == null || question == null || question.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_PARAMETER);
         }
@@ -36,23 +46,81 @@ public class NewsChatService {
         News n = newsRepository.findById(newsId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NEWS_NOT_FOUND));
 
+        final String assignedSid = (sid == null || sid.isBlank())
+                ? UUID.randomUUID().toString()
+                : sid.trim();
+        final String key = KEY_PREFIX + assignedSid + ":" + newsId;
+
         String title    = nz(n.getTitle());
         String outlet   = nz(n.getNewsPaper());
         String author   = nz(n.getAuthor());
         String category = nz(n.getCategory());
         String created  = format(n.getCreatedAt());
 
+        // 기사 본문 텍스트화
         String articleText = extractPlainText(n.getContent());
-
         articleText = normalize(articleText);
-        articleText = clip(articleText, GPT_INPUT_MAX_CHARS);
 
+        // 히스토리 로드
+        String historyBlock = loadHistoryBlock(key);
+
+        // 히스토리 + 기사 합쳐 프롬프트 본문 구성 후 길이 제한
+        String promptBody = historyBlock.isBlank()
+                ? articleText
+                : "[대화 히스토리]\n" + historyBlock + "\n\n[기사 본문]\n" + articleText;
+        promptBody = clip(promptBody, GPT_INPUT_MAX_CHARS);
+
+        // GPT 호출
         String answer = newsGptService.askAbout(
-                title, outlet, author, category, created, articleText, question.trim()
+                title, outlet, author, category, created, promptBody, question.trim()
         );
-        return new NewsChatResponse(answer);
+
+        // 히스토리 저장 (최근 MAX_TURNS만 유지, TTL 갱신)
+        appendTurn(key, "Q: " + question.trim() + " || A: " + answer);
+
+        // 응답에 sid 포함
+        return new NewsChatResponse(answer, assignedSid);
     }
 
+    // ---- Redis helpers ----
+    private String loadHistoryBlock(String key) {
+        Long lenL = redisTemplate.opsForList().size(key);
+        int len = (lenL == null) ? 0 : lenL.intValue();
+        if (len == 0) return "";
+
+        List<Object> items = redisTemplate.opsForList().range(key, Math.max(0, len - MAX_TURNS), len - 1);
+        if (items == null || items.isEmpty()) return "";
+
+        StringBuilder sb = new StringBuilder();
+        for (Object it : items) {
+            String row = unquote(String.valueOf(it)); // GenericJackson2Json 직렬화로 생긴 양끝 따옴표 제거
+            if (!row.isBlank()) sb.append(row).append('\n');
+        }
+        return sb.toString().trim();
+    }
+
+    private void appendTurn(String key, String row) {
+        redisTemplate.opsForList().rightPush(key, row);
+        // 길이 제한
+        Long sizeL = redisTemplate.opsForList().size(key);
+        int size = (sizeL == null) ? 0 : sizeL.intValue();
+        while (size > MAX_TURNS) {
+            redisTemplate.opsForList().leftPop(key);
+            size--;
+        }
+        // TTL 갱신
+        redisTemplate.expire(key, TTL);
+    }
+
+    private String unquote(String s) {
+        if (s == null || s.length() < 2) return (s == null ? "" : s);
+        if (s.charAt(0) == '"' && s.charAt(s.length()-1) == '"') {
+            return s.substring(1, s.length()-1);
+        }
+        return s;
+    }
+
+    // ---- 기존 helpers ----
     private String nz(Object o) { return (o == null) ? "" : String.valueOf(o); }
 
     private String format(LocalDateTime t) {
@@ -60,7 +128,6 @@ public class NewsChatService {
         return DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").format(t);
     }
 
-    /** content(JSONB or TEXT) → 순수 텍스트 */
     private String extractPlainText(String raw) {
         if (raw == null) return "";
         String s = raw.trim();

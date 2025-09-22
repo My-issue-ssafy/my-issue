@@ -95,15 +95,17 @@ public class NewsController {
         return ResponseEntity.ok(newsService.getHotRecommendTop100());
     }
 
-    @PostMapping("/{newsId}/chat")                                   // [ADDED]
-    public ResponseEntity<NewsChatResponse> chatAboutNews(           // [CHANGED]
-                                                                     @PathVariable Long newsId,                               // [ADDED]
-                                                                     @RequestBody ChatQuestionRequest req) {                  // [ADDED]
-        if (req == null || req.question() == null || req.question().isBlank()) { // [ADDED]
-            throw new CustomException(ErrorCode.INVALID_PARAMETER);              // [ADDED]
+    @PostMapping("/{newsId}/chat") // [ADDED]
+    public ResponseEntity<NewsChatResponse> chatAboutNews( // [CHANGED]
+                                                           @PathVariable Long newsId,               // [ADDED]
+                                                           @RequestBody ChatQuestionRequest req,    // [ADDED]
+                                                           @RequestParam(value = "sid", required = false) String sid // [ADDED]
+    ) {
+        if (req == null || req.question() == null || req.question().isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_PARAMETER);
         }
-        return ResponseEntity.ok(                                    // [CHANGED]
-                newsChatService.answerAboutNews(newsId, req.question())
+        return ResponseEntity.ok(
+                newsChatService.answerAboutNews(newsId, req.question(), sid) // [CHANGED]
         );
     }
     // ---------- helpers ----------
