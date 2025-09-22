@@ -21,7 +21,7 @@ class EdgeTTSEngine:
             },
             "voice2": {
                 "voice": "ko-KR-SunHiNeural",     # 여성 목소리
-                "rate": "+20%",                   # 빠르게
+                "rate": "+10%",                   # 빠르게
                 "pitch": "+5Hz"                   # 약간 높게
             }
         }
