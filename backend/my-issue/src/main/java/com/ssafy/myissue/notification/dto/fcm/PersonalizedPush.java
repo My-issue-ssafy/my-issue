@@ -7,10 +7,11 @@ public record PersonalizedPush(
         String token,
         String title,
         String body,
+        String thumbnailUrl,
         Long userId,
         Long newsId
 ) {
     public static PersonalizedPush of(User user, News news, String title, String body) {
-        return new PersonalizedPush(user.getFcmToken(), title, body, user.getId(), news.getId());
+        return new PersonalizedPush(user.getFcmToken(), title, body, news.getThumbnail(), user.getId(), news.getId());
     }
 }
