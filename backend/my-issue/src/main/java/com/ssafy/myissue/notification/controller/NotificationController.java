@@ -100,7 +100,6 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.getNotificationStatus(userId));
     }
 
-    @Hidden
     @PatchMapping("/{notificationId}/read")
     @Operation(
             summary = "내 알림 읽음 처리",
