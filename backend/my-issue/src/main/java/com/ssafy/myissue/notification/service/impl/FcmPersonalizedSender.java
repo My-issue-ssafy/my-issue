@@ -74,7 +74,8 @@ public class FcmPersonalizedSender {
         Message.Builder builder = Message.builder()
                 .setToken(push.token())
                 .setNotification(notification)
-                .putData("newsId", String.valueOf(push.newsId()));
+                .putData("newsId", String.valueOf(push.newsId()))
+                .putData("thumbnailUrl", push.thumbnailUrl());
 
         return builder.build();
     }
