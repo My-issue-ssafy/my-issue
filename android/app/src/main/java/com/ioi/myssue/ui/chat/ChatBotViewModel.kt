@@ -1,11 +1,10 @@
 package com.ioi.myssue.ui.chat
 
-import android.R.id.message
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.domain.model.NewsSummary
-import com.ioi.myssue.domain.repository.ChatBotRepository
+import com.ioi.myssue.domain.repository.NewsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
@@ -13,133 +12,94 @@ import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class ChatBotViewModel @Inject constructor(
-    private val getChatBotRepository: ChatBotRepository
-): ViewModel() {
+    private val newsRepository: NewsRepository
+) : ViewModel() {
 
-    private var _state = MutableStateFlow(ChatBotUiState())
-    val state = _state.onSubscription {
-
-    }.stateIn(
-        scope = viewModelScope,
-        started = WhileSubscribed(5_000),
-        initialValue = ChatBotUiState()
-    )
-
-    fun sendMessage() {
-        val currentMessages = _state.value.messages
-        val newMessage = ChatMessage(
-            id = System.currentTimeMillis(),
-            text = _state.value.inputMessage.toString(),
-            isUser = true,
-            timestamp = System.currentTimeMillis()
-        )
-        _state.value = _state.value.copy(
-            messages = currentMessages + newMessage,
-            inputMessage = TextFieldValue(""),
-            isLoading = true
+    private val _state = MutableStateFlow(ChatBotUiState())
+    val state = _state.onSubscription { }
+        .stateIn(
+            scope = viewModelScope,
+            started = WhileSubscribed(5_000),
+            initialValue = ChatBotUiState()
         )
 
-        // Simulate bot response after a delay
-        viewModelScope.launch {
-            val botResponse = ChatMessage(
-                id = System.currentTimeMillis(),
-                text = "This is a bot response to: $message",
-                isUser = false,
-                timestamp = System.currentTimeMillis()
-            )
-            _state.value = _state.value.copy(
-                messages = _state.value.messages + botResponse,
-                isLoading = false
-            )
-        }
+    fun initData(newsSummary: NewsSummary) {
+        _state.update { it.copy(newsSummary = newsSummary) }
     }
 
     fun updateInputMessage(value: TextFieldValue) {
         _state.update { it.copy(inputMessage = value) }
     }
+
+    fun sendMessage() {
+        val userInput = _state.value.inputMessage.text.trim()
+        if (userInput.isBlank()) return
+
+        val newsId = _state.value.newsSummary.newsId
+
+        val userMsg = ChatMessage(
+            id = UUID.randomUUID().toString(),
+            text = userInput,
+            isUser = true,
+            isPending = false
+        )
+
+        val placeholderBot = ChatMessage(
+            id = UUID.randomUUID().toString(),
+            text = "",
+            isUser = false,
+            isPending = true
+        )
+        val placeholderId = placeholderBot.id
+
+        _state.update {
+            it.copy(
+                messages = it.messages + userMsg + placeholderBot,
+                inputMessage = TextFieldValue(""),
+                isLoading = true
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                newsRepository.chatNews(newsId, userInput)
+            }.onSuccess { answer ->
+                _state.update { st ->
+                    val updated = st.messages.map { m ->
+                        if (m.id == placeholderId) m.copy(text = answer, isPending = false)
+                        else m
+                    }
+                    st.copy(messages = updated, isLoading = false)
+                }
+            }.onFailure { e ->
+                _state.update { st ->
+                    val fallback = "오류가 발생했어요: ${e.localizedMessage ?: e}"
+                    val updated = st.messages.map { m ->
+                        if (m.id == placeholderId) m.copy(text = fallback, isPending = false)
+                        else m
+                    }
+                    st.copy(messages = updated, isLoading = false)
+                }
+            }
+        }
+    }
 }
 
 data class ChatBotUiState(
-    val messages: List<ChatMessage> = listOf(
-        ChatMessage(
-            id = 1L,
-            text = "안녕하세요! 무엇을 도와드릴까요?",
-            isUser = false,
-            timestamp = System.currentTimeMillis() - 1000 * 60 * 5 // 5분 전
-        ),
-        ChatMessage(
-            id = 2L,
-            text = "오늘 날씨가 어때?",
-            isUser = true,
-            timestamp = System.currentTimeMillis() - 1000 * 60 * 4 // 4분 전
-        ),
-        ChatMessage(
-            id = 3L,
-            text = "서울은 맑고, 현재 기온은 24도입니다 ☀️",
-            isUser = false,
-            timestamp = System.currentTimeMillis() - 1000 * 60 * 3 // 3분 전
-        ),
-        ChatMessage(
-            id = 4L,
-            text = "좋네! 내일은?",
-            isUser = true,
-            timestamp = System.currentTimeMillis() - 1000 * 60 * 2 // 2분 전
-        ),
-        ChatMessage(
-            id = 5L,
-            text = "내일도 맑고 따뜻할 예정이에요 🌼",
-            isUser = false,
-            timestamp = System.currentTimeMillis() - 1000 * 60 // 1분 전
-        ),
-        ChatMessage(
-            id = 4L,
-            text = "좋네! 내일은?",
-            isUser = true,
-            timestamp = System.currentTimeMillis() - 1000 * 60 * 2 // 2분 전
-        ),
-        ChatMessage(
-            id = 5L,
-            text = "내일도 맑고 따뜻할 예정이에요 🌼",
-            isUser = false,
-            timestamp = System.currentTimeMillis() - 1000 * 60 // 1분 전
-        ),
-        ChatMessage(
-            id = 4L,
-            text = "좋네! 내일은?",
-            isUser = true,
-            timestamp = System.currentTimeMillis() - 1000 * 60 * 2 // 2분 전
-        ),
-        ChatMessage(
-            id = 5L,
-            text = "내일도 맑고 따뜻할 예정이에요 🌼",
-            isUser = false,
-            timestamp = System.currentTimeMillis() - 1000 * 60 // 1분 전
-        ),
-        ChatMessage(
-            id = 4L,
-            text = "좋네! 내일은?",
-            isUser = true,
-            timestamp = System.currentTimeMillis() - 1000 * 60 * 2 // 2분 전
-        ),
-        ChatMessage(
-            id = 5L,
-            text = "내일도 맑고 따뜻할 예정이에요 🌼",
-            isUser = false,
-            timestamp = System.currentTimeMillis() - 1000 * 60 // 1분 전
-        )
-    ),
+    val messages: List<ChatMessage> = listOf(ChatMessage(text = "어서오십쇼", isUser = false)),
     val newsSummary: NewsSummary = NewsSummary(),
-    val inputMessage: TextFieldValue = TextFieldValue("qweqweq"),
-    val isLoading: Boolean = false,
+    val inputMessage: TextFieldValue = TextFieldValue(""),
+    val isLoading: Boolean = false
 )
 
 data class ChatMessage(
-    val id: Long,
+    val id: String = UUID.randomUUID().toString(),
     val text: String,
     val isUser: Boolean,
-    val timestamp: Long,
+    val isPending: Boolean = false
 )

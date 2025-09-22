@@ -1,11 +1,14 @@
 package com.ioi.myssue.data.network.api
 
+import com.ioi.myssue.data.dto.request.ChatRequest
+import com.ioi.myssue.data.dto.response.ChatResponse
 import com.ioi.myssue.data.dto.response.CursorPageNewsResponse
 import com.ioi.myssue.data.dto.response.NewsCardResponse
 import com.ioi.myssue.data.dto.response.NewsDetailResponse
 import com.ioi.myssue.data.dto.response.NewsMainResponse
 import com.ioi.myssue.data.dto.response.ScrapResponse
 import kotlinx.serialization.Serializable
+import retrofit2.http.Body
 
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -65,4 +68,10 @@ interface NewsApi {
     suspend fun bookMarkNews(
         @Path("newsId") newsId: Long
     ): ScrapResponse
+
+    @POST("news/{newsId}/chat")
+    suspend fun chatNews(
+        @Path("newsId") newsId: Long,
+        @Body request: ChatRequest
+    ): ChatResponse
 }

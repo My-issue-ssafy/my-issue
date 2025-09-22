@@ -164,4 +164,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
     ): CursorPage<NewsSummary> {
         TODO("Not yet implemented")
     }
+
+    override suspend fun chatNews(newsId: Long, question: String): String {
+        TODO("Not yet implemented")
+    }
 }
