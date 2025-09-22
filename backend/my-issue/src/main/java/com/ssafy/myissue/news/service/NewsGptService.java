@@ -55,18 +55,17 @@ public class NewsGptService {
                                   String createdAt, String articleText, String question) {
         // 기사 기반으로만 답하도록 지시 — 사용자 메시지에 포함
         return """
-                다음 [기사]만을 근거로 사용자의 질문에 한국어로 간결하게 답해줘.
-                기사에 없는 내용은 추측하지 말고 "기사에 없는 내용입니다."라고 답해.
-
+                다음 [기사]만을 근거로 질문에 답해줘. 외부 지식은 사용하지 말고,
+                기사에 명시된 사실에서 자연스럽게 **직접 도출되는 간단한 추론**(문맥 연결, 인과/의도/영향)은 허용해.
+                답변은 2~4문장으로 간결하게 쓰고, 가능하면 마지막에 (근거: "원문 일부")를 덧붙여줘.
+                정말 기사로부터 추론도 불가하면 그때만 "기사에 없는 내용입니다."라고 답해.
+                
                 [기사 제목] %s
                 [언론사/작성일] %s / %s
                 [기자/카테고리] %s / %s
-
-                [기사 본문]
-                %s
-
-                [사용자 질문]
-                %s
+                
+                [기사 본문] %s
+                [사용자 질문] %s
                 """.formatted(nz(title), nz(outlet), nz(createdAt), nz(author), nz(category),
                 nz(articleText), nz(question));
     }

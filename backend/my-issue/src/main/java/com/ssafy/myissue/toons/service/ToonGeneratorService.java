@@ -33,8 +33,8 @@ import java.util.List;
         LocalDateTime end = yesterday.atTime(LocalTime.MAX);
 
         // 어제 기준 TOP 10 뉴스 가져오기
-//        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(0, 10)); // 원래는 이건데 지금 1개로 실험중
-        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(1, 1));
+        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(0, 10)); // 원래는 이건데 지금 1개로 실험중
+//        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(1, 1));
 
         for (News news : topNews) {
             // 1. GPT 요약본 생성
@@ -51,16 +51,16 @@ import java.util.List;
             toonsRepository.save(toon);
 
             // 3. Gemini 이미지 생성 (byte[] + mimeType)
-            ImageService.ImageResult imageResult = imageService.generateToonImage(summary);
-
-            // 4. S3 업로드 (파일명 = toons/{toonId}.확장자)
-            String extension = imageResult.mimeType().equals("image/jpeg") ? ".jpg" : ".png";
-            String fileName = "toons/" + toon.getNewsId() + extension;
-
-            String imageUrl = s3Uploader.upload(imageResult.data(), fileName, imageResult.mimeType());
-
-            // 5. toon_image 업데이트
-            toon.setToonImage(imageUrl);
+//            ImageService.ImageResult imageResult = imageService.generateToonImage(summary);
+//
+//            // 4. S3 업로드 (파일명 = toons/{toonId}.확장자)
+//            String extension = imageResult.mimeType().equals("image/jpeg") ? ".jpg" : ".png";
+//            String fileName = "toons/" + toon.getNewsId() + extension;
+//
+//            String imageUrl = s3Uploader.upload(imageResult.data(), fileName, imageResult.mimeType());
+//
+//            // 5. toon_image 업데이트
+//            toon.setToonImage(imageUrl);
         }
     }
 }
