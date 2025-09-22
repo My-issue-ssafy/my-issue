@@ -1,10 +1,10 @@
 package com.ioi.myssue.data.repository
 
 import com.ioi.myssue.common.util.TimeConverter
+import com.ioi.myssue.data.dto.request.ChatRequest
 import com.ioi.myssue.data.dto.response.NewsDetailResponse
 import com.ioi.myssue.data.dto.response.NewsMainResponse
 import com.ioi.myssue.data.dto.response.toDomain
-import com.ioi.myssue.data.network.api.ChatRequest
 import com.ioi.myssue.data.network.api.NewsApi
 import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.model.MainNewsList
