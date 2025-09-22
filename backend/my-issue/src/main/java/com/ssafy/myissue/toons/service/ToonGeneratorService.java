@@ -16,25 +16,25 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-public class ToonGeneratorService {
+        @Service
+        @RequiredArgsConstructor
+        public class ToonGeneratorService {
 
-    private final NewsRepository newsRepository;
-    private final ToonsRepository toonsRepository;
-    private final GptService gptService;
-    private final ImageService imageService;
-    private final S3Uploader s3Uploader;
+            private final NewsRepository newsRepository;
+            private final ToonsRepository toonsRepository;
+            private final GptService gptService;
+            private final ImageService imageService;
+            private final S3Uploader s3Uploader;
 
-    @Transactional
-    public void generateDailyToons() throws JsonProcessingException {
+            @Transactional
+            public void generateDailyToons() throws JsonProcessingException {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         LocalDateTime start = yesterday.atStartOfDay();
         LocalDateTime end = yesterday.atTime(LocalTime.MAX);
 
         // 어제 기준 TOP 10 뉴스 가져오기
 //        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(0, 10)); // 원래는 이건데 지금 1개로 실험중
-        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(0, 1));
+        List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(1, 1));
 
         for (News news : topNews) {
             // 1. GPT 요약본 생성

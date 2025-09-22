@@ -4,17 +4,9 @@ pipeline {
   environment { // 전역 환경변수 정의
     IMAGE_REPO = 'xioz19/my-issue' // 빌드/푸시할 Docker 이미지 경로.
     COMMIT_SHA = 'manual' // 이미지에 버전 태그로 붙여서 이력 추적 가능
-    SPRING_DATASOURCE_URL = credentials('SPRING_DATASOURCE_URL')  // DB 접속 정보도 Jenkins에 등록된 보안값 사용
-    SPRING_DATASOURCE_USERNAME = credentials('SPRING_DATASOURCE_USERNAME')  // Jenkins에 등록된 보안값
-    SPRING_DATASOURCE_PASSWORD = credentials('SPRING_DATASOURCE_PASSWORD') // Jenkins에 등록된 보안값
     NGINX_HOST = credentials('NGINX_HOST')
     NGINX_USER = credentials('NGINX_USER')
     NGINX_CONF = credentials('NGINX_CONF')
-    JWT_SECRET_BASE64 = credentials('JWT_SECRET_BASE64')
-    REDIS_PASSWORD = credentials('REDIS_PASSWORD')
-    AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY')
-    AWS_SECRET_KEY = credentials('AWS_SECRET_KEY')
-    GMS_KEY = credentials('GMS_KEY')
   }
 
   options {
@@ -40,17 +32,27 @@ pipeline {
     stage('Checkout') { // GitLab 에서 코드 가져옴
       steps {
         checkout scm
+
         script {
           // 브랜치/커밋 정보 세팅 및 로깅
           env.COMMIT_SHA = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
           echo "BRANCH_NAME=${env.BRANCH_NAME}, GIT_BRANCH=${env.GIT_BRANCH}, COMMIT_SHA=${env.COMMIT_SHA}"
+
+          gitlabBuilds(builds: [
+            '01-Build & Test',
+            '02-Docker Build',
+            '03-Push to Docker Hub',
+            '04-Deploy'
+          ]) {
+            echo "GitLab job names 등록 완료"
+          }
         }
       }
     }
 
-    stage('Build & Test') {
+    stage('01-Build & Test') {
       steps {
-        gitlabCommitStatus(name: 'jenkins-ci') {
+        gitlabCommitStatus(name: '01-Build & Test') {
           dir('backend/my-issue') {
             sh './gradlew clean build -x test'
           }
@@ -58,102 +60,112 @@ pipeline {
       }
     }
 
-    stage('Docker Build') { // Docker BuildKit 활성화
+    stage('02-Docker Build') { // Docker BuildKit 활성화
       when {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        sh '''
-          echo "=== Docker Build (backend/my-issue) ==="
-          export DOCKER_BUILDKIT=1
-          # 이전 빌드 결과 캐시로 활용
-          docker pull ${IMAGE_REPO}:latest || true
-
-          docker build \
-            --pull \
-            --cache-from=${IMAGE_REPO}:latest \
-            -f backend/my-issue/Dockerfile \
-            -t ${IMAGE_REPO}:latest \
-            -t ${IMAGE_REPO}:${COMMIT_SHA} \
-            backend/my-issue
-        '''
-        // Dockerfile 경로 지정 -> 최신 태그로도 빌드 -> 커밋 SHA 태그로도 빌드
-        // Docker 이미지 2개 태그로 빌더 (latest + 커밋 버전)
-      }
-    }
-
-    stage('Push to Docker Hub') {
-      when {
-        expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
-      }
-      steps {
-        withCredentials([usernamePassword( // Jenkins에 등록된 Docker Hub 크리덴셜 사용
-          credentialsId: 'dockerhub-cred',
-          usernameVariable: 'DOCKER_USER',
-          passwordVariable: 'DOCKER_PASS'
-        )]) { // Docker Hub 로그인/푸시/로그아웃
+        gitlabCommitStatus(name: '02-Docker Build') {
           sh '''
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-            docker push ${IMAGE_REPO}:${COMMIT_SHA}
-            docker push ${IMAGE_REPO}:latest
-            docker logout || true
+            echo "=== Docker Build (backend/my-issue) ==="
+            export DOCKER_BUILDKIT=1
+            # 이전 빌드 결과 캐시로 활용
+            docker pull ${IMAGE_REPO}:latest || true
+
+            docker build \
+              --pull \
+              --cache-from=${IMAGE_REPO}:latest \
+              -f backend/my-issue/Dockerfile \
+              -t ${IMAGE_REPO}:latest \
+              -t ${IMAGE_REPO}:${COMMIT_SHA} \
+              backend/my-issue
           '''
+          // Dockerfile 경로 지정 -> 최신 태그로도 빌드 -> 커밋 SHA 태그로도 빌드
+          // Docker 이미지 2개 태그로 빌더 (latest + 커밋 버전)
         }
       }
     }
 
-    stage('Deploy') {
+    stage('03-Push to Docker Hub') {
       when {
         expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
       }
       steps {
-        withCredentials([
-          string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
-          string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
-          string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
-          string(credentialsId: 'JWT_SECRET_BASE64', variable: 'JWT_SECRET_BASE64'),
-          string(credentialsId: 'REDIS_PASSWORD', variable: 'REDIS_PASSWORD'),
-          string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY'),
-          string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_KEY'),
-          string(credentialsId: 'GMS_KEY', variable: 'GMS_KEY'),
-          sshUserPrivateKey(
-            credentialsId: 'ec2-ssh-key-pem',
-            keyFileVariable: 'SSH_KEY',
-            usernameVariable: 'SSH_USER'
-          )
-        ]) {
-          sh """
-            export IMAGE_REPO=${env.IMAGE_REPO}
-            export COMMIT_SHA=${env.COMMIT_SHA}
-            export SPRING_DATASOURCE_URL=${env.SPRING_DATASOURCE_URL}
-            export SPRING_DATASOURCE_USERNAME=${env.SPRING_DATASOURCE_USERNAME}
-            export SPRING_DATASOURCE_PASSWORD=${env.SPRING_DATASOURCE_PASSWORD}
-            export JWT_SECRET_BASE64=${env.JWT_SECRET_BASE64}
-            export REDIS_PASSWORD=${env.REDIS_PASSWORD}
-            export AWS_ACCESS_KEY=${env.AWS_ACCESS_KEY}
-            export AWS_SECRET_KEY=${env.AWS_SECRET_KEY}
-            export GMS_KEY=${env.GMS_KEY}
-            export SPRING_PROFILES_ACTIVE=prod
+        gitlabCommitStatus(name: '03-Push to Docker Hub') {
+          withCredentials([usernamePassword( // Jenkins에 등록된 Docker Hub 크리덴셜 사용
+            credentialsId: 'dockerhub-cred',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )]) { // Docker Hub 로그인/푸시/로그아웃
+            sh '''
+              echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+              docker push ${IMAGE_REPO}:${COMMIT_SHA}
+              docker push ${IMAGE_REPO}:latest
+              docker logout || true
+            '''
+          }
+        }
+      }
+    }
 
-            bash -c '
-              set -euo pipefail
-              echo "🚀 Start Deploying \$IMAGE_REPO:\$COMMIT_SHA"
-              scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" scripts/deploy.sh "\$SSH_USER@\$NGINX_HOST:~/deploy.sh"
-              ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "\$SSH_KEY" "\$SSH_USER@\$NGINX_HOST" \\
-                "export SPRING_DATASOURCE_URL='${env.SPRING_DATASOURCE_URL}' && \\
-                 export SPRING_DATASOURCE_USERNAME='${env.SPRING_DATASOURCE_USERNAME}' && \\
-                 export SPRING_DATASOURCE_PASSWORD='${env.SPRING_DATASOURCE_PASSWORD}' && \\
-                 export JWT_SECRET_BASE64='${env.JWT_SECRET_BASE64}' && \\
-                 export REDIS_PASSWORD='${env.REDIS_PASSWORD}' && \\
-                 export AWS_ACCESS_KEY='${env.AWS_ACCESS_KEY}' && \\
-                 export AWS_SECRET_KEY='${env.AWS_SECRET_KEY}' && \\
-                 export GMS_KEY='${env.GMS_KEY}' && \\
+    stage('04-Deploy') {
+      when {
+        expression { env.BRANCH_NAME == 'dev/server' || env.GIT_BRANCH == 'origin/dev/server' }
+      }
+      steps {
+        gitlabCommitStatus(name: '04-Deploy') {
+          withCredentials([
+            string(credentialsId: 'SPRING_DATASOURCE_URL',      variable: 'SPRING_DATASOURCE_URL'),
+            string(credentialsId: 'SPRING_DATASOURCE_USERNAME', variable: 'SPRING_DATASOURCE_USERNAME'),
+            string(credentialsId: 'SPRING_DATASOURCE_PASSWORD', variable: 'SPRING_DATASOURCE_PASSWORD'),
+            string(credentialsId: 'JWT_SECRET_BASE64', variable: 'JWT_SECRET_BASE64'),
+            string(credentialsId: 'REDIS_PASSWORD', variable: 'REDIS_PASSWORD'),
+            string(credentialsId: 'AWS_ACCESS_KEY', variable: 'AWS_ACCESS_KEY'),
+            string(credentialsId: 'AWS_SECRET_KEY', variable: 'AWS_SECRET_KEY'),
+            string(credentialsId: 'GMS_KEY', variable: 'GMS_KEY'),
+            string(credentialsId: 'APP_RECOMMEND_BASE_URL', variable: 'APP_RECOMMEND_BASE_URL'),
+            string(credentialsId: 'APP_RECOMMEND_DEFAULT_PARAMS', variable: 'APP_RECOMMEND_DEFAULT_PARAMS'),
+            string(credentialsId: 'FIREBASE_TOKEN', variable: 'FIREBASE_TOKEN'),
+            sshUserPrivateKey(
+              credentialsId: 'ec2-ssh-key-pem',
+              keyFileVariable: 'SSH_KEY',
+              usernameVariable: 'SSH_USER'
+            )
+          ]) {
+            sh '''
+              echo "🚀 Start Deploying ${IMAGE_REPO}:${COMMIT_SHA}"
 
-                 export SPRING_PROFILES_ACTIVE=prod && \\
-                 chmod +x ~/deploy.sh && \\
-                 sudo -E ~/deploy.sh \$COMMIT_SHA"
-            '
-          """
+              # 원격 서버에 secrets 디렉토리 보장
+              ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "mkdir -p /home/$SSH_USER/secrets"
+
+              # Firebase secrets 파일 생성 및 전송
+              echo "$FIREBASE_TOKEN" > myissue-firebase.json
+              scp -o StrictHostKeyChecking=no -i "$SSH_KEY" myissue-firebase.json $SSH_USER@$NGINX_HOST:/home/$SSH_USER/secrets/myissue-firebase.json
+              rm -f myissue-firebase.json
+
+              # 1. deploy.sh 원격 서버에 복사
+              scp -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy.sh $SSH_USER@$NGINX_HOST:/home/$SSH_USER/deploy.sh
+
+              # 2. 원격 서버에서 권한 주기
+              ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" $SSH_USER@$NGINX_HOST "chmod +x /home/$SSH_USER/deploy.sh"
+
+              # 3. 원격 서버에서 환경변수 붙여 실행
+              ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "
+                export SPRING_DATASOURCE_URL='$SPRING_DATASOURCE_URL' &&
+                export SPRING_DATASOURCE_USERNAME='$SPRING_DATASOURCE_USERNAME' &&
+                export SPRING_DATASOURCE_PASSWORD='$SPRING_DATASOURCE_PASSWORD' &&
+                export JWT_SECRET_BASE64='$JWT_SECRET_BASE64' &&
+                export REDIS_PASSWORD='$REDIS_PASSWORD' &&
+                export AWS_ACCESS_KEY='$AWS_ACCESS_KEY' &&
+                export AWS_SECRET_KEY='$AWS_SECRET_KEY' &&
+                export GMS_KEY='$GMS_KEY' &&
+                export APP_RECOMMEND_BASE_URL='$APP_RECOMMEND_BASE_URL' &&
+                export APP_RECOMMEND_DEFAULT_PARAMS='$APP_RECOMMEND_DEFAULT_PARAMS' &&
+                export SPRING_PROFILES_ACTIVE=prod &&
+                sudo -E bash /home/ubuntu/deploy.sh ${COMMIT_SHA}
+              "
+            '''
+          }
         }
       }
     }
@@ -173,7 +185,7 @@ pipeline {
           )
         }
         echo "✅ Pushed: ${IMAGE_REPO}:${COMMIT_SHA} & :latest"
-        updateGitlabCommitStatus name: 'jenkins-ci', state: 'success'
+        updateGitlabCommitStatus name: 'jenkins/overall', state: 'success'
     }
     failure {
       script {
@@ -186,7 +198,7 @@ pipeline {
             message: "❌ 빌드 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${authorName} (${authorEmail})\n(<${env.BUILD_URL}|Details>)"
           )
         }
-        updateGitlabCommitStatus name: 'jenkins-ci', state: 'failed'
+        updateGitlabCommitStatus name: 'jenkins/overall', state: 'failed'
     }
     always  { sh 'docker image prune -f || true' }
   }

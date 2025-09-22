@@ -1,10 +1,6 @@
 package com.ssafy.myissue.news.controller;
 
-import com.ssafy.myissue.news.dto.CursorPage;
-import com.ssafy.myissue.news.dto.NewsCardResponse;
-import com.ssafy.myissue.news.dto.NewsDetailResponse;
-import com.ssafy.myissue.news.dto.NewsHomeResponse;
-import com.ssafy.myissue.news.dto.ScrapToggleResponse;
+import com.ssafy.myissue.news.dto.*;
 import com.ssafy.myissue.news.service.NewsScheduler;
 import com.ssafy.myissue.news.service.NewsScrapService;
 import com.ssafy.myissue.news.service.NewsService;
@@ -15,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.ssafy.myissue.news.service.NewsChatService;
+
 
 import java.util.List;
 
@@ -27,6 +25,7 @@ public class NewsController {
     private final NewsService newsService;
     private final NewsScrapService scrapService;
     private final NewsScheduler newsScheduler;
+    private final NewsChatService newsChatService;
 
     /** 홈: HOT 5, 추천 5, 최신 5 */
     @GetMapping("/main")
@@ -38,7 +37,7 @@ public class NewsController {
     @GetMapping("/hot")
     public ResponseEntity<CursorPage<NewsCardResponse>> getHot(@RequestParam(value = "cursor", required = false) String cursor, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size
     ) {
-        return ResponseEntity.ok(newsService.getHot(cursor, safeSize(size, 20, 50)));
+        return ResponseEntity.ok(newsService.getHotByRedis(cursor, safeSize(size, 20, 50)));
     }
 
     /** 최신 전체 (무한 스크롤) */
@@ -49,14 +48,14 @@ public class NewsController {
 
     /** 추천 전체 (무한 스크롤) — 추천 엔진 전까지 최신과 동일 동작 */
     @GetMapping("/recommend")
-    public ResponseEntity<CursorPage<NewsCardResponse>> getRecommend(@RequestParam(value = "cursor", required = false) String cursor, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size) {
-        return ResponseEntity.ok(newsService.getLatest(cursor, safeSize(size, 20, 50)));
+    public ResponseEntity<CursorPage<NewsCardResponse>> getRecommend(@AuthenticationPrincipal Long userId, @RequestParam(value = "cursor", required = false) String cursor, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size) {
+        return ResponseEntity.ok(newsService.getRecommendByRedis(userId, cursor, safeSize(size, 20, 50)));
     }
 
     /** 뉴스 상세 */
     @GetMapping("/{newsId}")
-    public ResponseEntity<NewsDetailResponse> getDetail(@PathVariable("newsId") long newsId) { // [CHANGED]
-        return ResponseEntity.ok(newsService.getDetailAndIncreaseView(newsId));
+    public ResponseEntity<NewsDetailResponse> getDetail(@PathVariable("newsId") long newsId, @AuthenticationPrincipal Long userId) { // [CHANGED]
+        return ResponseEntity.ok(newsService.getDetailAndIncreaseView(newsId, userId));
     }
 
     /**
@@ -79,9 +78,9 @@ public class NewsController {
 
     /** 내가 저장한 뉴스 (lastId = scrapId) */
     @GetMapping("/bookmarks")
-    public ResponseEntity<CursorPage<NewsCardResponse>> myBookmarks(@AuthenticationPrincipal Long userId, @RequestParam(value = "size", required = false, defaultValue = "20") Integer size, @RequestParam(value = "lastId", required = false) Long lastId) {
+    public ResponseEntity<CursorPage<NewsCardResponse>> myBookmarks(@AuthenticationPrincipal Long userId, @RequestParam(value = "cursor", required = false) String cursor) {
         if (userId == null) throw new CustomException(ErrorCode.UNAUTHORIZED_ACCESS);
-        return ResponseEntity.ok(scrapService.list(userId, safeSize(size, 20, 50), lastId));
+        return ResponseEntity.ok(scrapService.list(userId, cursor));
     }
 
     @PostMapping("/hot/update")
@@ -94,6 +93,18 @@ public class NewsController {
     @GetMapping("/hot/recommend/top100")
     public ResponseEntity<List<NewsDetailResponse>> getHotRecommendTop100() {
         return ResponseEntity.ok(newsService.getHotRecommendTop100());
+    }
+
+    @PostMapping("/{newsId}/chat")                                   // [ADDED]
+    public ResponseEntity<NewsChatResponse> chatAboutNews(           // [CHANGED]
+                                                                     @PathVariable Long newsId,                               // [ADDED]
+                                                                     @RequestBody ChatQuestionRequest req) {                  // [ADDED]
+        if (req == null || req.question() == null || req.question().isBlank()) { // [ADDED]
+            throw new CustomException(ErrorCode.INVALID_PARAMETER);              // [ADDED]
+        }
+        return ResponseEntity.ok(                                    // [CHANGED]
+                newsChatService.answerAboutNews(newsId, req.question())
+        );
     }
     // ---------- helpers ----------
 

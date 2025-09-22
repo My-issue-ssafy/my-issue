@@ -21,14 +21,16 @@ public class User {
     @Column(name = "fcm_token")
     private String fcmToken;
 
+    @Builder.Default // Builder는 필드 초기갑 무시
     @Column(name = "notification_enabled")
     private boolean notificationEnabled = false;
 
     private Instant lastSeen;
 
-    public static User newOf(String uuid) {
+    public static User newOf(String uuid, String fcmToken) {
         return User.builder()
                 .uuid(uuid)
+                .fcmToken(fcmToken)
                 .lastSeen(Instant.now())
                 .build();
     }

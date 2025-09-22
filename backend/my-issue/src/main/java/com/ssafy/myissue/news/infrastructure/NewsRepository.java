@@ -1,6 +1,7 @@
 package com.ssafy.myissue.news.infrastructure;
 
 import com.ssafy.myissue.news.domain.News;
+import com.ssafy.myissue.news.dto.HotNewsCandidates;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,8 +17,8 @@ public interface NewsRepository extends JpaRepository<News, Long>, NewsCustomRep
                                @Param("end") LocalDateTime end,
                                Pageable pageable);
 
-    @Query("SELECT n FROM News n WHERE n.createdAt >= :since AND n.views >= :minViews AND n.scrapCount >= :minScraps")
-    List<News> findHotCandidates(@Param("since") LocalDateTime since,
-                                 @Param("minViews") int minViews,
-                                 @Param("minScraps") int minScraps);
+    @Query("SELECT n.id AS id, n.views AS views, n.createdAt AS createdAt, n.scrapCount AS scrapCount FROM News n WHERE n.createdAt >= :since AND n.views >= :minViews AND n.scrapCount >= :minScraps")
+    List<HotNewsCandidates> findHotCandidates(@Param("since") LocalDateTime since,
+                                              @Param("minViews") int minViews,
+                                              @Param("minScraps") int minScraps);
 }

@@ -2,7 +2,11 @@ package com.ssafy.myissue.notification.controller;
 
 import com.ssafy.myissue.notification.dto.NotificationsResponse;
 import com.ssafy.myissue.notification.dto.SliceResponseDto;
+import com.ssafy.myissue.notification.dto.fcm.SendSummary;
+import com.ssafy.myissue.notification.scheduler.DailyPersonalizedPushJob;
 import com.ssafy.myissue.notification.service.NotificationService;
+import io.swagger.v3.oas.annotations.Hidden;
+import com.ssafy.myissue.notification.service.impl.FcmPersonalizedSender;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final DailyPersonalizedPushJob job;
 
     @GetMapping
     @Operation(
@@ -95,6 +100,7 @@ public class NotificationController {
         return ResponseEntity.ok(notificationService.getNotificationStatus(userId));
     }
 
+    @Hidden
     @PatchMapping("/{notificationId}/read")
     @Operation(
             summary = "내 알림 읽음 처리",
@@ -104,6 +110,12 @@ public class NotificationController {
         log.debug("[markAsRead] userId: {}, notificationId: {}", userId, notificationId);
 
         notificationService.updateNotificationReadStatus(userId, notificationId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/send-personalized")
+    public ResponseEntity<SendSummary> send() {
+        job.run();
         return ResponseEntity.noContent().build();
     }
 

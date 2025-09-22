@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
@@ -30,14 +31,16 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshStore refreshStore;
 
     @Override
-    public TokenPairResponse registerOrLogin(String deviceUuid, HttpServletResponse response) {
+    @Transactional
+    public TokenPairResponse registerOrLogin(String deviceUuid, String fcmToken, HttpServletResponse response) {
         User user = userRepository.findByUuid(deviceUuid);
 
         // 등록되지 않은 uuid -> 등록
         if(user == null) {
-            user = userRepository.save(User.newOf(deviceUuid));
+            user = userRepository.save(User.newOf(deviceUuid, fcmToken));
         } else {
-            userRepository.save(user);
+            // 토큰이 다를 경우 update
+            if(user.getFcmToken() == null || !user.getFcmToken().equals(fcmToken)) user.updateFcmToken(fcmToken);
         }
 
         return createJwt(user.getId(), response);
