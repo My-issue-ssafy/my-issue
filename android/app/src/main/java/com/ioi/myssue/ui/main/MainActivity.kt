@@ -1,6 +1,7 @@
 package com.ioi.myssue.ui.main
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -9,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -43,7 +45,7 @@ class MainActivity : ComponentActivity() {
                 MainTab.MYPAGE to myPageBackStack
             )
 
-            var currentTab by remember { mutableStateOf(MainTab.NEWS) }
+            var currentTab by rememberSaveable { mutableStateOf(MainTab.NEWS) }
             var isTabSwitch by remember { mutableStateOf(false) }
 
             // ViewModel 사이드이펙트 네비게이터 (탭 바뀌면 무애니 처리)
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
                             if (currentTab != newTab) {
                                 isTabSwitch = true
                                 currentTab = newTab
+                                Log.d("MainActivity", "Tab changed to $currentTab")
                             }
                         },
                         isTabSwitch = isTabSwitch

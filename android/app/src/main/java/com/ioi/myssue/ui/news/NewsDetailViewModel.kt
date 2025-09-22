@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.domain.repository.NewsRepository
+import com.ioi.myssue.navigation.Navigator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ sealed interface NewsDetailEffect {
 @HiltViewModel
 class NewsDetailViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
+    private val navigator: Navigator
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(NewsDetailUiState())
     val uiState = _uiState.asStateFlow()
@@ -30,7 +32,7 @@ class NewsDetailViewModel @Inject constructor(
     fun getNewsDetail(newsId: Long?) {
         if(newsId == null) return
         viewModelScope.launch {
-            _uiState.update { it.copy(loading = true, error = null) }
+            _uiState.update { NewsDetailUiState(loading = true, error = null) }
             runCatching { newsRepository.getNewsDetail(newsId) }
                 .onSuccess { news ->
                     Log.d(TAG, "getNewsDetail: $newsId")
@@ -40,6 +42,7 @@ class NewsDetailViewModel @Inject constructor(
                             newsId = news.newsId,
                             title = news.title,
                             author = news.author,
+                            thumbnail = news.thumbnail,
                             newspaper = news.newspaper,
                             displayTime = news.displayTime,
                             blocks = news.content,
@@ -55,7 +58,7 @@ class NewsDetailViewModel @Inject constructor(
     }
 
     fun toggleBookmark() {
-        val id = _uiState.value.newsId ?: return
+        val id = _uiState.value.newsId
         val before = _uiState.value.isBookmarked
         val next = !before
 
@@ -73,5 +76,13 @@ class NewsDetailViewModel @Inject constructor(
                 }
                 .onFailure { }
         }
+    }
+
+    fun openChat() = viewModelScope.launch {
+        _uiState.update { it.copy(c = true) }
+    }
+
+    fun closeChat() = viewModelScope.launch {
+        _uiState.update { it.copy(c = false) }
     }
 }

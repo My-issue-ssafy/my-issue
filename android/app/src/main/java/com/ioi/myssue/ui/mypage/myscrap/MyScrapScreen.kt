@@ -74,9 +74,9 @@ fun MyScrapScreen(
         }
     }
 
-    if (state.selectedNewsId != null) {
+    state.selectedNewsId?.let {
         NewsDetail(
-            newsId = state.selectedNewsId,
+            newsId = it,
             sheetState = sheetState,
             onDismiss = { viewModel.closeNewsDetail() }
         )
