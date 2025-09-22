@@ -25,9 +25,9 @@ public class PodcastSubtitle {
     private String line;
 
     @Column(name = "start_time")
-    private double startTime;
+    private long startTime;
 
-    public static PodcastSubtitle of(Podcast podcast, int speaker, String line, double startTime) {
+    public static PodcastSubtitle of(Podcast podcast, int speaker, String line, long startTime) {
         return PodcastSubtitle.builder()
                 .podcast(podcast)
                 .speaker(speaker)
