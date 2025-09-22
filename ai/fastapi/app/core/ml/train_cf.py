@@ -39,11 +39,17 @@ def today_kst_str():
     kst = ZoneInfo("Asia/Seoul")
     return datetime.now(kst).strftime("%Y%m%d")
 
-# 2) 오늘 날짜의 GA4 이벤트 테이블이 BigQuery에 생성되었는지 확인
+# 2) 최신 GA4 이벤트 테이블이 오늘 또는 어제 날짜인지 확인
 def has_today_table(client: bigquery.Client, dataset: str) -> bool:
-    """오늘 날짜의 events_YYYYMMDD 테이블이 존재하는지 확인"""
+    """최신 events_YYYYMMDD 테이블이 오늘 또는 어제 날짜인지 확인"""
     latest = get_latest_date(client, dataset)  # 최신 events_ 테이블 날짜 조회
-    return latest == today_kst_str()
+    if latest is None:
+        return False
+
+    today_str = today_kst_str()
+    yesterday_str = (datetime.now(ZoneInfo("Asia/Seoul")) - timedelta(days=1)).strftime("%Y%m%d")
+
+    return latest == today_str or latest == yesterday_str
 
 # 3) 오늘 이미 학습했는지 확인하고 학습 완료 상태를 기록하는 함수들
 def already_trained_today() -> bool:
@@ -505,14 +511,14 @@ def main():
     client = get_client()
     dataset = DEFAULT_DATASET
 
-    # 1. 오늘 날짜의 GA4 이벤트 테이블이 존재하는지 확인
+    # 1. 최신 GA4 이벤트 테이블이 오늘 또는 어제 날짜인지 확인
     # GA4 데이터는 일반적으로 1일 지연되어 BigQuery에 도착
     today_str = today_kst_str()
     latest_date = get_latest_date(client, dataset)
     logger.info(f"오늘 날짜: {today_str}, 최신 테이블 날짜: {latest_date}")
 
     if not has_today_table(client, dataset):
-        logger.info(f"오늘 날짜({today_str}) 테이블이 준비되지 않았습니다. 최신: {latest_date}")
+        logger.info(f"최신 테이블이 너무 오래되었습니다 (오늘/어제 아님). 최신: {latest_date}")
         return
 
     # 2. 이미 오늘 모델 학습을 완료했는지 확인 (중복 학습 방지)
