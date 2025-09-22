@@ -79,11 +79,7 @@ public class PodcastServiceImpl implements PodcastService {
         }
 
         List<PodcastDetailNewsList> newsList = podcastNews.stream()
-                        .map( podnews -> PodcastDetailNewsList.of(
-                                podnews.getNews().getId(),
-                                podnews.getNews().getThumbnail(),
-                                podnews.getNews().getTitle()
-                        )).toList();
+                        .map( podnews -> PodcastDetailNewsList.of(podnews.getNews())).toList();
 
         return newsList;
     }
