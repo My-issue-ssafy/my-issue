@@ -36,16 +36,16 @@ class RecommendationItem(BaseModel):
 @router.get("/recommendations/{user_id}", response_model=RecommendationResponse)
 async def get_user_recommendations(
     user_id: str,
-    cf_count: int = Query(50, ge=1, le=100, description="CF 추천 수 (1-100)"),
-    cbf_count: int = Query(50, ge=1, le=100, description="CBF 추천 수 (1-100)"),
+    cf_count: int = Query(70, ge=1, le=150, description="CF 추천 수 (1-150)"),
+    cbf_count: int = Query(70, ge=1, le=150, description="CBF 추천 수 (1-150)"),
     strategy: str = Query("balanced", description="추천 전략: pure, balanced, diverse")
 ):
     """
     사용자별 하이브리드 추천 (CF + CBF + 전략 선택)
     
     - **user_id**: 추천을 받을 사용자 ID
-    - **cf_count**: CF(협업 필터링) 추천 수 (기본값: 50)
-    - **cbf_count**: CBF(콘텐츠 기반) 추천 수 (기본값: 50)
+    - **cf_count**: CF(협업 필터링) 추천 수 (기본값: 70)
+    - **cbf_count**: CBF(콘텐츠 기반) 추천 수 (기본값: 70)
     - **strategy**: 추천 전략
         - "pure": 순수 추천 (다양성 없음, 점수 순)
         - "balanced": 균형 추천 (카테고리 다양성 + 5% 반대 관점)
@@ -106,7 +106,7 @@ async def get_user_recommendations(
 @router.get("/recommendations/{user_id}/cf", response_model=List[RecommendationItem])
 async def get_cf_recommendations(
     user_id: str,
-    count: int = Query(50, ge=1, le=100, description="추천 수 (1-100)")
+    count: int = Query(50, ge=1, le=150, description="추천 수 (1-150)")
 ):
     """
     사용자별 CF(협업 필터링) 추천만 가져오기
@@ -137,7 +137,7 @@ async def get_cf_recommendations(
 @router.get("/recommendations/{user_id}/cbf", response_model=List[RecommendationItem])
 async def get_cbf_recommendations(
     user_id: str,
-    count: int = Query(50, ge=1, le=100, description="추천 수 (1-100)")
+    count: int = Query(50, ge=1, le=150, description="추천 수 (1-150)")
 ):
     """
     사용자별 CBF(콘텐츠 기반) 추천만 가져오기
