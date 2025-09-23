@@ -1,5 +1,7 @@
 package com.ioi.myssue.designsystem.ui
 
+import android.R.attr.onClick
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,23 +24,28 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 
 @Composable
 fun AppTopBar(
     modifier: Modifier = Modifier,
-    isPlaying: Boolean = false,
     @DrawableRes logoRes: Int = R.drawable.logo,
     onBellClick: (() -> Unit)? = null,
-    onBack : (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
     containerColor: Color = BackgroundColors.Background50,
+    topBarViewModel: TopBarViewModel = hiltViewModel()
 ) {
+    val uiState by topBarViewModel.uiState.collectAsState()
+
     val topBarInsets = WindowInsets
         .safeDrawing
         .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
@@ -50,23 +57,21 @@ fun AppTopBar(
             .windowInsetsPadding(topBarInsets)
             .padding(8.dp)
     ) {
-            Image(
-                painter = painterResource(logoRes),
-                contentDescription = "App logo",
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(4.dp)
-                    .align(Alignment.Center)
-            )
+        Image(
+            painter = painterResource(logoRes),
+            contentDescription = "App logo",
+            modifier = Modifier
+                .size(48.dp)
+                .padding(4.dp)
+                .align(Alignment.Center)
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            if(onBack != null) {
-                IconButton(
-                    onClick = { onBack.invoke() },
-                ) {
+            if (onBack != null) {
+                IconButton(onClick = { onBack.invoke() }) {
                     Icon(
                         painter = painterResource(R.drawable.ic_back_normal),
                         contentDescription = "Back",
@@ -75,14 +80,17 @@ fun AppTopBar(
                     )
                 }
             } else {
-                TopBarMiniPlayer(onBellClick, isPlaying)
+                TopBarMiniPlayer(
+                    uiState = uiState,
+                    onPlay = topBarViewModel::play,
+                    onPause = topBarViewModel::pause,
+                    onRadioClick = topBarViewModel::navigateToPodcast
+                )
             }
 
             Spacer(Modifier.weight(1f))
 
-            IconButton(
-                onClick = { onBellClick?.invoke() },
-            ) {
+            IconButton(onClick = { onBellClick?.invoke() }) {
                 Icon(
                     imageVector = Icons.Rounded.Notifications,
                     contentDescription = "Notifications",
@@ -95,44 +103,47 @@ fun AppTopBar(
 }
 
 @Composable
-private fun TopBarMiniPlayer(onBellClick: (() -> Unit)?, isPlaying: Boolean) {
+private fun TopBarMiniPlayer(
+    uiState: TopBarUiState,
+    onPlay: () -> Unit,
+    onPause: () -> Unit,
+    onRadioClick: () -> Unit
+) {
     Surface(
         shape = RoundedCornerShape(24.dp),
         color = BackgroundColors.Background100,
     ) {
-        IconButton(
-            modifier = Modifier.padding(horizontal = 4.dp),
-            onClick = { onBellClick?.invoke() },
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_radio),
-                contentDescription = "Notifications",
-                modifier = Modifier.size(32.dp)
-            )
-        }
-
-        if (isPlaying) {
-            IconButton(
-                modifier = Modifier.padding(horizontal = 4.dp),
-                onClick = { onBellClick?.invoke() },
-            ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onRadioClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_radio),
-                    contentDescription = "Notifications",
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-            IconButton(
-                modifier = Modifier.padding(horizontal = 4.dp),
-                onClick = { onBellClick?.invoke() },
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_radio),
-                    contentDescription = "Notifications",
-                    modifier = Modifier.size(32.dp)
+                    contentDescription = "Radio",
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
+            when {
+                !uiState.isConnected || uiState.playbackState != androidx.media3.common.Player.STATE_READY -> {}
+
+                uiState.isPlaying -> {
+                    IconButton(onClick = onPause) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_pause),
+                            contentDescription = "Pause",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+                else -> {
+                    IconButton(onClick = onPlay) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_radio_play),
+                            contentDescription = "Play",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -75,6 +75,8 @@ class PodcastViewModel @Inject constructor(
     }
 
     fun selectDate(date: LocalDate = _state.value.selectedDate, playNow: Boolean = true) = viewModelScope.launch {
+        audioController.stop()
+        audioController.release()
         _state.update {
             it.copy(
                 selectedDate = date,

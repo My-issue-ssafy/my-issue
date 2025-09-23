@@ -12,10 +12,7 @@ class CartoonRepositoryImpl @Inject constructor(
 
     override suspend fun getCartoonNews() = cartoonApi.getToons().map { it.toDomain() }
 
-    override suspend fun getLikedCartoons(
-        lastId: Long?,
-        size: Int?
-    ): List<CartoonNews> = cartoonApi.getLikedToons(lastId, size).map { it.toDomain() }
+    override suspend fun getLikedCartoons(): List<CartoonNews> = cartoonApi.getLikedToons().map { it.toDomain() }
 
     override suspend fun likeCartoon(toonId: Long) = cartoonApi.likeToon(toonId)
 

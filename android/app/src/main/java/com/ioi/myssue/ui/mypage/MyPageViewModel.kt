@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.mypage
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.domain.repository.CartoonRepository
@@ -55,10 +56,10 @@ class MyPageViewModel @Inject constructor(
     }
 
     fun loadMyToons() = viewModelScope.launch {
-        runCatching { cartoonRepository.getLikedCartoons(0L, 20) }
+        runCatching { cartoonRepository.getLikedCartoons() }
             .onSuccess { cartoonNews ->
                 _state.update {
-                    it.copy(myToons = cartoonNews, isLoadingLikeToons = false)
+                    it.copy(myToons = cartoonNews.take(5), isLoadingLikeToons = false)
                 }
             }
             .onFailure {

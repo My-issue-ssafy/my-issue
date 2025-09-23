@@ -15,10 +15,7 @@ interface CartoonApi {
     ): List<ToonResponse>
 
     @GET("toons/likes")
-    suspend fun getLikedToons(
-        @Query("lastId") lastId: Long? = null,
-        @Query("size") size: Int? = null
-    ): List<ToonResponse>
+    suspend fun getLikedToons(): List<ToonResponse>
 
     @POST("toons/{toon_id}/like")
     suspend fun likeToon(

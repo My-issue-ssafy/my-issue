@@ -29,10 +29,7 @@ class FakeCartoonRepositoryImpl @Inject constructor() : CartoonRepository {
         )
     )
 
-    override suspend fun getLikedCartoons(
-        lastId: Long?,
-        size: Int?
-    ): List<CartoonNews> {
+    override suspend fun getLikedCartoons(): List<CartoonNews> {
         TODO("Not yet implemented")
     }
 

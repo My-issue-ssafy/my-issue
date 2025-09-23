@@ -6,7 +6,7 @@ interface CartoonRepository {
 
     suspend fun getCartoonNews(): List<CartoonNews>
 
-    suspend fun getLikedCartoons(lastId: Long?, size: Int?): List<CartoonNews>
+    suspend fun getLikedCartoons(): List<CartoonNews>
 
     suspend fun likeCartoon(toonId: Long)
 

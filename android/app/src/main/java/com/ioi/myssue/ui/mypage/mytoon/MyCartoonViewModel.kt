@@ -33,7 +33,7 @@ class MyCartoonViewModel @Inject constructor(
     }
 
     private fun loadMyToons() = viewModelScope.launch {
-        runCatching { cartoonRepository.getLikedCartoons(null, 10) }
+        runCatching { cartoonRepository.getLikedCartoons() }
             .onSuccess { cartoonNews ->
                 _state.update {
                     it.copy(myToons = cartoonNews)
