@@ -3,16 +3,20 @@
 
 import os
 import pickle
+import json
 import numpy as np
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 from loguru import logger
+from dateutil import parser
 
 # 모델 저장 경로
 MODELS_DIR = Path(__file__).resolve().parent.parent.parent / "models"
 CF_MODEL_PATH = MODELS_DIR / "als_model.pkl"
 CBF_MODEL_PATH = MODELS_DIR / "cbf_model.pkl"
+CF_METADATA_PATH = MODELS_DIR / "model_metadata.json"
+CBF_METADATA_PATH = MODELS_DIR / "cbf_metadata.json"
 
 class RecommendationService:
     """CF와 CBF 모델을 활용한 통합 추천 서비스"""
@@ -22,6 +26,57 @@ class RecommendationService:
         self.cbf_model_data = None
         self.cf_loaded_at = None
         self.cbf_loaded_at = None
+        self.cf_trained_at = None
+        self.cbf_trained_at = None
+
+    def _load_cf_trained_time(self):
+        """CF 모델의 학습 시간을 메타데이터에서 로드"""
+        try:
+            if CF_METADATA_PATH.exists():
+                with open(CF_METADATA_PATH, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                    trained_at_str = metadata.get('trained_at')
+                    if trained_at_str:
+                        self.cf_trained_at = parser.parse(trained_at_str)
+                        logger.debug(f"CF 모델 학습 시간: {self.cf_trained_at}")
+        except Exception as e:
+            logger.warning(f"CF 모델 학습 시간 로드 실패: {e}")
+
+    def _load_cbf_trained_time(self):
+        """CBF 모델의 학습 시간을 메타데이터에서 로드"""
+        try:
+            if CBF_METADATA_PATH.exists():
+                with open(CBF_METADATA_PATH, 'r', encoding='utf-8') as f:
+                    metadata = json.load(f)
+                    trained_at_str = metadata.get('trained_at')
+                    if trained_at_str:
+                        self.cbf_trained_at = parser.parse(trained_at_str)
+                        logger.debug(f"CBF 모델 학습 시간: {self.cbf_trained_at}")
+            elif hasattr(self.cbf_model_data, 'get') and self.cbf_model_data:
+                # CBF 모델 데이터에서 직접 로드 시도
+                trained_at = self.cbf_model_data.get('trained_at')
+                if trained_at:
+                    if isinstance(trained_at, str):
+                        self.cbf_trained_at = parser.parse(trained_at)
+                    else:
+                        self.cbf_trained_at = trained_at
+                    logger.debug(f"CBF 모델 학습 시간 (모델 데이터): {self.cbf_trained_at}")
+        except Exception as e:
+            logger.warning(f"CBF 모델 학습 시간 로드 실패: {e}")
+
+    def get_latest_model_trained_time(self) -> Optional[datetime]:
+        """두 모델 중 가장 최신 학습 시간 반환"""
+        times = []
+        if self.cf_trained_at:
+            times.append(self.cf_trained_at)
+        if self.cbf_trained_at:
+            times.append(self.cbf_trained_at)
+
+        if times:
+            latest = max(times)
+            logger.debug(f"최신 모델 학습 시간: {latest}")
+            return latest
+        return None
     
     def load_cf_model(self) -> bool:
         """
@@ -39,6 +94,8 @@ class RecommendationService:
                 self.cf_model_data = pickle.load(f)
             
             self.cf_loaded_at = datetime.now()
+            # CF 모델 학습 시간 로드
+            self._load_cf_trained_time()
             logger.info(f"CF 모델 로드 완료 - Users: {len(self.cf_model_data['user_categories'])}, Items: {len(self.cf_model_data['item_categories'])}")
             return True
             
@@ -62,6 +119,8 @@ class RecommendationService:
                 self.cbf_model_data = pickle.load(f)
             
             self.cbf_loaded_at = datetime.now()
+            # CBF 모델 학습 시간 로드
+            self._load_cbf_trained_time()
             logger.info(f"CBF 모델 로드 완료 - Users: {len(self.cbf_model_data['user_profiles'])}, Recommendations: {len(self.cbf_model_data['recommendations'])}")
             return True
             
@@ -449,6 +508,10 @@ class RecommendationService:
         """
         logger.info(f"하이브리드 추천 시작: user_id={user_id}, cf_count={cf_count}, cbf_count={cbf_count}, strategy={strategy}")
 
+        # 최신 모델 학습 시간 가져오기
+        latest_trained_time = self.get_latest_model_trained_time()
+        timestamp = latest_trained_time.isoformat() if latest_trained_time else ""
+
         result = {
             'user_id': user_id,
             'total_recommendations': 0,
@@ -458,7 +521,7 @@ class RecommendationService:
                 'before_diversity_count': 0,
                 'after_diversity_count': 0
             },
-            'timestamp': datetime.now().isoformat()
+            'timestamp': timestamp
         }
 
         # 모델들이 로드되지 않았다면 로드 시도
