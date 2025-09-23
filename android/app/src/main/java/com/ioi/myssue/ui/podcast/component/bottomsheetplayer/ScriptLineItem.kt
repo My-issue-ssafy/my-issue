@@ -19,7 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ioi.myssue.designsystem.theme.BackgroundColors
-import com.ioi.myssue.ui.podcast.ScriptLine
+import com.ioi.myssue.domain.model.ScriptLine
 
 @Composable
 fun ScriptLineItem(
@@ -62,7 +62,7 @@ private fun AnimatedScriptText(
     shadowRadius: Float
 ) {
     Text(
-        text = line.text,
+        text = line.line,
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)

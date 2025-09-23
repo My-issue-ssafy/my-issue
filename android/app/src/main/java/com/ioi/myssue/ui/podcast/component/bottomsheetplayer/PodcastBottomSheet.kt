@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsSummary
+import com.ioi.myssue.domain.model.ScriptLine
 import com.ioi.myssue.ui.podcast.PodcastContentType
-import com.ioi.myssue.ui.podcast.ScriptLine
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +34,7 @@ fun PodcastBottomSheet(
     title: String,
     dateText: String,
     scripts: List<ScriptLine>,
+    newsSummaries: List<NewsSummary>,
     currentIndex: Int,
     onLineClick: (Int) -> Unit,
     positionMs: Long,
@@ -87,7 +88,7 @@ fun PodcastBottomSheet(
                     )
                 } else if (contentType == PodcastContentType.NEWS) {
                     PodcastNewsList(
-                        news = listOf(NewsSummary()),
+                        news = newsSummaries,
                         modifier = Modifier.weight(1f)
                     )
                 }

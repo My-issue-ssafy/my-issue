@@ -1,7 +1,6 @@
 package com.ioi.myssue.ui.podcast
 
 import android.annotation.SuppressLint
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -28,6 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.ui.podcast.component.Calendar
@@ -42,6 +44,21 @@ fun PodCastScreen(
     viewModel: PodcastViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.selectDate(playNow = false)
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Box {
         Column(Modifier.fillMaxSize()) {
@@ -59,7 +76,7 @@ fun PodCastScreen(
                 BottomPlayer(
                     title = "HOT 뉴스",
                     date = state.selectedDateString,
-                    thumbnail = state.episode.articleImage,
+                    thumbnail = state.episode.thumbnail,
                     isPlaying = state.audio.isPlaying,
                     onPlayPause = viewModel::toggle,
                     openBottomPlayer = viewModel::openPlayer
@@ -67,13 +84,13 @@ fun PodCastScreen(
             } else {
                 PlayerContent(
                     title = state.selectedDateString,
-                    imageUrl = state.episode.articleImage,
+                    imageUrl = state.episode.thumbnail,
                     isPlaying = state.audio.isPlaying,
                     isLoading = state.isLoading,
                     positionMs = state.audio.position,
                     durationMs = state.audio.duration,
-                    currentLine = state.currentLine.text,
-                    previousLine = state.previousLine.text,
+                    currentLine = state.currentLine.line,
+                    previousLine = state.previousLine.line,
                     onPlayPause = { viewModel.toggle() },
                     onSeekTo = { viewModel.seekTo(it) },
                     openBottomPlayer = viewModel::openPlayer
@@ -84,7 +101,7 @@ fun PodCastScreen(
 
         if (state.showPlayer) {
             PodcastBottomSheet(
-                thumbnailUrl = state.episode.articleImage,
+                thumbnailUrl = state.episode.thumbnail,
                 title = "HOT 뉴스",
                 dateText = state.selectedDateString,
                 positionMs = state.audio.position,
@@ -96,7 +113,8 @@ fun PodCastScreen(
                 changeDate = viewModel::changeDate,
                 onDismissRequest = viewModel::closePlayer,
                 scripts = state.episode.scripts,
-                currentIndex = state.currentIndex,
+                newsSummaries = state.podcastNewsSummaries,
+                currentIndex = state.currentScriptIndex,
                 onLineClick = viewModel::updateIndex,
                 toggleContentType = viewModel::toggleContentType,
                 contentType = state.contentType
@@ -253,7 +271,8 @@ fun ScriptViewer(
                 style = MaterialTheme.typography.labelLarge,
                 color = AppColors.Primary50,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = 40.dp)
             )
         }
 
@@ -271,7 +290,9 @@ fun ScriptViewer(
                 text = line,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = BackgroundColors.Background50
+                color = BackgroundColors.Background50,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

@@ -12,7 +12,7 @@ data class ToonResponse(
     val newsId: Long,
     val title: String,
     @SerialName("summary") val description: String,
-    @SerialName("toonImage") val toonImageUrl: String = "",
+    @SerialName("toonImage") val toonImageUrl: String? = "",
     val date: String,
 )
 
@@ -21,5 +21,5 @@ fun ToonResponse.toDomain() = CartoonNews(
     newsId = newsId,
     newsTitle = title,
     newsDescription = description,
-    toonImageUrl = toonImageUrl
+    toonImageUrl = toonImageUrl?: ""
 )

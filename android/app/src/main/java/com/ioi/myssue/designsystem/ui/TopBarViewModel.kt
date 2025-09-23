@@ -3,7 +3,6 @@ package com.ioi.myssue.designsystem.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.player.AudioController
-import com.ioi.myssue.ui.podcast.ScriptLine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -12,8 +11,6 @@ import javax.inject.Inject
 class TopBarViewModel @Inject constructor(
     private val audioController: AudioController
 ) : ViewModel() {
-
-
 
     init {
         viewModelScope.launch {
