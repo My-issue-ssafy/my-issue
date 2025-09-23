@@ -42,6 +42,8 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
+            var firstLaunch by rememberSaveable { mutableStateOf(true) }
+
             val newsBackStack = rememberNavBackStack(BottomTabRoute.News)
             val searchBackStack = rememberNavBackStack(BottomTabRoute.Search)
             val cartoonBackStack = rememberNavBackStack(BottomTabRoute.Cartoon)
@@ -68,6 +70,16 @@ class MainActivity : ComponentActivity() {
                         isTabSwitch = true
                         currentTab = newTab
                     }
+                }
+            )
+
+            NotificationPermission(
+                firstLaunch = firstLaunch,
+                onGranted = {
+                    firstLaunch = false
+                },
+                onRefused = {
+                    firstLaunch = false
                 }
             )
 

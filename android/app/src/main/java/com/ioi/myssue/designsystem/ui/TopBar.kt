@@ -1,7 +1,5 @@
 package com.ioi.myssue.designsystem.ui
 
-import android.R.attr.onClick
-import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,12 +14,14 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.ui.common.clickableNoRipple
 
 @Composable
 fun AppTopBar(
@@ -42,6 +43,10 @@ fun AppTopBar(
     onBellClick: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     containerColor: Color = BackgroundColors.Background50,
+    mode: TopBarMode = TopBarMode.Default,
+    notificationEnabled: Boolean = true,
+    onToggleNotification: (Boolean) -> Unit = { },
+    hasUnread: Boolean = false,
     topBarViewModel: TopBarViewModel = hiltViewModel()
 ) {
     val uiState by topBarViewModel.uiState.collectAsState()
@@ -68,10 +73,13 @@ fun AppTopBar(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             if (onBack != null) {
-                IconButton(onClick = { onBack.invoke() }) {
+                IconButton(
+                    onClick = { onBack.invoke() },
+                ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_back_normal),
                         contentDescription = "Back",
@@ -90,13 +98,36 @@ fun AppTopBar(
 
             Spacer(Modifier.weight(1f))
 
-            IconButton(onClick = { onBellClick?.invoke() }) {
-                Icon(
-                    imageVector = Icons.Rounded.Notifications,
-                    contentDescription = "Notifications",
-                    tint = BackgroundColors.Background600,
-                    modifier = Modifier.size(32.dp)
-                )
+            when (mode) {
+                TopBarMode.Default -> {
+                    IconButton(onClick = { onBellClick?.invoke() }) {
+                        Image(
+                            painter = painterResource(
+                                if (hasUnread) R.drawable.ic_notification_new
+                                else R.drawable.ic_notification
+                            ),
+                            contentDescription = if (hasUnread) "읽지 않은 알림 있음" else "알림",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                TopBarMode.Notification -> {
+                    Image(
+                        painter = painterResource(
+                            if (notificationEnabled) R.drawable.ic_notification_on
+                            else R.drawable.ic_notification_off
+                        ),
+                        contentDescription = if (notificationEnabled) "알림 켜짐" else "알림 꺼짐",
+                        modifier = Modifier
+                            .padding(end = 10.dp)
+                            .width(76.dp)
+                            .clickableNoRipple {
+                                onToggleNotification(!notificationEnabled)
+                            },
+                    )
+                }
+
             }
         }
     }
@@ -144,6 +175,7 @@ private fun TopBarMiniPlayer(
                     }
                 }
             }
+
         }
     }
 }

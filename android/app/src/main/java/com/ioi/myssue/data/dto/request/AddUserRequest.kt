@@ -4,5 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AddUserRequest(
-    val deviceUuid: String
+    val deviceUuid: String,
+    val fcmToken: String
 )
