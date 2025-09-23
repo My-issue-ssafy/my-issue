@@ -89,7 +89,6 @@ public class NewsController {
         newsScheduler.manualScheduler();
         return ResponseEntity.ok().build();
     }
-
     // ---------- helpers ----------
 
     /** size 하한/상한 고정 */
