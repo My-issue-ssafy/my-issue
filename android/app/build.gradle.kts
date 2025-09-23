@@ -73,7 +73,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.foundation.layout)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -121,5 +120,5 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.kotlinx.coroutines.guava)
 
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.androidx.core.splashscreen)
 }
