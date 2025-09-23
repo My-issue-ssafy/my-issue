@@ -86,6 +86,7 @@ fun NewsDetail(
     val scroll = rememberScrollState()
     val analytics = LocalAnalytics.current
     val chatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val blockSheetDrag = rememberBlockSheetDragConnection()
 
     LaunchedEffect(newsId) {
         viewModel.getNewsDetail(newsId)
@@ -107,7 +108,33 @@ fun NewsDetail(
         analytics = analytics
     )
 
-    if(state.c) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+        containerColor = Color.White,
+        dragHandle = { SheetDragHandle() },
+        modifier = Modifier.systemBarsPadding()
+    ) {
+        NewsDetailSheet(
+            title = state.title,
+            author = state.author,
+            newspaper = state.newspaper,
+            displayTime = state.displayTime,
+            blocks = state.blocks,
+            isBookmarked = state.isBookmarked,
+            onToggleBookmark = {
+                val action = if (state.isBookmarked) "remove" else "add"
+                analytics.logNewsBookmark(state.newsId, action)
+                Log.d(TAG, "logNewsBookmark: newsId:$newsId action:$action")
+                viewModel.toggleBookmark()
+            },
+            scrollState = scroll,
+            openChat = { viewModel.openChat() },
+        )
+    }
+
+    if (state.c) {
         MyssueBottomSheet(
             sheetState = chatSheetState,
             onDismissRequest = viewModel::closeChat
@@ -119,34 +146,8 @@ fun NewsDetail(
                     author = state.author,
                     newspaper = state.newspaper,
                     thumbnail = state.thumbnail,
-                )
-            )
-        }
-    }
-    else {
-        ModalBottomSheet(
-            onDismissRequest = onDismiss,
-            sheetState = sheetState,
-            shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
-            containerColor = Color.White,
-            dragHandle = { SheetDragHandle() },
-            modifier = Modifier.systemBarsPadding()
-        ) {
-            NewsDetailSheet(
-                title = state.title,
-                author = state.author,
-                newspaper = state.newspaper,
-                displayTime = state.displayTime,
-                blocks = state.blocks,
-                isBookmarked = state.isBookmarked,
-                onToggleBookmark = {
-                    val action = if (state.isBookmarked) "remove" else "add"
-                    analytics.logNewsBookmark(state.newsId, action)
-                    Log.d(TAG, "logNewsBookmark: newsId:$newsId action:$action")
-                    viewModel.toggleBookmark()
-                },
-                scrollState = scroll,
-                openChat = { viewModel.openChat() },
+                ),
+                modifier = Modifier.nestedScroll(blockSheetDrag)
             )
         }
     }
@@ -154,7 +155,7 @@ fun NewsDetail(
 
 // 본문 스크롤할 때 시트 내려감 방지
 @Composable
-private fun rememberBlockSheetDragConnection(): NestedScrollConnection {
+fun rememberBlockSheetDragConnection(): NestedScrollConnection {
     return remember {
         object : NestedScrollConnection {
             // child(본문)가 스크롤 처리한 "뒤에" 남은 양은 전부 소비 → 시트로 안 올라가게
@@ -430,7 +431,7 @@ private fun TrackNewsViewEnd(
     }
 
     LaunchedEffect(newsId, scrollState) {
-        if(newsId < 0) return@LaunchedEffect
+        if (newsId < 0) return@LaunchedEffect
         snapshotFlow { scrollState.value to scrollState.maxValue }
             .collectLatest { (value, max) ->
                 val pct = if (max > 0) {
@@ -441,7 +442,7 @@ private fun TrackNewsViewEnd(
     }
     DisposableEffect(newsId) {
         onDispose {
-            if(newsId < 0) return@onDispose
+            if (newsId < 0) return@onDispose
             val dwell = SystemClock.elapsedRealtime() - sessionStart
             analytics.logNewsViewEnd(newsId, dwellMs = dwell, scrollPct = maxPct)
             Log.d("logNewsViewEnd", "newsId=$newsId dwell=$dwell scroll=$maxPct")

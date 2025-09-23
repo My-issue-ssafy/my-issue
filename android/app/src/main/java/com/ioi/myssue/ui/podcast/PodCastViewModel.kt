@@ -157,6 +157,14 @@ class PodcastViewModel @Inject constructor(
         selectDate(_state.value.selectedDate.plusDays(step.toLong()))
     }
 
+    fun openDetail(newsId: Long) {
+        _state.update { it.copy(detailNewsId = newsId) }
+    }
+
+    fun closeDetail() {
+        _state.update { it.copy(detailNewsId = null) }
+    }
+
     private fun formatNewsDate(dateStr: LocalDate): String {
         val inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.KOREA)
         val outputFormatter = DateTimeFormatter.ofPattern("MM월 dd일", Locale.KOREA)

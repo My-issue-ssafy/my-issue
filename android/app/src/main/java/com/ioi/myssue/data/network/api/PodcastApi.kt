@@ -15,7 +15,7 @@ interface PodcastApi {
 
     @GET("podcast/{podcastId}/news")
     suspend fun getNewsByPodcastId(
-        @Path("podcastId ") podcastId : Long
+        @Path("podcastId") podcastId : Long
     ): List<PodcastNewsSummaryResponse>
 }
 

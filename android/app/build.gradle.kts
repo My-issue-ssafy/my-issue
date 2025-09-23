@@ -118,4 +118,5 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.dash)
     implementation(libs.kotlinx.coroutines.guava)
 
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }

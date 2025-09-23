@@ -28,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
@@ -46,6 +47,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.ui.news.NewsDetail
 import com.ioi.myssue.ui.podcast.component.Calendar
 import com.ioi.myssue.ui.podcast.component.CurvedSurface
 import com.ioi.myssue.ui.podcast.component.MiniPlayer
@@ -136,8 +138,14 @@ fun PodCastScreen(
                 currentIndex = state.currentScriptIndex,
                 onLineClick = viewModel::updateIndex,
                 toggleContentType = viewModel::toggleContentType,
+                onNewsClick = viewModel::openDetail,
                 contentType = state.contentType
             )
+        }
+        state.detailNewsId?.let {
+            val sheetState = rememberModalBottomSheetState(true)
+
+            NewsDetail(newsId = it, sheetState = sheetState, onDismiss = viewModel::closeDetail)
         }
     }
 

@@ -1,8 +1,9 @@
 package com.ioi.myssue.data.dto.response
 
 import com.ioi.myssue.domain.model.NewsSummary
+import kotlinx.serialization.Serializable
 
-
+@Serializable
 data class PodcastNewsSummaryResponse(
     val newsId: Long,
     val thumbnailUrl: String,

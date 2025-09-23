@@ -14,6 +14,7 @@ data class PodCastUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val audio: AudioState = AudioState(),
     val episode: PodcastEpisode = PodcastEpisode(),
+    val detailNewsId: Long? = null,
     val currentScriptIndex: Int = 0,
     val currentLine: ScriptLine = ScriptLine(),
     val previousLine: ScriptLine = ScriptLine(),

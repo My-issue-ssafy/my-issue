@@ -1,6 +1,5 @@
 package com.ioi.myssue.ui.chat
 
-import android.R.attr.enabled
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -56,6 +55,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatBotContent(
     newsSummary: NewsSummary,
+    modifier: Modifier = Modifier,
     viewModel: ChatBotViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -73,7 +73,7 @@ fun ChatBotContent(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(listOf(AppColors.Primary300, AppColors.Primary500))

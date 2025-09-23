@@ -39,6 +39,7 @@ import com.ioi.myssue.ui.podcast.KeyWordList
 @Composable
 fun PodcastNewsList(
     news: List<NewsSummary>,
+    onClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Text(
@@ -52,11 +53,11 @@ fun PodcastNewsList(
         modifier = modifier.fillMaxWidth()
     )
 
-    NewsSummaryList(news)
+    NewsSummaryList(news, onClick)
 }
 
 @Composable
-private fun NewsSummaryList(news: List<NewsSummary>) {
+private fun NewsSummaryList(news: List<NewsSummary>, onClick: (Long) -> Unit) {
     val listState = rememberLazyListState()
     LazyColumn(
         state = listState,
@@ -68,7 +69,8 @@ private fun NewsSummaryList(news: List<NewsSummary>) {
         items(news) { item ->
             NewsSummary(
                 newsSummary = item,
-                fontColor = BackgroundColors.Background50
+                fontColor = BackgroundColors.Background50,
+                onClick = onClick
             )
         }
     }
