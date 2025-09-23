@@ -595,7 +595,7 @@ class RecommendationService:
             elif strategy == "balanced":
                 # 균형 추천: 카테고리 다양성 + 5% 반대 관점
                 logger.debug("균형 전략: 카테고리 다양성 적용")
-                combined = self.diversify_by_category(combined, max_per_category=15)
+                combined = self.diversify_by_category(combined, max_per_category=40)
                 combined = self.add_balanced_perspectives(combined, ratio=0.05)
             elif strategy == "diverse":
                 # 다양성 추천: 엄격한 카테고리 제한 + 10% 반대 관점
