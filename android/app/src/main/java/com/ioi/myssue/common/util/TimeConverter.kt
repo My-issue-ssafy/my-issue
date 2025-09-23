@@ -2,6 +2,7 @@ package com.ioi.myssue.common.util
 
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -47,9 +48,13 @@ class TimeConverter @Inject constructor(
         try { return Instant.parse(value) } catch (_: Exception) {}
         try { return OffsetDateTime.parse(value).toInstant() } catch (_: Exception) {}
         try { return ZonedDateTime.parse(value).toInstant() } catch (_: Exception) {}
+        try {
+            return LocalDateTime.parse(value, DateTimeFormatter.ISO_LOCAL_DATE_TIME).atZone(zone).toInstant()
+        } catch (_: Exception) {}
 
         // 로컬 포맷들 (서버가 시간대 없이 줄 때)
         val patterns = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS",
             "yyyy-MM-dd'T'HH:mm:ss",
             "yyyy-MM-dd HH:mm:ss",
             "yyyy/MM/dd HH:mm",
@@ -68,9 +73,20 @@ class TimeConverter @Inject constructor(
     private val DISPLAY_DATE_TIME =
         DateTimeFormatter.ofPattern("yyyy.MM.dd. HH:mm").withZone(zone)
 
-    /** 입력 문자열 -> "yyyy.MM.dd. HH:mm" */
+    private val NOTIFICATION_DATE_TIME =
+        DateTimeFormatter.ofPattern("MM/dd HH:mm").withZone(zone)
+
+    // "yyyy.MM.dd. HH:mm"로 변환
     fun toDisplay(createdAtRaw: String): String {
         val instant = parseToInstant(createdAtRaw) ?: return createdAtRaw
         return DISPLAY_DATE_TIME.format(instant)
     }
+
+    // "MM/dd. HH:mm"로 변환
+    fun toNotificationDisplay(createdAtRaw: String): String {
+        val instant = parseToInstant(createdAtRaw) ?: return createdAtRaw
+        return NOTIFICATION_DATE_TIME.format(instant)
+    }
+    fun toLocalDateOrNull(value: String): LocalDate? =
+        parseToInstant(value)?.atZone(zone)?.toLocalDate()
 }

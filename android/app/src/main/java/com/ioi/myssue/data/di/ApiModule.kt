@@ -3,6 +3,7 @@ package com.ioi.myssue.data.di
 import com.ioi.myssue.data.network.api.AuthApi
 import com.ioi.myssue.data.network.api.CartoonApi
 import com.ioi.myssue.data.network.api.NewsApi
+import com.ioi.myssue.data.network.api.NotificationApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,4 +34,9 @@ object ApiModule {
     fun provideNewsApi(
         @Named("main") retrofit: Retrofit
     ): NewsApi = retrofit.create(NewsApi::class.java)
+
+    @Provides @Singleton
+    fun provideNotificationApi(
+        @Named("main") retrofit: Retrofit
+    ): NotificationApi = retrofit.create(NotificationApi::class.java)
 }

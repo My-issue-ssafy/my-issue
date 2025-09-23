@@ -10,13 +10,17 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
+val Pink = Color(0xFFEC5D86)
+
 // Primary Colors (메인 컬러)
 object AppColors {
     val Primary50 = Color(0xFFEAF6F8)
     val Primary100 = Color(0xFFD1EBF0)
+    val Primary150 = Color(0xFFC2D5D9)
     val Primary200 = Color(0xFFB5DBE1)
     val Primary300 = Color(0xFF8FC5CF)
     val Primary400 = Color(0xFF669BA4)
+    val Primary450 = Color(0xFF6D9FA8)
     val Primary500 = Color(0xFF3E747C)
     val Primary600 = Color(0xFF144F57)
     val Primary700 = Color(0xFF002C34)

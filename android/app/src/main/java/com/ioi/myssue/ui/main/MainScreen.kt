@@ -10,17 +10,22 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberSavedStateNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.navigation3.ui.rememberSceneSetupNavEntryDecorator
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.designsystem.ui.AppTopBar
+import com.ioi.myssue.designsystem.ui.TopBarMode
+import com.ioi.myssue.designsystem.ui.TopBarViewModel
 import com.ioi.myssue.navigation.BottomTabRoute
 import com.ioi.myssue.navigation.MainBottomBar
 import com.ioi.myssue.navigation.MainTab
@@ -30,6 +35,8 @@ import com.ioi.myssue.ui.mypage.myscrap.MyScrapScreen
 import com.ioi.myssue.ui.mypage.mytoon.MyCartoonScreen
 import com.ioi.myssue.ui.news.NewsAllScreen
 import com.ioi.myssue.ui.news.NewsScreen
+import com.ioi.myssue.ui.notification.NotificationScreen
+import com.ioi.myssue.ui.notification.NotificationViewModel
 import com.ioi.myssue.ui.podcast.PodCastScreen
 import com.ioi.myssue.ui.podcast.PodcastViewModel
 import com.ioi.myssue.ui.search.SearchScreen
@@ -41,33 +48,49 @@ fun MainScreen(
     onTabSelected: (MainTab) -> Unit,
 ) {
     val context = LocalContext.current
+    val topBarViewModel: TopBarViewModel = hiltViewModel(context as MainActivity)
 
     // 현재 탭 계산
     val currentRoute = navBackStack.lastOrNull()
-    val currentTab = when (currentRoute) {
-        is BottomTabRoute.News, is BottomTabRoute.NewsAll -> MainTab.NEWS
-        is BottomTabRoute.Search -> MainTab.SEARCH
-        is BottomTabRoute.Cartoon -> MainTab.CARTOON
-        is BottomTabRoute.Podcast -> MainTab.PODCAST
-        is BottomTabRoute.MyPage, is BottomTabRoute.MyScrap, is BottomTabRoute.MyCartoon -> MainTab.MYPAGE
-        else -> null
-    }
+    val currentTab = mapTab(currentRoute, navBackStack)
 
     val atRoot = navBackStack.size <= 1
+
+    val notificationState = topBarViewModel.notificationState.collectAsState().value
+    val hasUnread = topBarViewModel.hasUnread.collectAsState().value
+
+    // 알림 화면 진입 시 한 번만 상태 조회
+    LaunchedEffect(currentRoute) {
+        if (currentRoute == BottomTabRoute.Notification) {
+            topBarViewModel.getNotificationStatus()
+        }
+    }
+
+
     BackHandler(enabled = atRoot) {
         if (currentTab != MainTab.NEWS) {
             onTabSelected(MainTab.NEWS)
         } else {
-            (context as MainActivity).finish()
+            context.finish()
         }
     }
 
     Scaffold(
         topBar = {
+            val mode =
+                if (currentRoute == BottomTabRoute.Notification)
+                    TopBarMode.Notification
+                else
+                    TopBarMode.Default
             AppTopBar(
                 onBack = if (MainTab.entries.find { it.route == currentRoute } == null) {
                     { navBackStack.removeLastOrNull() }
                 } else null,
+                onBellClick = { topBarViewModel.onNotificationClick() },
+                mode = mode,
+                notificationEnabled = notificationState ?: false,
+                onToggleNotification = { to -> topBarViewModel.toggleNotification(to) },
+                hasUnread = hasUnread
             )
         },
         bottomBar = {
@@ -97,12 +120,16 @@ fun MainScreen(
                     BottomTabRoute.Search -> NavEntry(key) { SearchScreen() }
                     BottomTabRoute.Cartoon -> NavEntry(key) { CartoonScreen() }
                     BottomTabRoute.Podcast -> NavEntry(key) {
-                        val podcastViewModel: PodcastViewModel = hiltViewModel(context as MainActivity)
+                        val podcastViewModel: PodcastViewModel = hiltViewModel(context)
                         PodCastScreen(podcastViewModel)
                     }
                     BottomTabRoute.MyPage -> NavEntry(key) { MyPageScreen() }
                     BottomTabRoute.MyScrap -> NavEntry(key) { MyScrapScreen() }
                     BottomTabRoute.MyCartoon -> NavEntry(key) { MyCartoonScreen() }
+                    BottomTabRoute.Notification -> NavEntry(key) {
+                        val notificationViewModel: NotificationViewModel = hiltViewModel(context)
+                        NotificationScreen(notificationViewModel)
+                    }
                     else -> NavEntry(key) { Unit }
                 }
             },
@@ -126,3 +153,16 @@ private fun AnimatedContentTransitionScope<*>.slideRight(durationMillis: Int = 4
 
 private fun noAnim(): ContentTransform =
     fadeIn(animationSpec = tween(0)) togetherWith fadeOut(animationSpec = tween(0))
+
+private fun mapTab(
+    currentRoute: NavKey?,
+    navBackStack: NavBackStack,
+    depth: Int = 1
+): MainTab = when (currentRoute) {
+    is BottomTabRoute.News, is BottomTabRoute.NewsAll -> MainTab.NEWS
+    is BottomTabRoute.Search -> MainTab.SEARCH
+    is BottomTabRoute.Cartoon -> MainTab.CARTOON
+    is BottomTabRoute.Podcast -> MainTab.PODCAST
+    is BottomTabRoute.MyPage, is BottomTabRoute.MyScrap, is BottomTabRoute.MyCartoon -> MainTab.MYPAGE
+    else -> mapTab(navBackStack[navBackStack.size - 1 - depth], navBackStack, depth+1)
+}
