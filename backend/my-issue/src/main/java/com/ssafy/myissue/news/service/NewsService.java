@@ -1,5 +1,12 @@
 package com.ssafy.myissue.news.service;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+
+import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.myissue.news.dto.*;
@@ -17,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -38,6 +46,7 @@ public class NewsService {
     private final NewsRepository newsRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final NewsScrapRepository scrapRepository;
+    private final ElasticsearchClient elasticsearchClient;
 
     /** 메인 화면: HOT 5, 추천 5(임시 최신), 최신 5 */
     public NewsHomeResponse getHome(Long userId) {
@@ -224,26 +233,6 @@ public class NewsService {
         return toCursorPageLatest(rows, size);
     }
 
-    /** HOT 전체(무한 스크롤, cursor 기반) */
-    public CursorPage<NewsCardResponse> getHot(String cursor, int size) {
-        HotCursor c = null;
-        if (cursor != null && !cursor.isBlank()) {
-            c = CursorCodec.decode(cursor, HotCursor.class);
-        }
-
-        Integer lastViews = null;
-        LocalDateTime lastAt = null;
-        Long lastId = null;
-        if (c != null) {
-            lastViews = c.views();
-            lastAt = LocalDateTime.ofEpochSecond(c.createdAtSec(), 0, ZoneOffset.UTC);
-            lastId = c.newsId();
-        }
-
-        List<News> rows = newsRepository.findHotPage(lastViews, lastAt, lastId, size + 1);
-        return toCursorPageHot(rows, size);
-    }
-
     /** 카테고리 최신(무한 스크롤, cursor 기반) */
     public CursorPage<NewsCardResponse> getByCategory(String category, String cursor, int size) {
         LatestCursor c = null;
@@ -291,28 +280,100 @@ public class NewsService {
      * 뉴스 전체 조회(검색/카테고리) — /news?keyword&category&size&lastId
      *  - 커서는 쓰지 않고 lastId 기준으로 페이징
      */
+//    public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, Long lastId) {
+//        int pageSize = (size == null || size <= 0) ? 20 : size;
+//
+//        LocalDateTime lastAt = null;
+//        Long lastNewsId = null;
+//        if (lastId != null) {
+//            News base = newsRepository.findById(lastId)
+//                    .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PARAMETER)); // [CHANGED]
+//            lastAt = base.getCreatedAt();
+//            lastNewsId = base.getId();
+//        }
+//
+//        List<News> rows = newsRepository.searchPage(keyword, category, lastAt, lastNewsId, pageSize + 1);
+//
+//        boolean hasNext = rows.size() > pageSize;
+//        if (hasNext) {
+//            rows = rows.subList(0, pageSize);
+//        }
+//
+//        List<NewsCardResponse> items = toCards(rows);
+//        return new CursorPage<>(items, null, hasNext);
+//    }
+
     public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, Long lastId) {
         int pageSize = (size == null || size <= 0) ? 20 : size;
+        BoolQuery.Builder boolQuery = new BoolQuery.Builder();
 
-        LocalDateTime lastAt = null;
-        Long lastNewsId = null;
-        if (lastId != null) {
-            News base = newsRepository.findById(lastId)
-                    .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PARAMETER)); // [CHANGED]
-            lastAt = base.getCreatedAt();
-            lastNewsId = base.getId();
+        try {
+            // keyword 조건
+            if (keyword != null && !keyword.isBlank()) {
+                boolQuery.must(m -> m.multiMatch(mm -> mm
+                        .fields("title", "content") // nori 적용 필드
+                        .query(keyword)
+                ));
+            }
+
+            // category 조건
+            if (category != null && !category.isBlank()) {
+                boolQuery.filter(f -> f.term(t -> t
+                        .field("category")
+                        .value(category)
+                ));
+            }
+
+            // lastId 조건 (커서 페이징: id < lastId)
+            if (lastId != null) {
+                RangeQuery rq = new RangeQuery.Builder()
+                        .field("id")
+                        .lt(JsonData.of(lastId))
+                        .build();
+                boolQuery.filter(f -> f.range(rq));
+            }
+
+            // ES 검색 실행 (id desc, pageSize+1로 hasNext 판별)
+            SearchResponse<Map> response = elasticsearchClient.search(s -> s
+                            .index("news")
+                            .query(q -> q.bool(boolQuery.build()))
+                            .size(pageSize + 1)
+                            .sort(sort -> sort.field(f -> f.field("id").order(SortOrder.Desc))),
+                    Map.class);
+
+            List<Long> ids = response.hits().hits().stream()
+                    .map(hit -> Long.valueOf(hit.id()))
+                    .toList();
+
+            boolean hasNext = ids.size() > pageSize;
+            if (hasNext) {
+                ids = ids.subList(0, pageSize);
+            }
+
+            // DB에서 최신 데이터 조회 후 ES 순서 보존
+            List<News> newsList = newsRepository.findAllById(ids);
+            Map<Long, News> map = newsList.stream().collect(Collectors.toMap(News::getId, n -> n));
+            List<NewsCardResponse> items = ids.stream()
+                    .map(map::get)
+                    .filter(Objects::nonNull)
+                    .map(NewsCardResponse::from)
+                    .toList();
+
+            // ✅ nextCursor 생성: 마지막 아이템의 id를 커서로 인코딩
+            String next = null;
+            if (hasNext && !ids.isEmpty()) {
+                long last = ids.get(ids.size() - 1);
+                next = CursorCodec.encode(new IdCursor(last));
+            }
+
+            return new CursorPage<>(items, next, hasNext);
+
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.ELASTICSEARCH_ERROR);
         }
-
-        List<News> rows = newsRepository.searchPage(keyword, category, lastAt, lastNewsId, pageSize + 1);
-
-        boolean hasNext = rows.size() > pageSize;
-        if (hasNext) {
-            rows = rows.subList(0, pageSize);
-        }
-
-        List<NewsCardResponse> items = toCards(rows);
-        return new CursorPage<>(items, null, hasNext);
     }
+
+
 
     // ================= 내부 공통 =================
 
@@ -327,21 +388,6 @@ public class NewsService {
             News last = rows.get(rows.size() - 1);
             long sec = last.getCreatedAt().toEpochSecond(ZoneOffset.UTC);
             next = CursorCodec.encode(new LatestCursor(sec, last.getId()));
-        }
-        return new CursorPage<>(items, next, hasNext);
-    }
-
-    private CursorPage<NewsCardResponse> toCursorPageHot(List<News> rows, int size) {
-        boolean hasNext = rows.size() > size;
-        if (hasNext) rows = rows.subList(0, size);
-
-        List<NewsCardResponse> items = toCards(rows);
-
-        String next = null;
-        if (hasNext && !rows.isEmpty()) {
-            News last = rows.get(rows.size() - 1);
-            long sec = last.getCreatedAt().toEpochSecond(ZoneOffset.UTC);
-            next = CursorCodec.encode(new HotCursor(last.getViews(), sec, last.getId()));
         }
         return new CursorPage<>(items, next, hasNext);
     }

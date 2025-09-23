@@ -5,6 +5,7 @@ import com.ssafy.myissue.news.dto.NewsCardResponse;
 import com.ssafy.myissue.news.dto.NewsDetailResponse;
 import com.ssafy.myissue.news.dto.NewsHomeResponse;
 import com.ssafy.myissue.news.dto.ScrapToggleResponse;
+import com.ssafy.myissue.news.service.NewsBatchService;
 import com.ssafy.myissue.news.service.NewsScheduler;
 import com.ssafy.myissue.news.service.NewsScrapService;
 import com.ssafy.myissue.news.service.NewsService;
@@ -27,6 +28,7 @@ public class NewsController {
     private final NewsService newsService;
     private final NewsScrapService scrapService;
     private final NewsScheduler newsScheduler;
+    private final NewsBatchService newsBatchService;
 
     /** 홈: HOT 5, 추천 5, 최신 5 */
     @GetMapping("/main")
@@ -95,5 +97,11 @@ public class NewsController {
     private int safeSize(Integer raw, int def, int max) {
         if (raw == null || raw <= 0) return def;
         return Math.min(raw, max);
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<Void> reindexAll() throws Exception {
+        newsBatchService.reindexAll();
+        return ResponseEntity.ok().build();
     }
 }
