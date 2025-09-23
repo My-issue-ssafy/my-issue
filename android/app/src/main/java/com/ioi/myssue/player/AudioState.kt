@@ -10,6 +10,6 @@ data class AudioState(
     val position: Long = 0L,
     val bufferedPosition: Long = 0L,
     val currentIndex: Int = 0,
-//    val title: String? = null,
-//    val subtitle: String? = null
+    val title: String? = null,
+    val subtitle: String? = null
 )

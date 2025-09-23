@@ -21,6 +21,8 @@ import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.collections.map
+import androidx.core.net.toUri
 
 class AudioController(
     private val appContext: Context
@@ -74,7 +76,7 @@ class AudioController(
                     bufferedPosition = ctl.bufferedPosition
                 )
             }
-//            updateMetadata(mediaItem?.mediaMetadata)
+            updateMetadata(mediaItem?.mediaMetadata)
         }
 
         override fun onEvents(player: Player, events: Player.Events) {
@@ -102,8 +104,8 @@ class AudioController(
                 duration = maxOf(0L, ctl.duration),
                 position = maxOf(0L, ctl.currentPosition),
                 bufferedPosition = ctl.bufferedPosition,
-//                title = ctl.mediaMetadata.title?.toString(),
-//                subtitle = ctl.mediaMetadata.artist?.toString()
+                title = ctl.mediaMetadata.title?.toString(),
+                subtitle = ctl.mediaMetadata.artist?.toString()
             )
         }
 
@@ -129,10 +131,24 @@ class AudioController(
     }
 
     // ---------- Commands ----------
-    fun setPlaylist(uris: List<Uri>) {
-        controller?.setMediaItems(uris.map { MediaItem.fromUri(it) })
+    fun setPlaylist(items: List<Triple<Uri, String, String>>) {
+        val mediaItems = items.map { (uri, title, thumbnail) ->
+            MediaItem.Builder()
+                .setUri(uri)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(title)
+                        .setArtist("HOT 뉴스")
+                        .setArtworkUri(thumbnail.toUri())
+                        .build()
+                )
+                .build()
+        }
+
+        controller?.setMediaItems(mediaItems)
         controller?.prepare()
     }
+
 
     fun play() = controller?.play()
     fun pause() = controller?.pause()
@@ -149,14 +165,14 @@ class AudioController(
     fun prev() = controller?.seekToPreviousMediaItem()
     fun seekTo(positionMs: Long) = controller?.seekTo(positionMs)
 
-//    private fun updateMetadata(md: MediaMetadata?) {
-//        updateState {
-//            copy(
-//                title = md?.title?.toString(),
-//                subtitle = md?.artist?.toString()
-//            )
-//        }
-//    }
+    private fun updateMetadata(md: MediaMetadata?) {
+        updateState {
+            copy(
+                title = md?.title?.toString(),
+                subtitle = md?.artist?.toString()
+            )
+        }
+    }
 
     /**
      * position은 프레임 콜백이 없으므로 재생 중에만 250ms 주기로 가볍게 갱신.

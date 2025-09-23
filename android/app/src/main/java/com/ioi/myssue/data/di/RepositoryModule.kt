@@ -4,11 +4,12 @@ import com.ioi.myssue.data.repository.CartoonRepositoryImpl
 import com.ioi.myssue.data.repository.ChatBotRepositoryImpl
 import com.ioi.myssue.data.repository.NewsRepositoryImpl
 import com.ioi.myssue.data.repository.NotificationRepositoryImpl
-import com.ioi.myssue.data.repository.fake.FakeNotificationRepositoryImpl
+import com.ioi.myssue.data.repository.PodcastRepositoryImpl
 import com.ioi.myssue.domain.repository.CartoonRepository
 import com.ioi.myssue.domain.repository.ChatBotRepository
 import com.ioi.myssue.domain.repository.NewsRepository
 import com.ioi.myssue.domain.repository.NotificationRepository
+import com.ioi.myssue.domain.repository.PodcastRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -30,6 +31,10 @@ interface RepositoryModule {
     @Singleton
     @Binds
     fun bindChatBotRepository(repository: ChatBotRepositoryImpl) : ChatBotRepository
+
+    @Singleton
+    @Binds
+    fun bindPodcastRepository(repository: PodcastRepositoryImpl) : PodcastRepository
 
     @Singleton
     @Binds

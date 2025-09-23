@@ -17,14 +17,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsSummary
+import com.ioi.myssue.domain.model.ScriptLine
+import com.ioi.myssue.ui.news.rememberBlockSheetDragConnection
 import com.ioi.myssue.ui.podcast.PodcastContentType
-import com.ioi.myssue.ui.podcast.ScriptLine
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +36,7 @@ fun PodcastBottomSheet(
     title: String,
     dateText: String,
     scripts: List<ScriptLine>,
+    newsSummaries: List<NewsSummary>,
     currentIndex: Int,
     onLineClick: (Int) -> Unit,
     positionMs: Long,
@@ -43,12 +46,15 @@ fun PodcastBottomSheet(
     isPlaying: Boolean,
     isLoading: Boolean,
     changeDate: (Int) -> Unit,
+    onNewsClick: (Long) -> Unit,
     toggleContentType: () -> Unit,
     contentType: PodcastContentType
 ) {
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
+    val blockSheetDrag = rememberBlockSheetDragConnection()
+
     val bottomSheetGradient = Brush.verticalGradient(
         listOf(AppColors.Primary300, AppColors.Primary500)
     )
@@ -64,6 +70,7 @@ fun PodcastBottomSheet(
                 .fillMaxSize()
                 .background(bottomSheetGradient)
                 .padding(horizontal = 16.dp, vertical = 20.dp)
+                .nestedScroll(blockSheetDrag)
         ) {
             Column(
                 modifier = Modifier
@@ -87,7 +94,8 @@ fun PodcastBottomSheet(
                     )
                 } else if (contentType == PodcastContentType.NEWS) {
                     PodcastNewsList(
-                        news = listOf(NewsSummary()),
+                        news = newsSummaries,
+                        onClick = onNewsClick,
                         modifier = Modifier.weight(1f)
                     )
                 }

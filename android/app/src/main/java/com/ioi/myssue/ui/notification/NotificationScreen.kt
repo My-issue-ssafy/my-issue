@@ -73,11 +73,6 @@ fun NotificationScreen(
                 .fillMaxSize()
                 .background(BackgroundColors.Background100)
         ) {
-            NotificationTopHeader(
-                title = "최근 알림",
-                isClearAllEnabled = false,
-                onClickClearAll = { viewModel.deleteNotificationAll() }
-            )
             Box(
                 modifier = Modifier.fillMaxSize()
             ) {

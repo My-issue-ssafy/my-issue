@@ -8,8 +8,9 @@ import com.ioi.myssue.navigation.Navigator
 import com.ioi.myssue.player.AudioController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,16 +20,18 @@ class TopBarViewModel @Inject constructor(
     private val navigator: Navigator,
     private val notificationRepository: NotificationRepositoryImpl
 ) : ViewModel() {
-    private val _notificationState = MutableStateFlow<Boolean?>(null)
-    val notificationState: StateFlow<Boolean?> = _notificationState.asStateFlow()
-
-    private val _hasUnread = MutableStateFlow(false)
-    val hasUnread: StateFlow<Boolean> = _hasUnread.asStateFlow()
+    private var _uiState = MutableStateFlow(TopBarUiState())
+    val uiState = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
             audioController.audioState.collect { audio ->
-                if (audio.isPlaying) {
+                _uiState.update {
+                    it.copy(
+                        isConnected = audio.isConnected,
+                        isPlaying = audio.isPlaying,
+                        playbackState = audio.playbackState
+                    )
                 }
             }
         }
@@ -38,23 +41,37 @@ class TopBarViewModel @Inject constructor(
     fun play() = audioController.play()
     fun pause() = audioController.pause()
 
+    fun navigateToPodcast() = viewModelScope.launch {
+        navigator.navigate(BottomTabRoute.Podcast)
+    }
+
     fun onNotificationClick() = viewModelScope.launch {
         navigator.navigate(BottomTabRoute.Notification)
     }
 
     fun getNotificationStatus() = viewModelScope.launch {
-        _notificationState.value = notificationRepository.getStatus()
+        _uiState.update { it.copy(notificationState = notificationRepository.getStatus()) }
     }
 
     fun refreshUnread() = viewModelScope.launch {
         runCatching { notificationRepository.getUnreadNotification() }
-            .onSuccess { _hasUnread.value = it }
-            .onFailure {  }
+            .onSuccess { response ->
+                _uiState.update { it.copy(hasUnread = response) }
+            }
+            .onFailure { }
     }
 
     fun toggleNotification(to: Boolean) = viewModelScope.launch {
-        _notificationState.value = to
+        _uiState.update { it.copy(notificationState = to) }
         runCatching { notificationRepository.setStatus() }
             .onFailure {}
     }
 }
+
+data class TopBarUiState(
+    val isConnected: Boolean = false,
+    val isPlaying: Boolean = false,
+    val playbackState: Int = 0, // Player.STATE_IDLE, STATE_READY 등
+    val hasUnread: Boolean = false,
+    val notificationState: Boolean = false
+)

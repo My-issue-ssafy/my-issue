@@ -12,9 +12,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -56,8 +58,7 @@ fun MainScreen(
 
     val atRoot = navBackStack.size <= 1
 
-    val notificationState = topBarViewModel.notificationState.collectAsState().value
-    val hasUnread = topBarViewModel.hasUnread.collectAsState().value
+    val topBarState by topBarViewModel.uiState.collectAsState()
 
     // 알림 화면 진입 시 한 번만 상태 조회
     LaunchedEffect(currentRoute) {
@@ -88,9 +89,9 @@ fun MainScreen(
                 } else null,
                 onBellClick = { topBarViewModel.onNotificationClick() },
                 mode = mode,
-                notificationEnabled = notificationState ?: false,
+                notificationEnabled = topBarState.notificationState,
                 onToggleNotification = { to -> topBarViewModel.toggleNotification(to) },
-                hasUnread = hasUnread
+                hasUnread = topBarState.hasUnread
             )
         },
         bottomBar = {

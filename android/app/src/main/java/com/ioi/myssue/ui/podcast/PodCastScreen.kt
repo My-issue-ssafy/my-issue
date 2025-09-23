@@ -1,7 +1,7 @@
 package com.ioi.myssue.ui.podcast
 
 import android.annotation.SuppressLint
-import androidx.activity.compose.BackHandler
+import android.media.session.PlaybackState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.fadeIn
@@ -12,14 +12,28 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -28,8 +42,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.ui.news.NewsDetail
 import com.ioi.myssue.ui.podcast.component.Calendar
 import com.ioi.myssue.ui.podcast.component.CurvedSurface
 import com.ioi.myssue.ui.podcast.component.MiniPlayer
@@ -42,6 +60,26 @@ fun PodCastScreen(
     viewModel: PodcastViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> {
+                    if (state.audio.playbackState != PlaybackState.STATE_PAUSED &&
+                        state.audio.playbackState != PlaybackState.STATE_PLAYING) {
+                        viewModel.selectDate(playNow = false)
+                    }
+                }
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Box {
         Column(Modifier.fillMaxSize()) {
@@ -59,7 +97,7 @@ fun PodCastScreen(
                 BottomPlayer(
                     title = "HOT 뉴스",
                     date = state.selectedDateString,
-                    thumbnail = state.episode.articleImage,
+                    thumbnail = state.episode.thumbnail,
                     isPlaying = state.audio.isPlaying,
                     onPlayPause = viewModel::toggle,
                     openBottomPlayer = viewModel::openPlayer
@@ -67,13 +105,13 @@ fun PodCastScreen(
             } else {
                 PlayerContent(
                     title = state.selectedDateString,
-                    imageUrl = state.episode.articleImage,
+                    imageUrl = state.episode.thumbnail,
                     isPlaying = state.audio.isPlaying,
                     isLoading = state.isLoading,
                     positionMs = state.audio.position,
                     durationMs = state.audio.duration,
-                    currentLine = state.currentLine.text,
-                    previousLine = state.previousLine.text,
+                    currentLine = state.currentLine.line,
+                    previousLine = state.previousLine.line,
                     onPlayPause = { viewModel.toggle() },
                     onSeekTo = { viewModel.seekTo(it) },
                     openBottomPlayer = viewModel::openPlayer
@@ -84,7 +122,7 @@ fun PodCastScreen(
 
         if (state.showPlayer) {
             PodcastBottomSheet(
-                thumbnailUrl = state.episode.articleImage,
+                thumbnailUrl = state.episode.thumbnail,
                 title = "HOT 뉴스",
                 dateText = state.selectedDateString,
                 positionMs = state.audio.position,
@@ -96,11 +134,18 @@ fun PodCastScreen(
                 changeDate = viewModel::changeDate,
                 onDismissRequest = viewModel::closePlayer,
                 scripts = state.episode.scripts,
-                currentIndex = state.currentIndex,
+                newsSummaries = state.podcastNewsSummaries,
+                currentIndex = state.currentScriptIndex,
                 onLineClick = viewModel::updateIndex,
                 toggleContentType = viewModel::toggleContentType,
+                onNewsClick = viewModel::openDetail,
                 contentType = state.contentType
             )
+        }
+        state.detailNewsId?.let {
+            val sheetState = rememberModalBottomSheetState(true)
+
+            NewsDetail(newsId = it, sheetState = sheetState, onDismiss = viewModel::closeDetail)
         }
     }
 
@@ -253,7 +298,8 @@ fun ScriptViewer(
                 style = MaterialTheme.typography.labelLarge,
                 color = AppColors.Primary50,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = 40.dp)
             )
         }
 
@@ -271,7 +317,9 @@ fun ScriptViewer(
                 text = line,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = BackgroundColors.Background50
+                color = BackgroundColors.Background50,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

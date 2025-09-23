@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
@@ -106,13 +107,11 @@ fun MyPageScreen(
             onAllClick = if (state.myToons.isNotEmpty()) ({ viewModel.navigateToAllToons() }) else null
         )
         if (state.isLoadingLikeToons) {
-            Box(modifier = Modifier.weight(1f)) {
                 CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier.padding(vertical = 80.dp).align(Alignment.CenterHorizontally),
                     color = AppColors.Primary600,
                     strokeWidth = 2.dp
                 )
-            }
         } else {
             ScrappedCartoonNewsPager(
                 items = state.myToons,

@@ -17,8 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import com.ioi.myssue.domain.model.ScriptLine
 import com.ioi.myssue.ui.common.clickableNoRipple
-import com.ioi.myssue.ui.podcast.ScriptLine
 import kotlinx.coroutines.delay
 
 @Composable

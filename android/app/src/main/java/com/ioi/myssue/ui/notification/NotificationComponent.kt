@@ -81,7 +81,7 @@ fun NotificationTopHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(BackgroundColors.Background100)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(

@@ -1,8 +1,12 @@
 package com.ioi.myssue.ui.mypage.mytoon
 
+import android.R.attr.end
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -20,8 +25,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -68,36 +75,51 @@ fun MyCartoonScreen(
                 }
             }
 
-            ExpandedCartoonCard(
-                cartoon = it,
-                isExiting = false,
-                isFlippable = false,
-                exitDir = 0,
-                modifier = Modifier,
-                onClick = {
-                    viewModel.openNewsDetail(it.newsId)
-                    analytics.logNewsClick(it.newsId, feedSource = "likedCartoon")
-                    Log.d(TAG, "logNewsClick: ${it.newsId} likedCartoon")
-                }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.3f)) // 살짝 어둡게
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) {
+                        viewModel.setClickedToon(null) // 바깥 클릭 시 닫기
+                    },
+                contentAlignment = Alignment.Center
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                ExpandedCartoonCard(
+                    cartoon = it,
+                    isExiting = false,
+                    isFlippable = false,
+                    exitDir = 0,
+                    modifier = Modifier,
+                    onClick = {
+                        viewModel.openNewsDetail(it.newsId)
+                        analytics.logNewsClick(it.newsId, feedSource = "likedCartoon")
+                        Log.d(TAG, "logNewsClick: ${it.newsId} likedCartoon")
+                    }
                 ) {
-                    Text(
-                        text = it.newsTitle,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Image(
-                        painter = painterResource(R.drawable.ic_heart),
-                        contentDescription = null
-                    )
-                }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = it.newsTitle,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f).padding(end = 20.dp)
+                        )
+                        Image(
+                            painter = painterResource(R.drawable.ic_heart),
+                            contentDescription = null,
+                            modifier = Modifier.size(60.dp)
+                        )
+                    }
 
+                }
             }
         }
     }
