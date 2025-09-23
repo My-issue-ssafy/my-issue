@@ -1,5 +1,6 @@
 package com.ioi.myssue.designsystem.ui
 
+import android.R.attr.clickable
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -14,12 +15,14 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,6 +32,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.ui.common.clickableNoRipple
 
 @Composable
 fun AppTopBar(
@@ -36,8 +40,12 @@ fun AppTopBar(
     isPlaying: Boolean = false,
     @DrawableRes logoRes: Int = R.drawable.logo,
     onBellClick: (() -> Unit)? = null,
-    onBack : (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
     containerColor: Color = BackgroundColors.Background50,
+    mode: TopBarMode = TopBarMode.Default,
+    notificationEnabled: Boolean = true,
+    onToggleNotification: (Boolean) -> Unit = { },
+    hasUnread: Boolean = false,
 ) {
     val topBarInsets = WindowInsets
         .safeDrawing
@@ -50,20 +58,21 @@ fun AppTopBar(
             .windowInsetsPadding(topBarInsets)
             .padding(8.dp)
     ) {
-            Image(
-                painter = painterResource(logoRes),
-                contentDescription = "App logo",
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(4.dp)
-                    .align(Alignment.Center)
-            )
+        Image(
+            painter = painterResource(logoRes),
+            contentDescription = "App logo",
+            modifier = Modifier
+                .size(48.dp)
+                .padding(4.dp)
+                .align(Alignment.Center)
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            if(onBack != null) {
+            if (onBack != null) {
                 IconButton(
                     onClick = { onBack.invoke() },
                 ) {
@@ -80,15 +89,35 @@ fun AppTopBar(
 
             Spacer(Modifier.weight(1f))
 
-            IconButton(
-                onClick = { onBellClick?.invoke() },
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Notifications,
-                    contentDescription = "Notifications",
-                    tint = BackgroundColors.Background600,
-                    modifier = Modifier.size(32.dp)
-                )
+            when (mode) {
+                TopBarMode.Default -> {
+                    IconButton(onClick = { onBellClick?.invoke() }) {
+                        Image(
+                            painter = painterResource(
+                                if (hasUnread) R.drawable.ic_notification_new
+                                else R.drawable.ic_notification
+                            ),
+                            contentDescription = if (hasUnread) "읽지 않은 알림 있음" else "알림",
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                TopBarMode.Notification -> {
+                    Image(
+                        painter = painterResource(
+                            if (notificationEnabled) R.drawable.ic_notification_on
+                            else R.drawable.ic_notification_off
+                        ),
+                        contentDescription = if (notificationEnabled) "알림 켜짐" else "알림 꺼짐",
+                        modifier = Modifier
+                            .padding(end = 10.dp)
+                            .width(76.dp)
+                            .clickableNoRipple {
+                                onToggleNotification(!notificationEnabled)
+                            },
+                    )
+                }
             }
         }
     }

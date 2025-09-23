@@ -1,6 +1,7 @@
 package com.ioi.myssue.data.network
 
 import android.util.Log
+import com.google.firebase.messaging.FirebaseMessaging
 import com.ioi.myssue.data.datastore.AuthDataStore
 import com.ioi.myssue.data.dto.request.AddUserRequest
 import com.ioi.myssue.data.network.api.AuthApi
@@ -8,9 +9,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import java.util.UUID
+import javax.inject.Singleton
 
+@Singleton
 class AuthManager @Inject constructor(
     private val authDataStore: AuthDataStore,
     private val authApi: AuthApi,
@@ -58,13 +62,17 @@ class AuthManager @Inject constructor(
             return true
         }
 
+        // fcm 토큰 생성
+        val token = FirebaseMessaging.getInstance().token.await()
+        Log.d("AuthManager", "Generated FcmToken: $token")
+
         val newId = UUID.randomUUID().toString()
         Log.d("AuthManager", "Generated new UUID: $newId")
         saveUUID(newId)
 
         return try {
             val response = authApi.addUser(
-                AddUserRequest(newId)
+                AddUserRequest(newId, token)
             )
             if (response.isSuccessful) {
                 val accessToken =

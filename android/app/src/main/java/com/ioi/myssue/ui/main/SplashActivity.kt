@@ -3,12 +3,11 @@ package com.ioi.myssue.ui.main
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.startActivity
 import dagger.hilt.android.AndroidEntryPoint
-import java.util.UUID
 
 @SuppressLint("CustomSplashScreen")
 @AndroidEntryPoint
@@ -18,6 +17,7 @@ class SplashActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        Log.d("Splash Activity12", "onCreate: ")
         viewModel.initApp(
             onReady = {
                 startActivity(Intent(this, MainActivity::class.java))

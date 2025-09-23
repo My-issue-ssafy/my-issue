@@ -31,20 +31,30 @@ fun LaunchedNavigator(
                     }
                     is RouteSideEffect.Navigate -> {
                         val targetTab = findTabForRoute(sideEffect.route)
-                        if (targetTab != null) {
+                        if (targetTab == null) {
+                            val backStack = tabBackStacks[currentTab] ?: return@collectLatest
+                            if (!(sideEffect.launchSingleTop && backStack.lastOrNull() == sideEffect.route)) {
+                                backStack += sideEffect.route
+                            }
+                        } else {
                             if (currentTab != targetTab) onTabChange(targetTab)
                             val backStack = tabBackStacks[targetTab] ?: return@collectLatest
-                            backStack.remove(sideEffect.route)
-                            backStack.add(sideEffect.route)
+                            if (!(sideEffect.launchSingleTop && backStack.lastOrNull() == sideEffect.route)) {
+                                backStack += sideEffect.route
+                            }
                         }
                     }
                     is RouteSideEffect.NavigateAndClearBackStack -> {
                         val targetTab = findTabForRoute(sideEffect.route)
-                        if (targetTab != null) {
+                        if (targetTab == null) {
+                            val backStack = tabBackStacks[currentTab] ?: return@collectLatest
+                            backStack.clear()
+                            backStack += sideEffect.route
+                        } else {
                             if (currentTab != targetTab) onTabChange(targetTab)
                             val backStack = tabBackStacks[targetTab] ?: return@collectLatest
                             backStack.clear()
-                            backStack.add(sideEffect.route)
+                            backStack += sideEffect.route
                         }
                     }
                 }

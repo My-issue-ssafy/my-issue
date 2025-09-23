@@ -24,6 +24,7 @@ import com.ioi.myssue.ui.news.NewsItem
 import kotlinx.coroutines.launch
 
 private const val TAG = "SearchScreen"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
@@ -117,12 +118,7 @@ fun SearchScreen(
         NewsDetail(
             newsId = id,
             sheetState = sheetState,
-            onDismiss = {
-                scope.launch {
-                    sheetState.hide()
-                    viewModel.onItemClose()
-                }
-            }
+            onDismiss = { viewModel.onItemClose() }
         )
     }
 }
