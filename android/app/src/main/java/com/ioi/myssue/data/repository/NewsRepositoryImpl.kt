@@ -1,6 +1,7 @@
 package com.ioi.myssue.data.repository
 
 import com.ioi.myssue.common.util.TimeConverter
+import com.ioi.myssue.data.dto.request.ChatRequest
 import com.ioi.myssue.data.dto.response.NewsDetailResponse
 import com.ioi.myssue.data.dto.response.NewsMainResponse
 import com.ioi.myssue.data.dto.response.toDomain
@@ -77,4 +78,7 @@ class NewsRepositoryImpl @Inject constructor(
         cursor: String?,
         size: Int,
     ) = newsApi.getBookMarkedNews(size, cursor).toDomain(time)
+
+    override suspend fun chatNews(newsId: Long, question: String) =
+        newsApi.chatNews(newsId, ChatRequest(question)).answer
 }
