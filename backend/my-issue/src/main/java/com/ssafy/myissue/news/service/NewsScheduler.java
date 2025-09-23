@@ -52,7 +52,6 @@ public class NewsScheduler {
         ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
 
         for (NewsScore ns : scored) {
-            log.info("HOT 뉴스 후보 - ID: {}, 점수: {}", ns.newsId(), ns.score());
             zset.add(HOT_KEY, ns.newsId(), ns.score());
         }
         log.info("HOT 뉴스 TOP 100 업데이트 완료");
