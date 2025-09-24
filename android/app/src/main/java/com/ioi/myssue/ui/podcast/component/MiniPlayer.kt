@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.podcast.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,11 +27,10 @@ fun MiniPlayer(
     onClickPlayPause: () -> Unit,
     openBottomPlayer: () -> Unit,
 ) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = BackgroundColors.Background50),
+    Row(
         modifier = modifier
             .height(72.dp)
+            .background(BackgroundColors.Background50, RoundedCornerShape(24.dp))
             .clickable { openBottomPlayer() }
     ) {
         Row(

@@ -37,27 +37,7 @@ import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.podcast.KeyWordList
 
 @Composable
-fun PodcastNewsList(
-    news: List<NewsSummary>,
-    onClick: (Long) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Text(
-        "9월 4일 HOT 뉴스",
-        fontWeight = FontWeight.Bold,
-        color = BackgroundColors.Background50
-    )
-
-    KeyWordList(
-        keywords = listOf("경제", "부동산", "주식", "코인", "금리", "대출", "경제", "부동산", "주식", "코인"),
-        modifier = modifier.fillMaxWidth()
-    )
-
-    NewsSummaryList(news, onClick)
-}
-
-@Composable
-private fun NewsSummaryList(news: List<NewsSummary>, onClick: (Long) -> Unit) {
+fun NewsSummaryList(news: List<NewsSummary>, onClick: (Long) -> Unit, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
     LazyColumn(
         state = listState,

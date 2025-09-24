@@ -6,6 +6,7 @@ import android.annotation.SuppressLint
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -15,9 +16,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -40,9 +43,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import coil.size.Size
 import com.ioi.myssue.LocalAnalytics
+import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background50
 import com.ioi.myssue.domain.model.CartoonNews
 import kotlinx.coroutines.coroutineScope
@@ -75,7 +80,7 @@ fun CartoonCard(
     val analyticsLogger = LocalAnalytics.current
 
     LaunchedEffect(flipped) {
-        if(flipped) {
+        if (flipped) {
             analyticsLogger.logToonClick(cartoon.newsId)
         }
     }
@@ -112,10 +117,10 @@ fun CartoonCard(
                 interactionSource = interactionSource
             ) {
                 onClick()
-                if(isFlippable) {
+                if (isFlippable) {
                     flipped = !flipped
                 }
-              },
+            },
         contentAlignment = Alignment.Center
     ) {
         Card(
@@ -140,7 +145,10 @@ fun CartoonCard(
                             .alpha(0.1f)
                             .graphicsLayer { rotationY = 180f }
                     )
-                    CartoonWithNewsSummary(cartoon = cartoon, scale = if(isSmallMode) 0.5f else 1.0f)
+                    CartoonWithNewsSummary(
+                        cartoon = cartoon,
+                        scale = if (isSmallMode) 0.5f else 1.0f
+                    )
                 }
             }
         }
@@ -157,7 +165,7 @@ fun ExpandedCartoonCard(
     isFlippable: Boolean = true,
     onExitEnd: (() -> Unit)? = null,
     onClick: () -> Unit = {},
-    expandedContent : @Composable () -> Unit
+    expandedContent: @Composable () -> Unit
 ) {
     val appearAlpha = remember { Animatable(0f) }
     val appearScale = remember { Animatable(0.8f) }
@@ -271,11 +279,11 @@ private fun CartoonWithNewsSummary(
                 fontSize = 32.sp * scale,
                 lineHeight = 44.sp * scale,
             ),
-            maxLines = if(scale < 1f) 5 else 3,
+            maxLines = if (scale < 1f) 5 else 3,
             overflow = TextOverflow.Ellipsis
         )
 
-        if(scale < 1f) return@Column
+        if (scale < 1f) return@Column
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -311,11 +319,23 @@ private fun CartoonImage(
             .crossfade(false)
             .build()
     }
-    AsyncImage(
+    SubcomposeAsyncImage(
         model = request,
         contentDescription = contentDesc,
-        modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp)),
         contentScale = ContentScale.Fit,
-
+        loading = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(BackgroundColors.Background200)
+            ) {
+                CircularProgressIndicator(modifier = Modifier.size(32.dp).align(Alignment.Center))
+            }
+        }
     )
 }

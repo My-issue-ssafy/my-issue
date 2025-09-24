@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.podcast.component.bottomsheetplayer
 
+import android.R.attr.onClick
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,7 @@ import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.model.ScriptLine
 import com.ioi.myssue.ui.news.rememberBlockSheetDragConnection
+import com.ioi.myssue.ui.podcast.KeyWordList
 import com.ioi.myssue.ui.podcast.PodcastContentType
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +39,7 @@ fun PodcastBottomSheet(
     dateText: String,
     scripts: List<ScriptLine>,
     newsSummaries: List<NewsSummary>,
+    keywords: List<String>,
     currentIndex: Int,
     onLineClick: (Int) -> Unit,
     positionMs: Long,
@@ -93,7 +96,12 @@ fun PodcastBottomSheet(
                         onLineClick = onLineClick
                     )
                 } else if (contentType == PodcastContentType.NEWS) {
-                    PodcastNewsList(
+                    KeyWordList(
+                        keywords = keywords,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    NewsSummaryList(
                         news = newsSummaries,
                         onClick = onNewsClick,
                         modifier = Modifier.weight(1f)

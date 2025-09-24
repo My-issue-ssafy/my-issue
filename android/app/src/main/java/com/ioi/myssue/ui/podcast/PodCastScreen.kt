@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -91,14 +94,16 @@ fun PodCastScreen(
                 modifier = Modifier.padding(16.dp)
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
 
             if (state.isMonthlyView) {
+                Spacer(Modifier.weight(1f))
                 BottomPlayer(
                     title = "HOT 뉴스",
                     date = state.selectedDateString,
                     thumbnail = state.episode.thumbnail,
                     isPlaying = state.audio.isPlaying,
+                    keywords = state.episode.keyWords,
                     onPlayPause = viewModel::toggle,
                     openBottomPlayer = viewModel::openPlayer
                 )
@@ -134,6 +139,7 @@ fun PodCastScreen(
                 changeDate = viewModel::changeDate,
                 onDismissRequest = viewModel::closePlayer,
                 scripts = state.episode.scripts,
+                keywords = state.episode.keyWords,
                 newsSummaries = state.podcastNewsSummaries,
                 currentIndex = state.currentScriptIndex,
                 onLineClick = viewModel::updateIndex,
@@ -156,13 +162,14 @@ private fun BottomPlayer(
     title: String,
     date: String,
     thumbnail: String,
+    keywords: List<String>,
     isPlaying: Boolean,
     onPlayPause: () -> Unit,
     openBottomPlayer: () -> Unit
 ) {
     Surface(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -176,7 +183,7 @@ private fun BottomPlayer(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -190,44 +197,50 @@ private fun BottomPlayer(
                 modifier = Modifier.padding(top = 8.dp)
             )
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(24.dp))
 
             KeyWordList(
-                keywords = listOf("경제", "부동산", "주식", "코인", "금리", "대출", "경제", "부동산", "주식", "코인"),
-                modifier = Modifier.fillMaxWidth()
+                keywords = keywords,
+                modifier = Modifier.fillMaxWidth().align(Alignment.CenterHorizontally)
             )
+
+            Spacer(Modifier.height(4.dp))
         }
     }
 }
-
 @Composable
 fun KeyWordList(
     keywords: List<String>,
     modifier: Modifier = Modifier
 ) {
-    FlowRow(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    Box(
+        modifier = modifier.horizontalScroll(rememberScrollState()).widthIn(max = 550.dp)
     ) {
-        keywords.forEach { keyword ->
-            Box(
-                modifier = Modifier
-                    .background(
-                        color = AppColors.Primary50.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(16.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            maxLines = 3
+        ) {
+            keywords.forEach { keyword ->
+                Box(
+                    modifier = Modifier
+                        .background(
+                            color = AppColors.Primary50.copy(alpha = 0.2f),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = keyword,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = BackgroundColors.Background50
                     )
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = keyword,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = BackgroundColors.Background50
-                )
+                }
             }
         }
     }
 }
+
 
 
 @SuppressLint("CoroutineCreationDuringComposition")

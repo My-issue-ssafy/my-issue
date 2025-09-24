@@ -63,7 +63,12 @@ class AuthManager @Inject constructor(
         }
 
         // fcm 토큰 생성
-        val token = FirebaseMessaging.getInstance().token.await()
+        val token = try {
+            FirebaseMessaging.getInstance().token.await()
+        } catch (e: Exception) {
+            Log.e("FirebaseMessaging get instance error", "")
+            return false
+        }
         Log.d("AuthManager", "Generated FcmToken: $token")
 
         val newId = UUID.randomUUID().toString()

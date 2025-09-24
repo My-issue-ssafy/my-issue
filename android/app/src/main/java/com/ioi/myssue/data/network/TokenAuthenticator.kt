@@ -1,5 +1,6 @@
 package com.ioi.myssue.data.network
 
+import android.system.Os.access
 import android.util.Log
 import com.ioi.myssue.data.network.api.AuthApi
 import kotlinx.coroutines.runBlocking
@@ -34,6 +35,11 @@ class TokenAuthenticator @Inject constructor(
 
             // refresh 수행 (동시에 여러 요청이 들어오면 mutex로 보호)
             mutex.withLock {
+                val latestToken = authManager.getAccessToken() ?: return@runBlocking null
+                if (latestToken != response.request.header("Authorization")?.removePrefix("Bearer ")) {
+                    return@runBlocking createRequestWithToken(response.request, latestToken)
+                }
+
                 val result = performTokenRefresh()
                 when (result) {
                     is RefreshResult.Success -> {

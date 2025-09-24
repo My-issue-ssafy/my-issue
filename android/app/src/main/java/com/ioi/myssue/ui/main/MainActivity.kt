@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,66 +43,69 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            var firstLaunch by rememberSaveable { mutableStateOf(true) }
+            val splashLoading by splashViewModel.isLoading.collectAsState()
+            if (!splashLoading) {
+                var firstLaunch by rememberSaveable { mutableStateOf(true) }
 
-            val newsBackStack = rememberNavBackStack(BottomTabRoute.News)
-            val searchBackStack = rememberNavBackStack(BottomTabRoute.Search)
-            val cartoonBackStack = rememberNavBackStack(BottomTabRoute.Cartoon)
-            val podcastBackStack = rememberNavBackStack(BottomTabRoute.Podcast)
-            val myPageBackStack = rememberNavBackStack(BottomTabRoute.MyPage)
+                val newsBackStack = rememberNavBackStack(BottomTabRoute.News)
+                val searchBackStack = rememberNavBackStack(BottomTabRoute.Search)
+                val cartoonBackStack = rememberNavBackStack(BottomTabRoute.Cartoon)
+                val podcastBackStack = rememberNavBackStack(BottomTabRoute.Podcast)
+                val myPageBackStack = rememberNavBackStack(BottomTabRoute.MyPage)
 
-            val tabBackStacks = mapOf(
-                MainTab.NEWS to newsBackStack,
-                MainTab.SEARCH to searchBackStack,
-                MainTab.CARTOON to cartoonBackStack,
-                MainTab.PODCAST to podcastBackStack,
-                MainTab.MYPAGE to myPageBackStack
-            )
+                val tabBackStacks = mapOf(
+                    MainTab.NEWS to newsBackStack,
+                    MainTab.SEARCH to searchBackStack,
+                    MainTab.CARTOON to cartoonBackStack,
+                    MainTab.PODCAST to podcastBackStack,
+                    MainTab.MYPAGE to myPageBackStack
+                )
 
-            var currentTab by rememberSaveable { mutableStateOf(MainTab.NEWS) }
-            var isTabSwitch by remember { mutableStateOf(false) }
+                var currentTab by rememberSaveable { mutableStateOf(MainTab.NEWS) }
+                var isTabSwitch by remember { mutableStateOf(false) }
 
-            // ViewModel 사이드이펙트 네비게이터 (탭 바뀌면 무애니 처리)
-            LaunchedNavigator(
-                tabBackStacks = tabBackStacks,
-                currentTab = currentTab,
-                onTabChange = { newTab ->
-                    if (currentTab != newTab) {
-                        isTabSwitch = true
-                        currentTab = newTab
+                // ViewModel 사이드이펙트 네비게이터 (탭 바뀌면 무애니 처리)
+                LaunchedNavigator(
+                    tabBackStacks = tabBackStacks,
+                    currentTab = currentTab,
+                    onTabChange = { newTab ->
+                        if (currentTab != newTab) {
+                            isTabSwitch = true
+                            currentTab = newTab
+                        }
+                    }
+                )
+
+                NotificationPermission(
+                    firstLaunch = firstLaunch,
+                    onGranted = {
+                        firstLaunch = false
+                    },
+                    onRefused = {
+                        firstLaunch = false
+                    }
+                )
+
+                MyssueTheme {
+                    CompositionLocalProvider(LocalAnalytics provides logger) {
+                        MainScreen(
+                            navBackStack = tabBackStacks[currentTab] ?: newsBackStack,
+                            onTabSelected = { newTab ->
+                                if (currentTab != newTab) {
+                                    isTabSwitch = true
+                                    currentTab = newTab
+                                    Log.d("MainActivity", "Tab changed to $currentTab")
+                                }
+                            },
+                            isTabSwitch = isTabSwitch
+                        )
                     }
                 }
-            )
 
-            NotificationPermission(
-                firstLaunch = firstLaunch,
-                onGranted = {
-                    firstLaunch = false
-                },
-                onRefused = {
-                    firstLaunch = false
+                LaunchedEffect(currentTab) {
+                    withFrameNanos {}
+                    isTabSwitch = false
                 }
-            )
-
-            MyssueTheme {
-                CompositionLocalProvider(LocalAnalytics provides logger) {
-                    MainScreen(
-                        navBackStack = tabBackStacks[currentTab] ?: newsBackStack,
-                        onTabSelected = { newTab ->
-                            if (currentTab != newTab) {
-                                isTabSwitch = true
-                                currentTab = newTab
-                                Log.d("MainActivity", "Tab changed to $currentTab")
-                            }
-                        },
-                        isTabSwitch = isTabSwitch
-                    )
-                }
-            }
-
-            LaunchedEffect(currentTab) {
-                withFrameNanos {}
-                isTabSwitch = false
             }
         }
     }

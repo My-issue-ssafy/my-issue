@@ -11,7 +11,7 @@ data class PodCastUiState(
     val isMonthlyView: Boolean = false,
     val showPlayer: Boolean = false,
     val contentType: PodcastContentType = PodcastContentType.SCRIPT,
-    val selectedDate: LocalDate = LocalDate.now(),
+    val selectedDate: LocalDate = LocalDate.now().minusDays(1),
     val audio: AudioState = AudioState(),
     val episode: PodcastEpisode = PodcastEpisode(),
     val detailNewsId: Long? = null,
