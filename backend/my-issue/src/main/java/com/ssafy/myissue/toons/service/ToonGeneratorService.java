@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;                                         // [ADDED]
 import java.util.List;
 
 @Service
@@ -30,11 +31,17 @@ public class ToonGeneratorService {
     @Value("${openai.enabled:true}")                             // [ADDED] (있으면 사용)
     private boolean openaiEnabled;
 
+    @Value("${app.timezone:Asia/Seoul}")                         // [ADDED] 기본은 KST, 필요시 환경변수로 조정
+    private String appTimeZone;
+
     @Transactional
     public void generateDailyToons() throws JsonProcessingException {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        LocalDateTime start = yesterday.atStartOfDay();
-        LocalDateTime end = yesterday.atTime(LocalTime.MAX);
+        ZoneId zone = ZoneId.of(appTimeZone);
+        LocalDate target = LocalDate.now(zone).minusDays(1);
+        var zStart = target.atStartOfDay(zone);
+        var zEnd   = target.atTime(LocalTime.MAX).atZone(zone);
+        LocalDateTime start = zStart.toLocalDateTime();
+        LocalDateTime end   = zEnd.toLocalDateTime();
 
         List<News> topNews = newsRepository.findTop10ByDate(start, end, PageRequest.of(0, 10));
 
