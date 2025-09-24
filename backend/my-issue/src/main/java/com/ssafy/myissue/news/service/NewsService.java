@@ -3,9 +3,9 @@ package com.ssafy.myissue.news.service;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-
 import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -303,7 +303,7 @@ public class NewsService {
 //        return new CursorPage<>(items, null, hasNext);
 //    }
 
-    public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, Long lastId) {
+    public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, String cursor) {
         int pageSize = (size == null || size <= 0) ? 20 : size;
         BoolQuery.Builder boolQuery = new BoolQuery.Builder();
 
@@ -324,22 +324,41 @@ public class NewsService {
                 ));
             }
 
-            // lastId 조건 (커서 페이징: id < lastId)
-            if (lastId != null) {
-                RangeQuery rq = new RangeQuery.Builder()
-                        .field("id")
-                        .lt(JsonData.of(lastId))
-                        .build();
-                boolQuery.filter(f -> f.range(rq));
-            }
+            // 커서 파싱
+            final SearchAfterCursor searchAfterCursor = (cursor != null && !cursor.isBlank()) 
+                    ? CursorCodec.decode(cursor, SearchAfterCursor.class) 
+                    : null;
 
-            // ES 검색 실행 (id desc, pageSize+1로 hasNext 판별)
-            SearchResponse<Map> response = elasticsearchClient.search(s -> s
-                            .index("news")
-                            .query(q -> q.bool(boolQuery.build()))
-                            .size(pageSize + 1)
-                            .sort(sort -> sort.field(f -> f.field("id").order(SortOrder.Desc))),
-                    Map.class);
+            // ES 검색 실행 (search_after 기반 페이징)
+            SearchResponse<Map> response = elasticsearchClient.search(s -> {
+                var builder = s.index("news")
+                        .query(q -> q.bool(boolQuery.build()))
+                        .size(pageSize + 1);
+                
+                // 정렬: 관련성 스코어 > 생성일 > ID
+                if (keyword != null && !keyword.isBlank()) {
+                    // 키워드 검색시: 스코어 내림차순
+                    builder = builder.sort(sort -> sort.score(sc -> sc.order(SortOrder.Desc)))
+                                   .sort(sort -> sort.field(f -> f.field("createdAt").order(SortOrder.Desc)))
+                                   .sort(sort -> sort.field(f -> f.field("id").order(SortOrder.Desc)));
+                } else {
+                    // 카테고리만 필터링시: 생성일 내림차순
+                    builder = builder.sort(sort -> sort.field(f -> f.field("createdAt").order(SortOrder.Desc)))
+                                   .sort(sort -> sort.field(f -> f.field("id").order(SortOrder.Desc)));
+                }
+
+                // search_after 적용
+                if (searchAfterCursor != null) {
+                    if (keyword != null && !keyword.isBlank()) {
+                        builder = builder.searchAfter(searchAfterCursor.toSearchAfterValues());
+                    } else {
+                        // 키워드 없을 때는 스코어 제외하고 생성일, ID만 사용
+                        builder = builder.searchAfter(searchAfterCursor.toSearchAfterValuesWithoutScore());
+                    }
+                }
+
+                return builder;
+            }, Map.class);
 
             List<Long> ids = response.hits().hits().stream()
                     .map(hit -> Long.valueOf(hit.id()))
@@ -359,11 +378,28 @@ public class NewsService {
                     .map(NewsCardResponse::from)
                     .toList();
 
-            // ✅ nextCursor 생성: 마지막 아이템의 id를 커서로 인코딩
+            // nextCursor 생성
             String next = null;
-            if (hasNext && !ids.isEmpty()) {
-                long last = ids.get(ids.size() - 1);
-                next = CursorCodec.encode(new IdCursor(last));
+            if (hasNext && !response.hits().hits().isEmpty()) {
+                var lastHit = response.hits().hits().get(Math.min(pageSize - 1, response.hits().hits().size() - 1));
+                double score = keyword != null && !keyword.isBlank() ? lastHit.score() : 0.0;
+                
+                // createdAt을 초 단위로 변환 (ES에서 가져온 값 파싱)
+                Long createdAtSec = null;
+                Object createdAtObj = lastHit.source().get("createdAt");
+                if (createdAtObj != null) {
+                    // ISO 형식 문자열을 LocalDateTime으로 파싱 후 초 변환
+                    try {
+                        LocalDateTime createdAt = LocalDateTime.parse(createdAtObj.toString());
+                        createdAtSec = createdAt.toEpochSecond(ZoneOffset.UTC);
+                    } catch (Exception e) {
+                        log.warn("Failed to parse createdAt: {}", createdAtObj.toString(), e);
+                        createdAtSec = System.currentTimeMillis() / 1000; // fallback
+                    }
+                }
+                
+                Long newsId = Long.valueOf(lastHit.id());
+                next = CursorCodec.encode(new SearchAfterCursor(score, createdAtSec, newsId));
             }
 
             return new CursorPage<>(items, next, hasNext);

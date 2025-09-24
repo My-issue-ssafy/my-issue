@@ -46,6 +46,7 @@ public class NewsBatchService {
                         .category(news.getCategory())
                         .author(news.getAuthor())
                         .newsPaper(news.getNewsPaper())
+                        .createdAt(news.getCreatedAt().toString()) // ISO 8601 문자열로 변환
                         .build();
 
                 br.operations(op -> op
