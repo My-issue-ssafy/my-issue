@@ -384,9 +384,8 @@ private fun NewsContentImage(url: String) {
         contentDescription = null,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp)
-            .aspectRatio(16 / 9f),
-        contentScale = ContentScale.Crop,
+            .padding(bottom = 8.dp),
+        contentScale = ContentScale.FillWidth,
         placeholder = painterResource(R.drawable.ic_empty_thumbnail),
     )
 }

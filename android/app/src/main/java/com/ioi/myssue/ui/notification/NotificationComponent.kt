@@ -1,10 +1,8 @@
 package com.ioi.myssue.ui.notification
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
@@ -12,27 +10,15 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.AnchoredDraggableState
-import androidx.compose.foundation.gestures.DraggableAnchors
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.anchoredDraggable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,10 +26,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -52,9 +38,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter.State.Empty.painter
 import coil.compose.rememberAsyncImagePainter
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.AppColors
@@ -63,14 +49,11 @@ import com.ioi.myssue.designsystem.theme.Pink
 import com.ioi.myssue.domain.model.Notification
 import com.ioi.myssue.ui.common.clickableNoRipple
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.roundToInt
 
 private const val TAG = "NotificationComponent"
+
 @Composable
 fun NotificationTopHeader(
     title: String = "최근 알림",
@@ -157,7 +140,7 @@ fun NotificationItem(
 
     val textColor =
         if (isRead) BackgroundColors.Background400
-        else MaterialTheme.colorScheme.onSurface
+        else BackgroundColors.Background700
 
     Row(
         modifier = Modifier
@@ -220,6 +203,7 @@ fun NotificationItem(
         }
     }
 }
+
 @Composable
 fun SwipeableNotificationItem(
     n: Notification,
@@ -241,7 +225,7 @@ fun SwipeableNotificationItem(
 
     LaunchedEffect(isRemoving) {
         if (isRemoving) {
-            kotlinx.coroutines.delay(exitDurationMs.toLong())
+            delay(exitDurationMs.toLong())
             onDelete()
         }
     }
@@ -270,11 +254,10 @@ fun SwipeableNotificationItem(
                     contentDescription = "삭제",
                     modifier = Modifier
                         .padding(end = 16.dp)
-                        .size(28.dp) // 고정 크기
+                        .size(28.dp)
                 )
             }
 
-            // ✅ 수평 제스처만 처리 → 세로 스크롤 방해 X
             Box(
                 modifier = Modifier
                     .graphicsLayer { translationX = offsetX.value }
@@ -283,14 +266,12 @@ fun SwipeableNotificationItem(
                             onHorizontalDrag = { change, dragAmount ->
                                 val proposed = offsetX.value + dragAmount
                                 val clamped = proposed.coerceIn(-capPx, 0f)
-                                // 드래그 중 즉시 반영
                                 scope.launch { offsetX.snapTo(clamped) }
                                 change.consume() // 수평 제스처 소비
                             },
                             onDragEnd = {
-                                if (kotlin.math.abs(offsetX.value) >= thresholdPx) {
+                                if (abs(offsetX.value) >= thresholdPx) {
                                     scope.launch {
-                                        // cap까지 스냅 후 제거 애니메이션
                                         offsetX.animateTo(
                                             -capPx,
                                             animationSpec = spring(stiffness = Spring.StiffnessMedium)
@@ -345,14 +326,14 @@ fun NotificationEmpty(
             text = "새로운 소식이 도착하면",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = BackgroundColors.Background700,
         )
         Spacer(Modifier.height(8.dp))
         Text(
             text = "알려드릴게요",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = BackgroundColors.Background700,
         )
     }
 }

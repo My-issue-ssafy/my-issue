@@ -25,7 +25,7 @@ data class SearchUiState(
     val isInitialLoading: Boolean = false,
 
     val pageSize: Int = 20,
-    val lastId: Long? = null,
+    val cursor: String? = null,
     val hasNext: Boolean = true,
     val error: String? = null,
 )
