@@ -33,7 +33,6 @@ fun SearchScreen(
     val uiState = viewModel.state.collectAsState().value
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     val analytics = LocalAnalytics.current
 
     LaunchedEffect(Unit) {

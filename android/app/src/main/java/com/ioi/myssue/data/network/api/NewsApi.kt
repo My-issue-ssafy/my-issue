@@ -22,7 +22,7 @@ interface NewsApi {
         @Query("keyword") keyword: String? = null,
         @Query("category") category: String? = null,
         @Query("size") size: Int? = 20,
-        @Query("lastId") lastId: Long? = null
+        @Query("cursor") cursor: String? = null
     ): CursorPageNewsResponse
 
     // HOT 뉴스 전체 조회

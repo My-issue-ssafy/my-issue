@@ -44,7 +44,6 @@ fun NewsScreen(
 ) {
     val uiState by viewModel.state.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
     val analytics = LocalAnalytics.current
 
     LaunchedEffect(Unit) {
@@ -69,13 +68,14 @@ fun NewsScreen(
                     onAllClick = { viewModel.onClickSeeAll(NewsFeedType.HOT) },
                     analytics = analytics
                 )
-                NewsRecommend(
-                    list = uiState.main.recommend,
-                    onItemClick = viewModel::onItemClick,
-                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) },
-                    analytics = analytics
-
-                )
+                if (uiState.main.recommend.isNotEmpty()) {
+                    NewsRecommend(
+                        list = uiState.main.recommend,
+                        onItemClick = viewModel::onItemClick,
+                        onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) },
+                        analytics = analytics
+                    )
+                }
                 NewsLatest(
                     list = uiState.main.latest,
                     onItemClick = viewModel::onItemClick,
@@ -108,7 +108,6 @@ fun NewsAllScreen(
     val uiState by viewModel.state.collectAsState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     val analytics = LocalAnalytics.current
 
     LaunchedEffect(type) {
@@ -237,7 +236,6 @@ fun LazyListScope.NewsRecommend(
             )
         }
     }
-
 }
 
 private fun LazyListScope.NewsLatest(

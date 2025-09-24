@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.rememberNavBackStack
 import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.analytics.AnalyticsLogger
@@ -89,6 +90,7 @@ class MainActivity : ComponentActivity() {
                         navBackStack = tabBackStacks[currentTab] ?: newsBackStack,
                         onTabSelected = { newTab ->
                             if (currentTab != newTab) {
+                                tabBackStacks[currentTab]?.popNotificationIfTop()
                                 isTabSwitch = true
                                 currentTab = newTab
                                 Log.d("MainActivity", "Tab changed to $currentTab")
@@ -104,5 +106,10 @@ class MainActivity : ComponentActivity() {
                 isTabSwitch = false
             }
         }
+    }
+}
+private fun NavBackStack.popNotificationIfTop() {
+    while (lastOrNull() == BottomTabRoute.Notification) {
+        removeLastOrNull()
     }
 }

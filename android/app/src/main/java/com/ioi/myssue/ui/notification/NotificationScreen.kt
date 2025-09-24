@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.notification
 
+import android.view.Surface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -41,7 +43,6 @@ fun NotificationScreen(
     val uiState by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
 
     val context = LocalContext.current
     val topBarVM: TopBarViewModel = hiltViewModel(context as MainActivity)
@@ -84,43 +85,43 @@ fun NotificationScreen(
             }
         }
     } else {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 8.dp)
-        ) {
-            stickyHeader {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                ) {
-                    NotificationTopHeader(
-                        title = "최근 알림",
-                        isClearAllEnabled = true,
-                        onClickClearAll = { viewModel.deleteNotificationAll() }
-                    )
-                }
-            }
-            items(
-                items = uiState.items,
-                key = {
-                    when (it) {
-                        is NotificationListItem.Header -> "header_${it.type}"
-                        is NotificationListItem.Row -> "row_${it.item.notificationId}"
-                    }
-                }
-            ) { item ->
-                when (item) {
-                    is NotificationListItem.Header ->
-                        NotificationDateHeader(item.type.label())
 
-                    is NotificationListItem.Row ->
-                        SwipeableNotificationItem(
-                            n = item.item,
-                            timeText = viewModel.formatTime(item.item.createdAt),
-                            onClick = { viewModel.onItemClick(item.item) },
-                            onDelete = { viewModel.deleteNotification(item.item) }
-                        )
+        Column(Modifier.fillMaxSize()) {
+            Surface(
+                color = BackgroundColors.Background100,
+            ) {
+                NotificationTopHeader(
+                    title = "최근 알림",
+                    isClearAllEnabled = true,
+                    onClickClearAll = { viewModel.deleteNotificationAll() }
+                )
+            }
+
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                items(
+                    items = uiState.items,
+                    key = {
+                        when (it) {
+                            is NotificationListItem.Header -> "header_${it.type}"
+                            is NotificationListItem.Row -> "row_${it.item.notificationId}"
+                        }
+                    }
+                ) { item ->
+                    when (item) {
+                        is NotificationListItem.Header ->
+                            NotificationDateHeader(item.type.label())
+
+                        is NotificationListItem.Row ->
+                            SwipeableNotificationItem(
+                                n = item.item,
+                                timeText = viewModel.formatTime(item.item.createdAt),
+                                onClick = { viewModel.onItemClick(item.item) },
+                                onDelete = { viewModel.deleteNotification(item.item) }
+                            )
+                    }
                 }
             }
         }

@@ -7,7 +7,7 @@ import com.ioi.myssue.domain.model.NewsPage
 import com.ioi.myssue.domain.model.NewsSummary
 
 interface NewsRepository {
-    suspend fun getNews(keyword: String? = null, category: String? = null, size: Int, lastId : Long?): NewsPage
+    suspend fun getNews(keyword: String? = null, category: String? = null, size: Int, cursor : String?): CursorPage<NewsSummary>
 
     suspend fun getMainNews(): MainNewsList
 
