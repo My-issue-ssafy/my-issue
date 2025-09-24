@@ -11,10 +11,10 @@ import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByUuid(String uuid);
-    List<User> findByFcmTokenIsNotNull();
+    List<User> findByFcmTokenIsNotNullAndNotificationEnabledTrue();
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update User u set u.fcmToken = null where u.fcmToken in :tokens")
-    int clearFcmTokens(@Param("tokens") List<String> tokens);
+    void clearFcmTokens(@Param("tokens") List<String> tokens);
 }

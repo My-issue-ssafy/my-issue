@@ -1,5 +1,12 @@
 package com.ssafy.myissue.news.service;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ssafy.myissue.news.dto.*;
@@ -17,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -38,6 +46,7 @@ public class NewsService {
     private final NewsRepository newsRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final NewsScrapRepository scrapRepository;
+    private final ElasticsearchClient elasticsearchClient;
 
     /** 메인 화면: HOT 5, 추천 5(임시 최신), 최신 5 */
     public NewsHomeResponse getHome(Long userId) {
@@ -224,26 +233,6 @@ public class NewsService {
         return toCursorPageLatest(rows, size);
     }
 
-    /** HOT 전체(무한 스크롤, cursor 기반) */
-    public CursorPage<NewsCardResponse> getHot(String cursor, int size) {
-        HotCursor c = null;
-        if (cursor != null && !cursor.isBlank()) {
-            c = CursorCodec.decode(cursor, HotCursor.class);
-        }
-
-        Integer lastViews = null;
-        LocalDateTime lastAt = null;
-        Long lastId = null;
-        if (c != null) {
-            lastViews = c.views();
-            lastAt = LocalDateTime.ofEpochSecond(c.createdAtSec(), 0, ZoneOffset.UTC);
-            lastId = c.newsId();
-        }
-
-        List<News> rows = newsRepository.findHotPage(lastViews, lastAt, lastId, size + 1);
-        return toCursorPageHot(rows, size);
-    }
-
     /** 카테고리 최신(무한 스크롤, cursor 기반) */
     public CursorPage<NewsCardResponse> getByCategory(String category, String cursor, int size) {
         LatestCursor c = null;
@@ -291,28 +280,136 @@ public class NewsService {
      * 뉴스 전체 조회(검색/카테고리) — /news?keyword&category&size&lastId
      *  - 커서는 쓰지 않고 lastId 기준으로 페이징
      */
-    public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, Long lastId) {
+//    public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, Long lastId) {
+//        int pageSize = (size == null || size <= 0) ? 20 : size;
+//
+//        LocalDateTime lastAt = null;
+//        Long lastNewsId = null;
+//        if (lastId != null) {
+//            News base = newsRepository.findById(lastId)
+//                    .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PARAMETER)); // [CHANGED]
+//            lastAt = base.getCreatedAt();
+//            lastNewsId = base.getId();
+//        }
+//
+//        List<News> rows = newsRepository.searchPage(keyword, category, lastAt, lastNewsId, pageSize + 1);
+//
+//        boolean hasNext = rows.size() > pageSize;
+//        if (hasNext) {
+//            rows = rows.subList(0, pageSize);
+//        }
+//
+//        List<NewsCardResponse> items = toCards(rows);
+//        return new CursorPage<>(items, null, hasNext);
+//    }
+
+    public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, String cursor) {
         int pageSize = (size == null || size <= 0) ? 20 : size;
+        BoolQuery.Builder boolQuery = new BoolQuery.Builder();
 
-        LocalDateTime lastAt = null;
-        Long lastNewsId = null;
-        if (lastId != null) {
-            News base = newsRepository.findById(lastId)
-                    .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PARAMETER)); // [CHANGED]
-            lastAt = base.getCreatedAt();
-            lastNewsId = base.getId();
+        try {
+            // keyword 조건
+            if (keyword != null && !keyword.isBlank()) {
+                boolQuery.must(m -> m.multiMatch(mm -> mm
+                        .fields("title", "content") // nori 적용 필드
+                        .query(keyword)
+                ));
+            }
+
+            // category 조건
+            if (category != null && !category.isBlank()) {
+                boolQuery.filter(f -> f.term(t -> t
+                        .field("category")
+                        .value(category)
+                ));
+            }
+
+            // 커서 파싱
+            final SearchAfterCursor searchAfterCursor = (cursor != null && !cursor.isBlank()) 
+                    ? CursorCodec.decode(cursor, SearchAfterCursor.class) 
+                    : null;
+
+            // ES 검색 실행 (search_after 기반 페이징)
+            SearchResponse<Map> response = elasticsearchClient.search(s -> {
+                var builder = s.index("news")
+                        .query(q -> q.bool(boolQuery.build()))
+                        .size(pageSize + 1);
+                
+                // 정렬: 관련성 스코어 > 생성일 > ID
+                if (keyword != null && !keyword.isBlank()) {
+                    // 키워드 검색시: 스코어 내림차순
+                    builder = builder.sort(sort -> sort.score(sc -> sc.order(SortOrder.Desc)))
+                                   .sort(sort -> sort.field(f -> f.field("createdAt").order(SortOrder.Desc)))
+                                   .sort(sort -> sort.field(f -> f.field("id").order(SortOrder.Desc)));
+                } else {
+                    // 카테고리만 필터링시: 생성일 내림차순
+                    builder = builder.sort(sort -> sort.field(f -> f.field("createdAt").order(SortOrder.Desc)))
+                                   .sort(sort -> sort.field(f -> f.field("id").order(SortOrder.Desc)));
+                }
+
+                // search_after 적용
+                if (searchAfterCursor != null) {
+                    if (keyword != null && !keyword.isBlank()) {
+                        builder = builder.searchAfter(searchAfterCursor.toSearchAfterValues());
+                    } else {
+                        // 키워드 없을 때는 스코어 제외하고 생성일, ID만 사용
+                        builder = builder.searchAfter(searchAfterCursor.toSearchAfterValuesWithoutScore());
+                    }
+                }
+
+                return builder;
+            }, Map.class);
+
+            List<Long> ids = response.hits().hits().stream()
+                    .map(hit -> Long.valueOf(hit.id()))
+                    .toList();
+
+            boolean hasNext = ids.size() > pageSize;
+            if (hasNext) {
+                ids = ids.subList(0, pageSize);
+            }
+
+            // DB에서 최신 데이터 조회 후 ES 순서 보존
+            List<News> newsList = newsRepository.findAllById(ids);
+            Map<Long, News> map = newsList.stream().collect(Collectors.toMap(News::getId, n -> n));
+            List<NewsCardResponse> items = ids.stream()
+                    .map(map::get)
+                    .filter(Objects::nonNull)
+                    .map(NewsCardResponse::from)
+                    .toList();
+
+            // nextCursor 생성
+            String next = null;
+            if (hasNext && !response.hits().hits().isEmpty()) {
+                var lastHit = response.hits().hits().get(Math.min(pageSize - 1, response.hits().hits().size() - 1));
+                double score = keyword != null && !keyword.isBlank() ? lastHit.score() : 0.0;
+                
+                // createdAt을 초 단위로 변환 (ES에서 가져온 값 파싱)
+                Long createdAtSec = null;
+                Object createdAtObj = lastHit.source().get("createdAt");
+                if (createdAtObj != null) {
+                    // ISO 형식 문자열을 LocalDateTime으로 파싱 후 초 변환
+                    try {
+                        LocalDateTime createdAt = LocalDateTime.parse(createdAtObj.toString());
+                        createdAtSec = createdAt.toEpochSecond(ZoneOffset.UTC);
+                    } catch (Exception e) {
+                        log.warn("Failed to parse createdAt: {}", createdAtObj.toString(), e);
+                        createdAtSec = System.currentTimeMillis() / 1000; // fallback
+                    }
+                }
+                
+                Long newsId = Long.valueOf(lastHit.id());
+                next = CursorCodec.encode(new SearchAfterCursor(score, createdAtSec, newsId));
+            }
+
+            return new CursorPage<>(items, next, hasNext);
+
+        } catch (IOException e) {
+            throw new CustomException(ErrorCode.ELASTICSEARCH_ERROR);
         }
-
-        List<News> rows = newsRepository.searchPage(keyword, category, lastAt, lastNewsId, pageSize + 1);
-
-        boolean hasNext = rows.size() > pageSize;
-        if (hasNext) {
-            rows = rows.subList(0, pageSize);
-        }
-
-        List<NewsCardResponse> items = toCards(rows);
-        return new CursorPage<>(items, null, hasNext);
     }
+
+
 
     // ================= 내부 공통 =================
 
@@ -327,21 +424,6 @@ public class NewsService {
             News last = rows.get(rows.size() - 1);
             long sec = last.getCreatedAt().toEpochSecond(ZoneOffset.UTC);
             next = CursorCodec.encode(new LatestCursor(sec, last.getId()));
-        }
-        return new CursorPage<>(items, next, hasNext);
-    }
-
-    private CursorPage<NewsCardResponse> toCursorPageHot(List<News> rows, int size) {
-        boolean hasNext = rows.size() > size;
-        if (hasNext) rows = rows.subList(0, size);
-
-        List<NewsCardResponse> items = toCards(rows);
-
-        String next = null;
-        if (hasNext && !rows.isEmpty()) {
-            News last = rows.get(rows.size() - 1);
-            long sec = last.getCreatedAt().toEpochSecond(ZoneOffset.UTC);
-            next = CursorCodec.encode(new HotCursor(last.getViews(), sec, last.getId()));
         }
         return new CursorPage<>(items, next, hasNext);
     }
@@ -367,22 +449,5 @@ public class NewsService {
         } catch (Exception e) {
             return Collections.emptyList();
         }
-    }
-
-    // HOT 뉴스 테스트용
-    public List<NewsDetailResponse> getHotRecommendTop100() {
-        List<Long> ids = getNewsIdListByRedis(HOT_KEY,0,99);
-
-        List<News> newsList = newsRepository.findAllById(ids);
-        // Map으로 변환 (id → News 매핑)
-        Map<Long, News> newsMap = newsList.stream()
-                .collect(Collectors.toMap(News::getId, n -> n));
-
-        // Redis 순서 보존 + DTO 변환
-        return ids.stream()
-                .map(newsMap::get)
-                .filter(Objects::nonNull)
-                .map(n -> NewsDetailResponse.from(n, parseBlocks(n.getContent()), false)) // 엔티티 → DTO 변환
-                .toList();
     }
 }
