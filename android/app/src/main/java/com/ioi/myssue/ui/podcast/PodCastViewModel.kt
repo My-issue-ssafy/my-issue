@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.podcast
 
+import android.media.session.PlaybackState
 import android.util.Log
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
@@ -57,7 +58,7 @@ class PodcastViewModel @Inject constructor(
                 }
             }
         }
-        selectDate(LocalDate.now(), false)
+        selectDate(LocalDate.now().minusDays(1), false)
     }
 
     fun toggleCalendarViewType() {

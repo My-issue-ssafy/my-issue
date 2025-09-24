@@ -98,7 +98,7 @@ private fun BottomControlActionButtons(
             modifier = Modifier
                 .size(32.dp)
                 .clickableNoRipple {
-                    if(!isLoading) changeDate(-1)
+                    changeDate(-1)
                 }
         )
 
@@ -129,7 +129,7 @@ private fun BottomControlActionButtons(
             modifier = Modifier
                 .size(32.dp)
                 .clickableNoRipple {
-                    if(!isLoading) changeDate(+1)
+                    changeDate(+1)
                 }
         )
 

@@ -4,7 +4,7 @@ data class PodcastEpisode(
     val podcastId: Long = -1L,
     val thumbnail: String = "",
     val podcastUrl: String = "",
-    val keyWord: List<String> = emptyList(),
+    val keyWords: List<String> = emptyList(),
     val scripts: List<ScriptLine> = emptyList(),
 )
 

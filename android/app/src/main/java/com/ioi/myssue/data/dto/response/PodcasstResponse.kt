@@ -24,7 +24,7 @@ fun PodcastResponse.toDomain() = PodcastEpisode(
     podcastId = podcastId,
     thumbnail = thumbnail,
     podcastUrl = podcastUrl,
-    keyWord = keyword,
+    keyWords = keyword,
     scripts = subtitles.map { it.toDomain() }
 )
 
