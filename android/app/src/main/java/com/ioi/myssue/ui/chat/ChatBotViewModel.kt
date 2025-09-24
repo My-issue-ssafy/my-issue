@@ -67,14 +67,14 @@ class ChatBotViewModel @Inject constructor(
 
         viewModelScope.launch {
             runCatching {
-                newsRepository.chatNews(newsId, userInput)
-            }.onSuccess { answer ->
+                newsRepository.chatNews(newsId, _state.value.sid,userInput)
+            }.onSuccess { chat ->
                 _state.update { st ->
                     val updated = st.messages.map { m ->
-                        if (m.id == placeholderId) m.copy(text = answer, isPending = false)
+                        if (m.id == placeholderId) m.copy(text = chat.answer, isPending = false)
                         else m
                     }
-                    st.copy(messages = updated, isLoading = false)
+                    st.copy(messages = updated, sid = chat.sid, isLoading = false)
                 }
             }.onFailure { e ->
                 _state.update { st ->
@@ -94,6 +94,7 @@ data class ChatBotUiState(
     val messages: List<ChatMessage> = listOf(ChatMessage(text = "어서오십쇼", isUser = false)),
     val newsSummary: NewsSummary = NewsSummary(),
     val inputMessage: TextFieldValue = TextFieldValue(""),
+    val sid: String? = null,
     val isLoading: Boolean = false
 )
 

@@ -31,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.domain.model.NewsSummary
@@ -63,9 +64,14 @@ fun NewsSummary(
     fontColor: Color = Color.Black,
     onClick: (Long) -> Unit = { }
 ) {
+    val analytics = LocalAnalytics.current
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.clickable{onClick(newsSummary.newsId)}
+        modifier = modifier.clickable{
+            analytics.logNewsClick(newsSummary.newsId, feedSource = "scrap")
+            onClick(newsSummary.newsId)
+        }
     ) {
         Card(
             shape = RoundedCornerShape(4.dp),

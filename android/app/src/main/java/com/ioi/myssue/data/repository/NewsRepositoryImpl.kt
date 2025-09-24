@@ -9,7 +9,6 @@ import com.ioi.myssue.data.network.api.NewsApi
 import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.model.MainNewsList
 import com.ioi.myssue.domain.model.News
-import com.ioi.myssue.domain.model.NewsPage
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.repository.NewsRepository
 import javax.inject.Inject
@@ -73,6 +72,6 @@ class NewsRepositoryImpl @Inject constructor(
         size: Int,
     ) = newsApi.getBookMarkedNews(size, cursor).toDomain(time)
 
-    override suspend fun chatNews(newsId: Long, question: String) =
-        newsApi.chatNews(newsId, ChatRequest(question)).answer
+    override suspend fun chatNews(newsId: Long, sid: String?, question: String) =
+        newsApi.chatNews(newsId, ChatRequest(question, sid)).toDomain()
 }

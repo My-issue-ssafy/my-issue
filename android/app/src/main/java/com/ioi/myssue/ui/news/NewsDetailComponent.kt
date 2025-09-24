@@ -441,8 +441,9 @@ private fun TrackNewsViewEnd(
     }
     DisposableEffect(newsId) {
         onDispose {
-            if (newsId < 0) return@onDispose
+            Log.d("newsId", "$newsId")
             val dwell = SystemClock.elapsedRealtime() - sessionStart
+            if (newsId < 0 || dwell < 1000) return@onDispose
             analytics.logNewsViewEnd(newsId, dwellMs = dwell, scrollPct = maxPct)
             Log.d("logNewsViewEnd", "newsId=$newsId dwell=$dwell scroll=$maxPct")
         }
