@@ -129,6 +129,7 @@ pipeline {
             string(credentialsId: 'ES_URI', variable: 'ES_URI'),
             string(credentialsId: 'ES_USERNAME', variable: 'ES_USERNAME'),
             string(credentialsId: 'ES_PASSWORD', variable: 'ES_PASSWORD'),
+            string(credentialsId: 'OPENAI_API_KEY', variable: 'OPENAI_API_KEY'),
             sshUserPrivateKey(
               credentialsId: 'ec2-ssh-key-pem',
               keyFileVariable: 'SSH_KEY',
@@ -167,6 +168,7 @@ pipeline {
                 export ES_URI='$ES_URI' &&
                 export ES_USERNAME='$ES_USERNAME' &&
                 export ES_PASSWORD='$ES_PASSWORD' &&
+                export OPENAI_API_KEY='$OPENAI_API_KEY' &&
                 export SPRING_PROFILES_ACTIVE=prod &&
                 sudo -E bash /home/ubuntu/deploy.sh ${COMMIT_SHA}
               "
