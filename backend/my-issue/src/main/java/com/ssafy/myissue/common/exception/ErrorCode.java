@@ -44,7 +44,7 @@ public enum ErrorCode {
     TOON_NOT_FOUND(HttpStatus.NOT_FOUND, "TOON_NOT_FOUND", "존재하지 않는 네컷뉴스입니다."),              // [ADDED]
     TOON_LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "TOON_LIKE_NOT_FOUND", "좋아요/싫어요 기록이 없습니다."),     // [ADDED]
     INVALID_CURSOR(HttpStatus.BAD_REQUEST, "INVALID_CURSOR", "커서가 유효하지 않습니다."), // [ADDED]
-    ;
+    ELASTICSEARCH_ERROR(HttpStatus.BAD_REQUEST,"ELASTICSEARCH_ERROR" ," ElasticSearch 처리 중 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

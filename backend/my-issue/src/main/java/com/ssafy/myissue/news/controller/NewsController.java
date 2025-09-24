@@ -5,6 +5,7 @@ import com.ssafy.myissue.news.dto.NewsCardResponse;
 import com.ssafy.myissue.news.dto.NewsDetailResponse;
 import com.ssafy.myissue.news.dto.NewsHomeResponse;
 import com.ssafy.myissue.news.dto.ScrapToggleResponse;
+import com.ssafy.myissue.news.service.NewsBatchService;
 import com.ssafy.myissue.news.service.NewsScheduler;
 import com.ssafy.myissue.news.service.NewsScrapService;
 import com.ssafy.myissue.news.service.NewsService;
@@ -27,6 +28,7 @@ public class NewsController {
     private final NewsService newsService;
     private final NewsScrapService scrapService;
     private final NewsScheduler newsScheduler;
+    private final NewsBatchService newsBatchService;
 
     /** 홈: HOT 5, 추천 5, 최신 5 */
     @GetMapping("/main")
@@ -61,13 +63,13 @@ public class NewsController {
 
     /**
      * 뉴스 전체 조회(검색/카테고리)
-     * /news?keyword=&category=&size=&lastId=
-     *  - 커서 대신 lastId(경계 뉴스 ID) 기반 페이징
+     * /news?keyword=&category=&size=&cursor=
+     *  - search_after 기반 커서 페이징
      */
     @GetMapping
     public ResponseEntity<CursorPage<NewsCardResponse>> search(@RequestParam(value = "keyword", required = false) String keyword, @RequestParam(value = "category", required = false) String category,
-                                                               @RequestParam(value = "size", required = false, defaultValue = "20") Integer size, @RequestParam(value = "lastId", required = false) Long lastId) {
-        return ResponseEntity.ok(newsService.search(keyword, category, safeSize(size, 20, 50), lastId));
+                                                               @RequestParam(value = "size", required = false, defaultValue = "20") Integer size, @RequestParam(value = "cursor", required = false) String cursor) {
+        return ResponseEntity.ok(newsService.search(keyword, category, safeSize(size, 20, 50), cursor));
     }
 
     /** 스크랩/해제 토글 */
@@ -95,5 +97,11 @@ public class NewsController {
     private int safeSize(Integer raw, int def, int max) {
         if (raw == null || raw <= 0) return def;
         return Math.min(raw, max);
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<Void> reindexAll() throws Exception {
+        newsBatchService.reindexAll();
+        return ResponseEntity.ok().build();
     }
 }

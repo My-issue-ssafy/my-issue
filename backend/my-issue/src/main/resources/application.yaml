@@ -21,6 +21,10 @@ spring:
       pool:
         size: 4
       thread-name-prefix: scheduling-
+  elasticsearch:
+    uris: ${ES_URI}
+    username: ${ES_USERNAME}
+    password: ${ES_PASSWORD}
 
 # Spring Boot Actuator configuration ( Jenkins 에서 접근 가능하도록 설정 )
 # health: 시스템 상태 확인(헬스체크용)
@@ -71,8 +75,7 @@ app:
     params: ${APP_RECOMMEND_DEFAULT_PARAMS}
 
 fcm:
-  fire_path: /app/config/myissue-firebase.json
-  project-id: myssue-7e186
-  # fire_path: ${FIREBASE_PATH}
-  # project-id: ${PROJECT_ID}
-
+#  fire_path: /app/config/myissue-firebase.json
+#  project-id: myssue-7e186
+   fire_path: ${FIREBASE_PATH}
+   project-id: ${PROJECT_ID}
