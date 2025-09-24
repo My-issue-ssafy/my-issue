@@ -44,7 +44,7 @@ fun AppTopBar(
     onBack: (() -> Unit)? = null,
     containerColor: Color = BackgroundColors.Background50,
     mode: TopBarMode = TopBarMode.Default,
-    notificationEnabled: Boolean = true,
+    notificationEnabled: Boolean? = null,
     onToggleNotification: (Boolean) -> Unit = { },
     hasUnread: Boolean = false,
     topBarViewModel: TopBarViewModel = hiltViewModel()
@@ -113,21 +113,23 @@ fun AppTopBar(
                 }
 
                 TopBarMode.Notification -> {
-                    Image(
-                        painter = painterResource(
-                            if (notificationEnabled) R.drawable.ic_notification_on
-                            else R.drawable.ic_notification_off
-                        ),
-                        contentDescription = if (notificationEnabled) "알림 켜짐" else "알림 꺼짐",
-                        modifier = Modifier
-                            .padding(end = 10.dp)
-                            .width(76.dp)
-                            .clickableNoRipple {
-                                onToggleNotification(!notificationEnabled)
-                            },
-                    )
-                }
+                    if (notificationEnabled != null) {
 
+                        Image(
+                            painter = painterResource(
+                                if (notificationEnabled) R.drawable.ic_notification_on
+                                else R.drawable.ic_notification_off
+                            ),
+                            contentDescription = if (notificationEnabled) "알림 켜짐" else "알림 꺼짐",
+                            modifier = Modifier
+                                .padding(end = 10.dp)
+                                .width(76.dp)
+                                .clickableNoRipple {
+                                    onToggleNotification(!notificationEnabled)
+                                },
+                        )
+                    }
+                }
             }
         }
     }
@@ -165,6 +167,7 @@ private fun TopBarMiniPlayer(
                         )
                     }
                 }
+
                 else -> {
                     IconButton(onClick = onPlay) {
                         Icon(

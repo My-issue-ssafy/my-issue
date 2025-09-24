@@ -73,5 +73,5 @@ data class TopBarUiState(
     val isPlaying: Boolean = false,
     val playbackState: Int = 0, // Player.STATE_IDLE, STATE_READY 등
     val hasUnread: Boolean = false,
-    val notificationState: Boolean = false
+    val notificationState: Boolean? = null
 )
