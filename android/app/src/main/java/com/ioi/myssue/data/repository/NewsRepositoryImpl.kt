@@ -23,21 +23,15 @@ class NewsRepositoryImpl @Inject constructor(
         keyword: String?,
         category: String?,
         size: Int,
-        lastId: Long?
-    ): NewsPage {
+        cursor: String?
+    ): CursorPage<NewsSummary> {
         val res = newsApi.getNews(
             keyword = keyword?.ifBlank { null },
             category = category,
             size = size,
-            lastId = lastId
+            cursor = cursor
         )
-        val newsItems = res.items.map { it.toDomain(time) }
-        val newsLastId = res.items.lastOrNull()?.newsId
-        return NewsPage(
-            newsItems = newsItems,
-            lastId = newsLastId,
-            hasNext = res.hasNext
-        )
+        return res.toDomain(time)
     }
 
     override suspend fun getMainNews(): MainNewsList {

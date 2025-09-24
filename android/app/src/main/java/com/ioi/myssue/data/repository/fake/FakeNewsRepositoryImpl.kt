@@ -113,8 +113,8 @@ class FakeNewsRepositoryImpl @Inject constructor(
         keyword: String?,
         category: String?,
         size: Int,
-        lastId: Long?
-    ): NewsPage {
+        cursor: String?
+    ): CursorPage<NewsSummary> {
         TODO("Not yet implemented")
     }
 

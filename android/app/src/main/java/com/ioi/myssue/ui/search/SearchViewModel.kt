@@ -2,8 +2,10 @@ package com.ioi.myssue.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.repository.NewsRepository
 import com.ioi.myssue.domain.model.NewsPage
+import com.ioi.myssue.domain.model.NewsSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.*
@@ -41,20 +43,28 @@ class SearchViewModel @Inject constructor(
 
     fun refresh() = viewModelScope.launch {
         val s = _state.value
-        _state.update { it.copy(isInitialLoading = true, error = null) }
+        _state.update {
+            it.copy(
+                isInitialLoading = true,
+                error = null,
+                newsItems = emptyList(),
+                cursor = null,
+                hasNext = false
+            )
+        }
 
         runCatching {
             newsRepository.getNews(
                 keyword = s.query.ifBlank { null },
                 category = s.selectedCat.apiParam,
                 size = s.pageSize,
-                lastId = null
+                cursor = null
             )
-        }.onSuccess { page: NewsPage ->
+        }.onSuccess { page: CursorPage<NewsSummary> ->
             _state.update {
                 it.copy(
-                    newsItems = page.newsItems,
-                    lastId = page.lastId,
+                    newsItems = page.items,
+                    cursor = page.nextCursor,
                     hasNext = page.hasNext,
                     isInitialLoading = false,
                 )
@@ -76,13 +86,13 @@ class SearchViewModel @Inject constructor(
                     keyword = s.query.ifBlank { null },
                     category = s.selectedCat.apiParam,
                     size = s.pageSize,
-                    lastId = s.lastId
+                    cursor = s.cursor
                 )
             }.onSuccess { page ->
                 _state.update {
                     it.copy(
-                        newsItems = it.newsItems + page.newsItems,
-                        lastId = page.lastId,
+                        newsItems = it.newsItems + page.items,
+                        cursor = page.nextCursor,
                         hasNext = page.hasNext,
                     )
                 }
