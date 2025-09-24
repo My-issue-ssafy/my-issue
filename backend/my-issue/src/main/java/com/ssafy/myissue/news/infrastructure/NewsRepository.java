@@ -12,7 +12,7 @@ import java.util.List;
 
 /** 기본 CRUD + 커스텀(QueryDSL) 혼합 */
 public interface NewsRepository extends JpaRepository<News, Long>, NewsCustomRepository {
-    @Query("SELECT n FROM News n WHERE n.createdAt BETWEEN :start AND :end ORDER BY n.views DESC")
+    @Query("SELECT n FROM News n WHERE n.createdAt BETWEEN :start AND :end AND LENGTH(n.content) >= 600 ORDER BY n.views DESC")
     List<News> findTop10ByDate(@Param("start") LocalDateTime start,
                                @Param("end") LocalDateTime end,
                                Pageable pageable);
