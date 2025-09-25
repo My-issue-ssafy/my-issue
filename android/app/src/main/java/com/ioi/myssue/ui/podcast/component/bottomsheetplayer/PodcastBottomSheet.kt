@@ -26,7 +26,6 @@ import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.model.ScriptLine
-import com.ioi.myssue.ui.news.rememberBlockSheetDragConnection
 import com.ioi.myssue.ui.podcast.KeyWordList
 import com.ioi.myssue.ui.podcast.PodcastContentType
 
@@ -56,7 +55,6 @@ fun PodcastBottomSheet(
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
-    val blockSheetDrag = rememberBlockSheetDragConnection()
 
     val bottomSheetGradient = Brush.verticalGradient(
         listOf(AppColors.Primary300, AppColors.Primary500)
@@ -73,7 +71,6 @@ fun PodcastBottomSheet(
                 .fillMaxSize()
                 .background(bottomSheetGradient)
                 .padding(horizontal = 16.dp, vertical = 20.dp)
-                .nestedScroll(blockSheetDrag)
         ) {
             Column(
                 modifier = Modifier

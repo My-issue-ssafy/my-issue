@@ -8,6 +8,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -51,7 +55,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -177,7 +183,7 @@ fun rememberBlockSheetDragConnection(): NestedScrollConnection {
     }
 }
 
-
+enum class DragRoute { Header, Body }
 // 기사 바텀 시트
 @Composable
 fun NewsDetailSheet(
@@ -191,20 +197,64 @@ fun NewsDetailSheet(
     scrollState: ScrollState,
     openChat: (NewsSummary) -> Unit,
 ) {
+    // 헤더 높이(px) 측정 저장
+    var headerHeightPx by remember { mutableStateOf(0f) }
+    var route by remember { mutableStateOf<DragRoute?>(null) }
+
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            // 👇 터치 시작 지점으로 라우팅
+            .pointerInput(headerHeightPx) {
+                awaitEachGesture {
+                    // 1) 첫 다운
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    route = if (down.position.y < headerHeightPx) DragRoute.Header else DragRoute.Body
+
+                    // 2) 드래그 루프
+                    drag(down.id) { change ->
+                        val dy = change.position.y - change.previousPosition.y
+
+                        when (route) {
+                            DragRoute.Header -> {
+                                // 시트가 드래그 받도록 소비하지 않음
+                                // (필요하면 x만 소비 같은 커스텀 가능)
+                            }
+                            DragRoute.Body -> {
+                                // 본문 스크롤: y만 소비, 시트로 y 전달 0
+                                if (dy != 0f) {
+                                    // 스크롤 가능 여부와 무관하게 y를 소비해서 시트로 못 가게 함
+                                    scrollState.dispatchRawDelta(-dy)
+                                    change.consume() // 전체 이벤트를 소비(특히 y)
+                                }
+                            }
+                            null -> Unit
+                        }
+                    }
+
+                    // 3) 제스처 종료 → 라우트 리셋
+                    route = null
+                }
+            },
         contentAlignment = Alignment.TopStart
     ) {
         Column {
+            // ---- 헤더 ----
             NewsDetailHeader(
                 title = title,
                 author = author,
                 newspaper = newspaper,
                 displayTime = displayTime,
                 isBookmarked = isBookmarked,
-                onToggleBookmark = onToggleBookmark
+                onToggleBookmark = onToggleBookmark,
+                // 👇 헤더 높이 측정
+                modifier = Modifier.onGloballyPositioned { coords ->
+                    headerHeightPx = coords.size.height.toFloat()
+                }
             )
             Spacer(Modifier.height(12.dp))
+
+            // ---- 본문 ----
             NewsDetailBody(
                 blocks = blocks,
                 scrollState = scrollState
@@ -226,7 +276,6 @@ fun NewsDetailSheet(
         }
     }
 }
-
 @Composable
 fun BoxScope.ChatbotButton(
     modifier: Modifier = Modifier,
@@ -290,11 +339,12 @@ fun NewsDetailHeader(
     newspaper: String,
     displayTime: String,
     isBookmarked: Boolean,
-    onToggleBookmark: () -> Unit
+    onToggleBookmark: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier
+        modifier = modifier
             .padding(horizontal = 18.dp),
     ) {
         Text(
