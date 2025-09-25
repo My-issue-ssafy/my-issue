@@ -25,11 +25,11 @@ class MyScrapViewModel @Inject constructor(
     fun loadMyScraps() {viewModelScope.launch {
         if(!_state.value.hasNext) return@launch
         _state.update { it.copy(isLoading = true) }
-            runCatching { newsRepository.getBookmarkedNews(cursor = _state.value.cursor, size = 10) }
+            runCatching { newsRepository.getBookmarkedNews(cursor = _state.value.cursor) }
                 .onSuccess { cursorPage ->
                     _state.update {
                         it.copy(
-                            newsSummaries = cursorPage.items,
+                            newsSummaries = it.newsSummaries + cursorPage.items,
                             cursor = cursorPage.nextCursor,
                             hasNext = cursorPage.hasNext,
                             isLoading = false

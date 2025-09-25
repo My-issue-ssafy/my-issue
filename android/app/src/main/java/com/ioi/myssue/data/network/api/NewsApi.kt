@@ -60,7 +60,6 @@ interface NewsApi {
 
     @GET("news/bookmarks")
     suspend fun getBookMarkedNews(
-        @Query("size") size: Int? = null,
         @Query("cursor") cursor: String? = null
     ): CursorPageNewsResponse
 

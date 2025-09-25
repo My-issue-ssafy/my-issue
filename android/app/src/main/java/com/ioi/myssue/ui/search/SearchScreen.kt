@@ -40,11 +40,11 @@ fun SearchScreen(
     }
 
     // 바닥에서 스크롤 시 다음 뉴스 로딩
-    val loadMore by remember(uiState.newsItems.size, uiState.hasNext) {
+    val loadMore by remember(uiState.newsItems.size, uiState.cursor) {
+        Log.d("http loadmore test","")
         derivedStateOf {
             val last = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            val total = listState.layoutInfo.totalItemsCount
-            uiState.hasNext && !uiState.isInitialLoading && total > 0 && last >= total - 5
+            last >= uiState.newsItems.size - 5 && uiState.cursor != null
         }
     }
     LaunchedEffect(loadMore) {

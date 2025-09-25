@@ -52,10 +52,6 @@ fun PodcastBottomSheet(
     toggleContentType: () -> Unit,
     contentType: PodcastContentType
 ) {
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-
     val bottomSheetGradient = Brush.verticalGradient(
         listOf(AppColors.Primary300, AppColors.Primary500)
     )
@@ -63,7 +59,6 @@ fun PodcastBottomSheet(
     val density = LocalDensity.current
 
     MyssueBottomSheet(
-        sheetState = sheetState,
         onDismissRequest = onDismissRequest
     ) {
         Box(

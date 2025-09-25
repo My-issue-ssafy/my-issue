@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -32,6 +33,8 @@ import kotlin.math.roundToInt
 fun CustomModalBottomSheetDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    color: Color = Color.White,
+    shape: Shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
     dragHandle: @Composable () -> Unit = { SheetDragHandle() },
     headerContent: @Composable () -> Unit = {},
     bodyContent: @Composable ColumnScope.() -> Unit
@@ -77,7 +80,7 @@ fun CustomModalBottomSheetDialog(
                     .systemBarsPadding()
                     .align(Alignment.BottomCenter)
                     .offset { IntOffset(0, offsetY.value.roundToInt()) }
-                    .background(Color.White, RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
+                    .background(color, shape)
             ) {
                 /** ───── Header (드래그 전용 + 핸들 표시) ───── */
                 Column(
@@ -129,7 +132,7 @@ fun CustomModalBottomSheetDialog(
 
 // 시트 핸들
 @Composable
-fun SheetDragHandle() {
+fun SheetDragHandle(color: Color = Primary600) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -140,7 +143,7 @@ fun SheetDragHandle() {
                 .align(Alignment.TopCenter)
                 .size(width = 80.dp, height = 5.dp)
                 .background(
-                    color = Primary600,
+                    color = color,
                     shape = CircleShape
                 )
         )

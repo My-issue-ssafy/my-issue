@@ -76,6 +76,7 @@ class PodcastViewModel @Inject constructor(
     }
 
     fun selectDate(date: LocalDate = _state.value.selectedDate, playNow: Boolean = true) = viewModelScope.launch {
+        if(date >= LocalDate.now() || date < LocalDate.of(2025,9,21)) return@launch
         audioController.stop()
         audioController.release()
         _state.update {
@@ -84,6 +85,7 @@ class PodcastViewModel @Inject constructor(
                 episode = PodcastEpisode(),
                 currentLine = ScriptLine(),
                 previousLine = ScriptLine(),
+                podcastNewsSummaries = emptyList(),
                 currentScriptIndex = -1
             )
         }

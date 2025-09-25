@@ -127,8 +127,7 @@ fun NewsDetail(
 
     if (state.c) {
         MyssueBottomSheet(
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            onDismissRequest = viewModel::closeChat
+            onDismissRequest = viewModel::closeChat,
         ) {
             ChatBotContent(
                 newsSummary = NewsSummary(

@@ -41,11 +41,11 @@ class MyPageViewModel @Inject constructor(
     }
 
     fun loadMyScraps() = viewModelScope.launch {
-        runCatching { newsRepository.getBookmarkedNews(cursor = null, size = 15) }
+        runCatching { newsRepository.getBookmarkedNews(cursor = null) }
             .onSuccess { cursorPage ->
                 _state.update {
                     it.copy(
-                        newsSummaries = cursorPage.items,
+                        newsSummaries = cursorPage.items.take(15),
                         isLoadingScrapNews = false
                     )
                 }
