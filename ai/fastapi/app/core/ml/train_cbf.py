@@ -19,7 +19,7 @@ from loguru import logger
 
 from app.config import PROJECT_ID, DEFAULT_DATASET, LOOKBACK_DAYS
 from app.core.analytics.bq import get_client, get_latest_date
-from app.core.ml.train_cf import today_kst_str, already_trained_today as cf_already_trained_today
+from app.core.ml.train_cf import today_kst_str
 from app.db.models.news import News
 from app.utils.config import settings
 
