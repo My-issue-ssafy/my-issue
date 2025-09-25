@@ -43,7 +43,6 @@ fun NewsScreen(
     viewModel: NewsMainViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.state.collectAsState()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analytics = LocalAnalytics.current
 
     LaunchedEffect(Unit) {
@@ -90,7 +89,6 @@ fun NewsScreen(
     uiState.selectedId?.let { id ->
         NewsDetail(
             newsId = id,
-            sheetState = sheetState,
             onDismiss = {
                 viewModel.onItemClose()
             }
@@ -106,7 +104,6 @@ fun NewsAllScreen(
     viewModel: NewsAllViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.state.collectAsState()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
     val analytics = LocalAnalytics.current
 
@@ -169,7 +166,6 @@ fun NewsAllScreen(
     uiState.selectedId?.let { id ->
         NewsDetail(
             newsId = id,
-            sheetState = sheetState,
             onDismiss = {
                 viewModel.onItemClose()
             }

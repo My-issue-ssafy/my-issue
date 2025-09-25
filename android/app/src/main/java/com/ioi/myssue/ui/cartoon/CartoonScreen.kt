@@ -12,7 +12,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +41,6 @@ fun CartoonScreen(
 ) {
     val uiState by viewModel.state.collectAsStateWithLifecycle()
     var showingNewsId by remember { mutableLongStateOf(-1L) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analytics = LocalAnalytics.current
 
     LaunchedEffect(Unit) {
@@ -134,7 +132,6 @@ fun CartoonScreen(
                 if(showingNewsId>=0) {
                     NewsDetail(
                         newsId = showingNewsId,
-                        sheetState = sheetState,
                         onDismiss = {showingNewsId = -1L},
                     )
                 }

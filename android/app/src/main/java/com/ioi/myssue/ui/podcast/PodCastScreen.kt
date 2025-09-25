@@ -149,9 +149,7 @@ fun PodCastScreen(
             )
         }
         state.detailNewsId?.let {
-            val sheetState = rememberModalBottomSheetState(true)
-
-            NewsDetail(newsId = it, sheetState = sheetState, onDismiss = viewModel::closeDetail)
+            NewsDetail(newsId = it, onDismiss = viewModel::closeDetail)
         }
     }
 
