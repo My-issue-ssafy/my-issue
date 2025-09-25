@@ -26,8 +26,9 @@ public class ToonsController {
 
     // 네컷뉴스 전체 조회
     @GetMapping
-    public ResponseEntity<List<ToonResponse>> getToons() {
-        return ResponseEntity.ok(toonsService.getToons());
+    public ResponseEntity<List<ToonResponse>> getToons(@AuthenticationPrincipal Long userId) {
+        requireUser(userId);
+        return ResponseEntity.ok(toonsService.getToons(userId));
     }
 
     // 좋아요
