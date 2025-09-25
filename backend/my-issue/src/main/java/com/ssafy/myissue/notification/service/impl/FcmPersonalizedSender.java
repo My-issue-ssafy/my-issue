@@ -64,18 +64,13 @@ public class FcmPersonalizedSender {
     }
 
     private Message toMessage(PersonalizedPush push) {
-        // 화면에 표시될 알림(title, body)
-        Notification notification = Notification.builder()
-                .setTitle(push.title())
-                .setBody(push.body())
-                .build();
-
         // 기본 Message 빌더 생성 (토큰 + 알림)
         Message.Builder builder = Message.builder()
-                .setToken(push.token())
-                .setNotification(notification)
-                .putData("newsId", String.valueOf(push.newsId()))
-                .putData("thumbnailUrl", push.thumbnailUrl());
+            .setToken(push.token())
+            .putData("title", push.title())
+            .putData("body", push.body())
+            .putData("newsId", String.valueOf(push.newsId()))
+            .putData("thumbnailUrl", push.thumbnailUrl());
 
         return builder.build();
     }
