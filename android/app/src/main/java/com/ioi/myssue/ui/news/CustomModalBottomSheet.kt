@@ -54,16 +54,24 @@ fun CustomModalBottomSheetDialog(
         )
     }
 
+    var isDismissing by remember { mutableStateOf(false) }
+
     // 닫기 애니메이션 + dismiss 래퍼
     fun animateAndDismiss() {
+        if (isDismissing) return // ✅ 이미 실행 중이면 무시
+        isDismissing = true
+
         scope.launch {
             offsetY.animateTo(
                 targetValue = screenHeightPx,
                 animationSpec = tween(300)
             )
             onDismiss()
+            isDismissing = false // ✅ 필요하다면 reset
         }
     }
+
+
 
     Dialog(
         onDismissRequest = { animateAndDismiss() },
