@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -55,7 +57,10 @@ import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background500
+import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsBlock
+import com.ioi.myssue.domain.model.NewsSummary
+import com.ioi.myssue.ui.chat.ChatBotContent
 import com.ioi.myssue.ui.common.clickableNoRipple
 import kotlinx.coroutines.flow.collectLatest
 
@@ -104,21 +109,37 @@ fun NewsDetail(
                 onToggleBookmark = viewModel::toggleBookmark,
             )
         }
-    ){
+    ) {
 
-        Box(modifier = Modifier.fillMaxSize(),) {
-            LazyColumn(contentPadding = PaddingValues(bottom = 72.dp),) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(contentPadding = PaddingValues(bottom = 72.dp)) {
                 items(state.blocks) { block ->
                     when (block) {
                         is NewsBlock.Image -> NewsContentImage(url = block.url)
-                        is NewsBlock.Desc  -> NewsContentDesc(text = block.text)
-                        is NewsBlock.Text  -> NewsContentText(text = block.text)
+                        is NewsBlock.Desc -> NewsContentDesc(text = block.text)
+                        is NewsBlock.Text -> NewsContentText(text = block.text)
                     }
                 }
             }
-            ChatbotButton()
+            ChatbotButton { viewModel.openChat() }
         }
+    }
 
+    if (state.c) {
+        MyssueBottomSheet(
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            onDismissRequest = viewModel::closeChat
+        ) {
+            ChatBotContent(
+                newsSummary = NewsSummary(
+                    newsId = state.newsId,
+                    title = state.title,
+                    author = state.author,
+                    newspaper = state.newspaper,
+                    thumbnail = state.thumbnail,
+                ),
+            )
+        }
     }
 }
 

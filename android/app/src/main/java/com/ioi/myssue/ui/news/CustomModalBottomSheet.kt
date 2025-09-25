@@ -111,6 +111,7 @@ fun CustomModalBottomSheetDialog(
                 ) {
                     dragHandle()
                     headerContent()
+                    Spacer(Modifier.height(12.dp))
                 }
 
                 /** ───── Body (스크롤 전용) ───── */
@@ -132,7 +133,7 @@ fun SheetDragHandle() {
     Box(
         Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 30.dp)
+            .padding(20.dp)
     ) {
         Box(
             Modifier
