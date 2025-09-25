@@ -1,5 +1,7 @@
 package com.ioi.myssue.ui.main
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -9,6 +11,7 @@ import androidx.activity.viewModels
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,23 +27,30 @@ import com.ioi.myssue.designsystem.theme.MyssueTheme
 import com.ioi.myssue.navigation.BottomTabRoute
 import com.ioi.myssue.navigation.MainTab
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
+import okhttp3.internal.concurrent.TaskRunner.Companion.logger
 import javax.inject.Inject
+
+val LocalDeepLinkNewsId = compositionLocalOf<Long?> { null }
+val LocalConsumeDeepLinkNewsId = compositionLocalOf<() -> Unit> { {} }
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var logger: AnalyticsLogger
-
     private val splashViewModel: SplashViewModel by viewModels()
+    private val deepLinkNewsId = MutableStateFlow<Long?>(null)
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
-
         super.onCreate(savedInstanceState)
 
         splashScreen.setKeepOnScreenCondition {
             splashViewModel.isLoading.value
         }
+
+        deepLinkNewsId.value = parseDeepLink(intent)
 
         enableEdgeToEdge()
         setContent {
@@ -65,7 +75,8 @@ class MainActivity : ComponentActivity() {
                 var currentTab by rememberSaveable { mutableStateOf(MainTab.NEWS) }
                 var isTabSwitch by remember { mutableStateOf(false) }
 
-                // ViewModel 사이드이펙트 네비게이터 (탭 바뀌면 무애니 처리)
+                val pendingNewsId by deepLinkNewsId.collectAsState()
+
                 LaunchedNavigator(
                     tabBackStacks = tabBackStacks,
                     currentTab = currentTab,
@@ -79,18 +90,25 @@ class MainActivity : ComponentActivity() {
 
                 NotificationPermission(
                     firstLaunch = firstLaunch,
-                    onGranted = {
-                        firstLaunch = false
-                    },
-                    onRefused = {
-                        firstLaunch = false
-                    }
+                    onGranted = { firstLaunch = false },
+                    onRefused = { firstLaunch = false }
                 )
 
-
-
                 MyssueTheme {
-                    CompositionLocalProvider(LocalAnalytics provides logger) {
+                    CompositionLocalProvider(
+                        LocalAnalytics provides logger,
+                        LocalDeepLinkNewsId provides pendingNewsId,
+                        LocalConsumeDeepLinkNewsId provides { deepLinkNewsId.value = null }
+                    ) {
+                        LaunchedEffect(pendingNewsId) {
+                            if (pendingNewsId != null && currentTab != MainTab.NEWS) {
+                                tabBackStacks[currentTab]?.popNotificationIfTop()
+                                isTabSwitch = true
+                                currentTab = MainTab.NEWS
+                                Log.d("MainActivity", "DeepLink → switch to NEWS")
+                            }
+                        }
+
                         MainScreen(
                             navBackStack = tabBackStacks[currentTab] ?: newsBackStack,
                             onTabSelected = { newTab ->
@@ -112,6 +130,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        deepLinkNewsId.value = parseDeepLink(intent)
+    }
+
+    private fun parseDeepLink(intent: Intent?): Long? {
+        val u: Uri = intent?.data ?: return null
+        return if (u.scheme == "myssue" && u.host == "news") {
+            u.lastPathSegment?.toLongOrNull()
+        } else null
     }
 
     private fun NavBackStack.popNotificationIfTop() {

@@ -29,7 +29,8 @@ import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.designsystem.theme.BackgroundColors
 import com.ioi.myssue.domain.model.NewsSummary
 import kotlinx.coroutines.launch
-
+import com.ioi.myssue.ui.main.LocalDeepLinkNewsId
+import com.ioi.myssue.ui.main.LocalConsumeDeepLinkNewsId
 
 private const val TAG = "NewsScreen"
 
@@ -46,54 +47,55 @@ fun NewsScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analytics = LocalAnalytics.current
 
-    LaunchedEffect(Unit) {
-        viewModel.getNews()
+    // 딥링크 id 구독
+    val deepLinkId = LocalDeepLinkNewsId.current
+    val consumeDeepLink = LocalConsumeDeepLinkNewsId.current
+    // 딥링크 클릭 시 기사 상세 오픈
+    LaunchedEffect(deepLinkId) {
+        val id = deepLinkId
+        if (id != null) {
+            viewModel.onItemClick(id)
+            consumeDeepLink()
+        }
     }
 
+    LaunchedEffect(Unit) { viewModel.getNews() }
+
     when {
-        uiState.isInitialLoading -> {
-            Box(
-                Modifier
-                    .fillMaxSize()
-            ) { Loading() }
+        uiState.isInitialLoading -> { /* ... */
         }
 
         else -> {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-            ) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
                 NewsHOT(
-                    list = uiState.main.hot,
-                    onItemClick = viewModel::onItemClick,
-                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.HOT) },
-                    analytics = analytics
+                    uiState.main.hot,
+                    viewModel::onItemClick,
+                    { viewModel.onClickSeeAll(NewsFeedType.HOT) },
+                    analytics
                 )
                 if (uiState.main.recommend.isNotEmpty()) {
                     NewsRecommend(
-                        list = uiState.main.recommend,
-                        onItemClick = viewModel::onItemClick,
-                        onAllClick = { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) },
-                        analytics = analytics
+                        uiState.main.recommend,
+                        viewModel::onItemClick,
+                        { viewModel.onClickSeeAll(NewsFeedType.RECOMMEND) },
+                        analytics
                     )
                 }
                 NewsLatest(
-                    list = uiState.main.latest,
-                    onItemClick = viewModel::onItemClick,
-                    onAllClick = { viewModel.onClickSeeAll(NewsFeedType.LATEST) },
-                    analytics = analytics
+                    uiState.main.latest,
+                    viewModel::onItemClick,
+                    { viewModel.onClickSeeAll(NewsFeedType.LATEST) },
+                    analytics
                 )
             }
         }
     }
 
-    // 뉴스기사 바텀시트
     uiState.selectedId?.let { id ->
         NewsDetail(
             newsId = id,
             sheetState = sheetState,
-            onDismiss = {
-                viewModel.onItemClose()
-            }
+            onDismiss = { viewModel.onItemClose() }
         )
     }
 }

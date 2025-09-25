@@ -6,11 +6,18 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.ioi.myssue.R
 import com.ioi.myssue.ui.main.MainActivity
+import java.net.HttpURLConnection
+import java.net.URL
+import kotlin.run
+import androidx.core.net.toUri
 
 object Noti {
     private const val CHANNEL_ID = "news"
@@ -25,19 +32,71 @@ object Noti {
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     fun show(ctx: Context, title: String, body: String, data: Map<String, String>) {
         ensureChannel(ctx)
-        val intent = Intent(ctx, MainActivity::class.java)
-            .putExtra("push_route", data["route"])
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        val pi = PendingIntent.getActivity(ctx, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
-        val noti = NotificationCompat.Builder(ctx, CHANNEL_ID)
+        val newsId = data["newsId"] ?: return
+        val thumbUrl = data["thumbnailUrl"]
+        
+        val clickIntent = Intent(
+            Intent.ACTION_VIEW,
+            "myssue://news/$newsId".toUri()
+        ).apply {
+            `package` = ctx.packageName
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+
+        val requestCode = newsId.hashCode()
+        val pi = PendingIntent.getActivity(
+            ctx, requestCode, clickIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.logo)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
             .setContentIntent(pi)
-            .build()
 
-        NotificationManagerCompat.from(ctx).notify((System.currentTimeMillis()%100000).toInt(), noti)
+
+        // 썸네일
+        val bitmap: Bitmap? = thumbUrl?.let { safeLoadBitmap(it) }
+        if (bitmap != null) {
+            builder
+                .setLargeIcon(bitmap)
+                .setStyle(
+                    NotificationCompat.BigPictureStyle()
+                        .bigPicture(bitmap)
+                        .bigLargeIcon(null as Bitmap?)
+                )
+        } else {
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(body))
+        }
+
+        NotificationManagerCompat.from(ctx).notify(requestCode, builder.build())
     }
+
+    private fun safeLoadBitmap(urlStr: String): Bitmap? = runCatching {
+        val url = URL(urlStr)
+        (url.openConnection() as HttpURLConnection).run {
+            connectTimeout = 4000
+            readTimeout = 4000
+            doInput = true
+            instanceFollowRedirects = true
+            connect()
+            inputStream.use { stream ->
+                val bytes = stream.readBytes()
+                val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                val target = 1024
+                var sample = 1
+                while (opts.outWidth / sample > target || opts.outHeight / sample > target) {
+                    sample *= 2
+                }
+                val realOpts = BitmapFactory.Options().apply { inSampleSize = sample }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, realOpts)
+            }
+        }
+    }.getOrNull()
 }
+
