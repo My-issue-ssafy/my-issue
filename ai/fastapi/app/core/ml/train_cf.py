@@ -52,19 +52,26 @@ def has_today_table(client: bigquery.Client, dataset: str) -> bool:
     return latest == today_str or latest == yesterday_str
 
 # 3) 오늘 이미 학습했는지 확인하고 학습 완료 상태를 기록하는 함수들
-def already_trained_today() -> bool:
-    """오늘 이미 모델 학습을 완료했는지 확인 (중복 학습 방지)"""
+def already_trained_with_latest_data(client: bigquery.Client, dataset: str) -> bool:
+    """최신 가용 데이터로 이미 모델 학습을 완료했는지 확인 (중복 학습 방지)"""
     if not os.path.exists(STATE_PATH):
         return False
-    with open(STATE_PATH, "r", encoding="utf-8") as f:
-        last = f.read().strip()
-    return last == today_kst_str()
 
-def mark_trained_today():
-    """오늘 모델 학습을 완료했다는 표시를 파일에 기록"""
+    # 파일에서 마지막 학습한 데이터 날짜 읽기
+    with open(STATE_PATH, "r", encoding="utf-8") as f:
+        last_trained_date = f.read().strip()
+
+    # 현재 가용한 최신 테이블 날짜 확인
+    latest_table_date = get_latest_date(client, dataset)
+
+    # 최신 테이블 날짜와 마지막 학습 날짜가 같으면 이미 학습 완료
+    return latest_table_date == last_trained_date
+
+def mark_trained_with_data(data_date: str):
+    """특정 날짜 데이터로 모델 학습을 완료했다는 표시를 파일에 기록"""
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
     with open(STATE_PATH, "w", encoding="utf-8") as f:
-        f.write(today_kst_str())
+        f.write(data_date)
 
 def cleanup_old_csv_files(data_dir: str, days_to_keep: int = 14):
     """
@@ -521,9 +528,9 @@ def main():
         logger.info(f"최신 테이블이 너무 오래되었습니다 (오늘/어제 아님). 최신: {latest_date}")
         return
 
-    # 2. 이미 오늘 모델 학습을 완료했는지 확인 (중복 학습 방지)
-    if already_trained_today():
-        logger.info("already trained today.")
+    # 2. 이미 최신 데이터로 모델 학습을 완료했는지 확인 (중복 학습 방지)
+    if already_trained_with_latest_data(client, dataset):
+        logger.info(f"already trained with latest data ({latest_date}).")
         return
 
     # 3. 협업 필터링에 사용할 사용자-뉴스 상호작용 데이터 추출
@@ -560,8 +567,8 @@ def main():
     # 6. 테스트용: 샘플 사용자들에게 추천 생성 및 결과 출력
     test_recommendations(model, users, items, interaction_matrix, num_test_users=3, topn=5)
 
-    # 7. 오늘 모델 학습 완료 상태를 파일에 기록
-    mark_trained_today()
+    # 7. 모델 학습 완료 상태를 파일에 기록 (학습에 사용한 데이터 날짜로 기록)
+    mark_trained_with_data(latest_date)
 
 if __name__ == "__main__":
     # 스크립트가 직접 실행될 때만 main 함수 호출
