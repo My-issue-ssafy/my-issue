@@ -277,52 +277,96 @@ public class NewsService {
     }
 
     /**
-     * 뉴스 전체 조회(검색/카테고리) — /news?keyword&category&size&lastId
-     *  - 커서는 쓰지 않고 lastId 기준으로 페이징
+     * 뉴스 전체 조회(검색/카테고리) — LIKE 검색, cursor 기반 페이징
      */
-//    public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, Long lastId) {
-//        int pageSize = (size == null || size <= 0) ? 20 : size;
-//
-//        LocalDateTime lastAt = null;
-//        Long lastNewsId = null;
-//        if (lastId != null) {
-//            News base = newsRepository.findById(lastId)
-//                    .orElseThrow(() -> new CustomException(ErrorCode.INVALID_PARAMETER)); // [CHANGED]
-//            lastAt = base.getCreatedAt();
-//            lastNewsId = base.getId();
-//        }
-//
-//        List<News> rows = newsRepository.searchPage(keyword, category, lastAt, lastNewsId, pageSize + 1);
-//
-//        boolean hasNext = rows.size() > pageSize;
-//        if (hasNext) {
-//            rows = rows.subList(0, pageSize);
-//        }
-//
-//        List<NewsCardResponse> items = toCards(rows);
-//        return new CursorPage<>(items, null, hasNext);
-//    }
+    public CursorPage<NewsCardResponse> searchByLike(String keyword, String category, Integer size, String cursor) {
+        int pageSize = (size == null || size <= 0) ? 20 : size;
+
+        LatestCursor c = null;
+        if (cursor != null && !cursor.isBlank()) {
+            c = CursorCodec.decode(cursor, LatestCursor.class);
+        }
+
+        LocalDateTime lastAt = null;
+        Long lastId = null;
+        if (c != null) {
+            lastAt = LocalDateTime.ofEpochSecond(c.createdAtSec(), 0, ZoneOffset.UTC);
+            lastId = c.newsId();
+        }
+
+        List<News> rows = newsRepository.searchPage(keyword, category, lastAt, lastId, pageSize + 1);
+        return toCursorPageLatest(rows, pageSize);
+    }
+
+    /**
+     * 뉴스 전체 조회 — 데이터베이스 인덱스 활용, cursor 기반 페이징
+     */
+    public CursorPage<NewsCardResponse> searchByIndex(String keyword, String category, Integer size, String cursor) {
+        int pageSize = (size == null || size <= 0) ? 20 : size;
+
+        LatestCursor c = null;
+        if (cursor != null && !cursor.isBlank()) {
+            c = CursorCodec.decode(cursor, LatestCursor.class);
+        }
+
+        LocalDateTime lastAt = null;
+        Long lastId = null;
+        if (c != null) {
+            lastAt = LocalDateTime.ofEpochSecond(c.createdAtSec(), 0, ZoneOffset.UTC);
+            lastId = c.newsId();
+        }
+
+        List<News> rows;
+        if (keyword != null && !keyword.isBlank()) {
+            // 키워드가 있으면 searchPage (인덱스 활용하며 LIKE 검색)
+            rows = newsRepository.searchPage(keyword, category, lastAt, lastId, pageSize + 1);
+        } else if (category != null && !category.isBlank()) {
+            // idx_news_category_cursor 인덱스 활용
+            rows = newsRepository.findCategoryLatestPage(category, lastAt, lastId, pageSize + 1);
+        } else {
+            // idx_news_created_at 인덱스 활용
+            rows = newsRepository.findLatestPage(lastAt, lastId, pageSize + 1);
+        }
+
+        return toCursorPageLatest(rows, pageSize);
+    }
 
     public CursorPage<NewsCardResponse> search(String keyword, String category, Integer size, String cursor) {
         int pageSize = (size == null || size <= 0) ? 20 : size;
-        BoolQuery.Builder boolQuery = new BoolQuery.Builder();
+
+        // 키워드가 없으면 DB 인덱스 활용 (더 효율적)
+        if (keyword == null || keyword.isBlank()) {
+            return searchByIndex(keyword, category, size, cursor);
+        }
+
+        long start = System.currentTimeMillis();
 
         try {
-            // keyword 조건
-            if (keyword != null && !keyword.isBlank()) {
-                boolQuery.must(m -> m.multiMatch(mm -> mm
-                        .fields("title", "content") // nori 적용 필드
+            // 최적화된 쿼리 구조 (키워드가 있을 때만)
+            BoolQuery optimizedQuery = BoolQuery.of(b -> {
+                // title을 우선순위로, content는 가중치 낮게
+                b.should(s -> s.match(m -> m
+                        .field("title")
                         .query(keyword)
+                        .boost(2.0f) // 제목 가중치 높게
                 ));
-            }
+                b.should(s -> s.match(m -> m
+                        .field("content")
+                        .query(keyword)
+                        .boost(1.0f)
+                ));
+                b.minimumShouldMatch("1"); // 최소 하나는 매칭
 
-            // category 조건
-            if (category != null && !category.isBlank()) {
-                boolQuery.filter(f -> f.term(t -> t
-                        .field("category")
-                        .value(category)
-                ));
-            }
+                // category 조건 - filter context로 캐싱 활용
+                if (category != null && !category.isBlank()) {
+                    b.filter(f -> f.term(t -> t
+                            .field("category")
+                            .value(category)
+                    ));
+                }
+
+                return b;
+            });
 
             // 커서 파싱
             final SearchAfterCursor searchAfterCursor = (cursor != null && !cursor.isBlank()) 
@@ -332,8 +376,14 @@ public class NewsService {
             // ES 검색 실행 (search_after 기반 페이징)
             SearchResponse<Map> response = elasticsearchClient.search(s -> {
                 var builder = s.index("news")
-                        .query(q -> q.bool(boolQuery.build()))
-                        .size(pageSize + 1);
+                        .query(q -> q.bool(optimizedQuery))
+                        .size(pageSize + 1)
+                        .source(src -> src
+                                .filter(f -> f
+                                        .includes("id", "title", "category", "createdAt", "thumbnail", "newsPaper", "author")
+                                        .excludes("content", "embedding") // 큰 필드만 제외
+                                )
+                        );
                 
                 // 정렬: 관련성 스코어 > 생성일 > ID
                 if (keyword != null && !keyword.isBlank()) {
@@ -369,6 +419,8 @@ public class NewsService {
                 ids = ids.subList(0, pageSize);
             }
 
+            long end = System.currentTimeMillis();
+            log.info("소요시간 = {} ms", (end - start));
             // DB에서 최신 데이터 조회 후 ES 순서 보존
             List<News> newsList = newsRepository.findAllById(ids);
             Map<Long, News> map = newsList.stream().collect(Collectors.toMap(News::getId, n -> n));

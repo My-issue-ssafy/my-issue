@@ -71,6 +71,18 @@ public class NewsController {
         return ResponseEntity.ok(newsService.search(keyword, category, safeSize(size, 20, 50), cursor));
     }
 
+    @GetMapping("/byLikeSearch")
+    public ResponseEntity<CursorPage<NewsCardResponse>> searchByLike(@RequestParam(value = "keyword", required = false) String keyword, @RequestParam(value = "category", required = false) String category,
+                                                               @RequestParam(value = "size", required = false, defaultValue = "20") Integer size, @RequestParam(value = "cursor", required = false) String cursor) {
+        return ResponseEntity.ok(newsService.searchByLike(keyword, category, safeSize(size, 20, 50), cursor));
+    }
+
+    @GetMapping("/byIndexSearch")
+    public ResponseEntity<CursorPage<NewsCardResponse>> searchByIndex(@RequestParam(value = "keyword", required = false) String keyword, @RequestParam(value = "category", required = false) String category,
+                                                                      @RequestParam(value = "size", required = false, defaultValue = "20") Integer size, @RequestParam(value = "cursor", required = false) String cursor) {
+        return ResponseEntity.ok(newsService.searchByIndex(keyword, category, safeSize(size, 20, 50), cursor));
+    }
+
     /** 스크랩/해제 토글 */
     @PostMapping("/{newsId}/bookmark")
     public ResponseEntity<ScrapToggleResponse> toggleBookmark(@PathVariable("newsId") long newsId, @AuthenticationPrincipal Long userId) {
