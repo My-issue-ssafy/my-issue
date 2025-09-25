@@ -170,7 +170,7 @@ fun ExpandedCartoonCard(
     val appearAlpha = remember { Animatable(0f) }
     val appearScale = remember { Animatable(0.8f) }
 
-    LaunchedEffect(cartoon) {
+    LaunchedEffect(cartoon.toonId) {
         appearAlpha.snapTo(0f)
         appearScale.snapTo(0.8f)
         launch { appearAlpha.animateTo(1f, tween(500)) }

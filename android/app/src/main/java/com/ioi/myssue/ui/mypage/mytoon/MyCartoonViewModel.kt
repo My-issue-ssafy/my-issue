@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ioi.myssue.domain.model.CartoonNews
 import com.ioi.myssue.domain.repository.CartoonRepository
-import com.ioi.myssue.navigation.Navigator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
@@ -17,7 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MyCartoonViewModel @Inject constructor(
     private val cartoonRepository: CartoonRepository,
-): ViewModel() {
+) : ViewModel() {
 
     private var _state = MutableStateFlow(MyCartoonUiState())
     val state = _state.onSubscription {
@@ -48,14 +47,43 @@ class MyCartoonViewModel @Inject constructor(
     }
 
     fun openNewsDetail(newsId: Long) = viewModelScope.launch {
-        _state.update {
-            it.copy(selectedNewsId = newsId)
-        }
+        _state.update { it.copy(selectedNewsId = newsId) }
     }
 
     fun closeNewsDetail() = viewModelScope.launch {
-        _state.update {
-            it.copy(selectedNewsId = null)
+        _state.update { it.copy(selectedNewsId = null) }
+    }
+
+    fun toggleLike(toon: CartoonNews) = viewModelScope.launch {
+        val newValue = !toon.isLiked
+
+        _state.update { state ->
+            state.copy(
+                myToons = state.myToons.map {
+                    if (it.newsId == toon.newsId) it.copy(isLiked = newValue) else it
+                },
+                clickedToon = state.clickedToon?.takeIf { it.toonId != toon.toonId }
+                    ?: toon.copy(isLiked = newValue)
+            )
+        }
+
+        runCatching {
+            if (newValue) {
+                cartoonRepository.likeCartoon(toon.toonId)
+            } else {
+                cartoonRepository.cancelLike(toon.toonId)
+            }
+        }.onFailure {
+            // 서버 실패 시 롤백
+            _state.update { state ->
+                state.copy(
+                    myToons = state.myToons.map {
+                        if (it.newsId == toon.newsId) it.copy(isLiked = toon.isLiked) else it
+                    },
+                    clickedToon = state.clickedToon?.takeIf { it.newsId != toon.newsId }
+                        ?: toon
+                )
+            }
         }
     }
 }

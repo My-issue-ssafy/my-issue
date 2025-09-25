@@ -1,5 +1,6 @@
 package com.ioi.myssue.ui.podcast
 
+import android.R.id.toggle
 import android.annotation.SuppressLint
 import android.media.session.PlaybackState
 import androidx.compose.animation.AnimatedContent
@@ -50,6 +51,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.ui.common.clickableNoRipple
 import com.ioi.myssue.ui.news.NewsDetail
 import com.ioi.myssue.ui.podcast.component.Calendar
 import com.ioi.myssue.ui.podcast.component.CurvedSurface
@@ -149,9 +151,7 @@ fun PodCastScreen(
             )
         }
         state.detailNewsId?.let {
-            val sheetState = rememberModalBottomSheetState(true)
-
-            NewsDetail(newsId = it, sheetState = sheetState, onDismiss = viewModel::closeDetail)
+            NewsDetail(newsId = it, onDismiss = viewModel::closeDetail)
         }
     }
 
@@ -270,6 +270,7 @@ private fun ColumnScope.PlayerContent(
         modifier = Modifier
             .weight(1f)
             .padding(horizontal = 16.dp)
+            .clickableNoRipple{openBottomPlayer()}
     )
 
     Spacer(Modifier.height(20.dp))

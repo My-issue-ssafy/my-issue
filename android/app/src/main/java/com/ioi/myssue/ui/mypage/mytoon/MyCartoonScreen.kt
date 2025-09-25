@@ -39,6 +39,7 @@ import com.ioi.myssue.R
 import com.ioi.myssue.domain.model.CartoonNews
 import com.ioi.myssue.ui.cartoon.CartoonCard
 import com.ioi.myssue.ui.cartoon.ExpandedCartoonCard
+import com.ioi.myssue.ui.common.clickableNoRipple
 import com.ioi.myssue.ui.news.NewsDetail
 import com.ioi.myssue.ui.news.NewsSectionHeader
 
@@ -49,7 +50,6 @@ fun MyCartoonScreen(
     viewModel: MyCartoonViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analytics = LocalAnalytics.current
 
     Box(
@@ -112,11 +112,19 @@ fun MyCartoonScreen(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.weight(1f).padding(end = 20.dp)
                         )
+
+
                         Image(
-                            painter = painterResource(R.drawable.ic_heart),
+                            painter = if (it.isLiked) painterResource(R.drawable.ic_heart)
+                            else painterResource(R.drawable.ic_no_heart),
                             contentDescription = null,
-                            modifier = Modifier.size(60.dp)
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clickableNoRipple {
+                                    viewModel.toggleLike(it)
+                                }
                         )
+
                     }
 
                 }
@@ -127,7 +135,6 @@ fun MyCartoonScreen(
     state.selectedNewsId?.let {
         NewsDetail(
             newsId = it,
-            sheetState = sheetState,
             onDismiss = { viewModel.closeNewsDetail() }
         )
     }

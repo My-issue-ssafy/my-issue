@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ioi.myssue.R
 import com.ioi.myssue.designsystem.theme.BackgroundColors
+import com.ioi.myssue.ui.common.clickableNoRipple
 
 @Composable
 fun MiniPlayer(
@@ -31,7 +32,7 @@ fun MiniPlayer(
         modifier = modifier
             .height(72.dp)
             .background(BackgroundColors.Background50, RoundedCornerShape(24.dp))
-            .clickable { openBottomPlayer() }
+            .clickableNoRipple { openBottomPlayer() }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

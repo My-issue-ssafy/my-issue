@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class PodcastNewsSummaryResponse(
     val newsId: Long,
-    val thumbnailUrl: String,
+    val thumbnailUrl: String?,
     val title: String,
     val category: String
 )

@@ -3,7 +3,6 @@ package com.ioi.myssue.ui.news
 import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -14,23 +13,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -46,24 +43,19 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
-import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.analytics.AnalyticsLogger
-import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import com.ioi.myssue.designsystem.theme.BackgroundColors.Background500
 import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsBlock
@@ -78,15 +70,12 @@ private const val TAG = "NewsDetailComponent"
 @Composable
 fun NewsDetail(
     newsId: Long,
-    sheetState: SheetState,
     onDismiss: () -> Unit,
     viewModel: NewsDetailViewModel = hiltViewModel()
 ) {
     val state = viewModel.uiState.collectAsState().value
     val scroll = rememberScrollState()
     val analytics = LocalAnalytics.current
-    val chatSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val blockSheetDrag = rememberBlockSheetDragConnection()
 
     LaunchedEffect(newsId) {
         viewModel.getNewsDetail(newsId)
@@ -108,35 +97,37 @@ fun NewsDetail(
         analytics = analytics
     )
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
-        containerColor = Color.White,
-        dragHandle = { SheetDragHandle() },
-        modifier = Modifier.systemBarsPadding()
+    CustomModalBottomSheetDialog(
+        onDismiss = onDismiss,
+        headerContent = {
+            NewsDetailHeader(
+                title = state.title,
+                author = state.author,
+                newspaper = state.newspaper,
+                displayTime = state.displayTime,
+                isBookmarked = state.isBookmarked,
+                onToggleBookmark = viewModel::toggleBookmark,
+            )
+        }
     ) {
-        NewsDetailSheet(
-            title = state.title,
-            author = state.author,
-            newspaper = state.newspaper,
-            displayTime = state.displayTime,
-            blocks = state.blocks,
-            isBookmarked = state.isBookmarked,
-            onToggleBookmark = {
-                val action = if (state.isBookmarked) "remove" else "add"
-                analytics.logNewsBookmark(state.newsId, action)
-                Log.d(TAG, "logNewsBookmark: newsId:$newsId action:$action")
-                viewModel.toggleBookmark()
-            },
-            scrollState = scroll,
-            openChat = { viewModel.openChat() },
-        )
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(contentPadding = PaddingValues(bottom = 72.dp)) {
+                items(state.blocks) { block ->
+                    when (block) {
+                        is NewsBlock.Image -> NewsContentImage(url = block.url)
+                        is NewsBlock.Desc -> NewsContentDesc(text = block.text)
+                        is NewsBlock.Text -> NewsContentText(text = block.text)
+                    }
+                }
+            }
+            ChatbotButton { viewModel.openChat() }
+        }
     }
 
     if (state.c) {
         MyssueBottomSheet(
-            sheetState = chatSheetState,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             onDismissRequest = viewModel::closeChat
         ) {
             ChatBotContent(
@@ -147,81 +138,6 @@ fun NewsDetail(
                     newspaper = state.newspaper,
                     thumbnail = state.thumbnail,
                 ),
-                modifier = Modifier.nestedScroll(blockSheetDrag)
-            )
-        }
-    }
-}
-
-// 본문 스크롤할 때 시트 내려감 방지
-@Composable
-fun rememberBlockSheetDragConnection(): NestedScrollConnection {
-    return remember {
-        object : NestedScrollConnection {
-            // child(본문)가 스크롤 처리한 "뒤에" 남은 양은 전부 소비 → 시트로 안 올라가게
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource
-            ): Offset = Offset(0f, available.y)
-
-            // fling 시작 전에 child가 받을 수 있게 그대로 통과
-            override suspend fun onPreFling(available: Velocity): Velocity = Velocity.Zero
-
-            // child가 처리하고 "남은" fling은 전부 소비 → 시트 플링으로 안 올라감
-            override suspend fun onPostFling(
-                consumed: Velocity,
-                available: Velocity
-            ): Velocity = Velocity(0f, available.y)
-        }
-    }
-}
-
-
-// 기사 바텀 시트
-@Composable
-fun NewsDetailSheet(
-    title: String,
-    author: String,
-    newspaper: String,
-    displayTime: String,
-    blocks: List<NewsBlock>,
-    isBookmarked: Boolean,
-    onToggleBookmark: () -> Unit,
-    scrollState: ScrollState,
-    openChat: (NewsSummary) -> Unit,
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopStart
-    ) {
-        Column {
-            NewsDetailHeader(
-                title = title,
-                author = author,
-                newspaper = newspaper,
-                displayTime = displayTime,
-                isBookmarked = isBookmarked,
-                onToggleBookmark = onToggleBookmark
-            )
-            Spacer(Modifier.height(12.dp))
-            NewsDetailBody(
-                blocks = blocks,
-                scrollState = scrollState
-            )
-        }
-
-        ChatbotButton {
-            openChat(
-                NewsSummary(
-                    newsId = -1,
-                    title = title,
-                    author = author,
-                    newspaper = newspaper,
-                    thumbnail = (blocks.firstOrNull { it is NewsBlock.Image } as? NewsBlock.Image)?.url
-                        ?: "",
-                    category = ""
-                )
             )
         }
     }
@@ -262,26 +178,6 @@ fun BoxScope.ChatbotButton(
 }
 
 
-// 시트 핸들
-@Composable
-fun SheetDragHandle() {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 30.dp)
-    ) {
-        Box(
-            Modifier
-                .align(Alignment.TopCenter)
-                .size(width = 90.dp, height = 5.dp)
-                .background(
-                    color = Primary600,
-                    shape = CircleShape
-                )
-        )
-    }
-}
-
 // 기사 헤더
 @Composable
 fun NewsDetailHeader(
@@ -290,11 +186,12 @@ fun NewsDetailHeader(
     newspaper: String,
     displayTime: String,
     isBookmarked: Boolean,
-    onToggleBookmark: () -> Unit
+    onToggleBookmark: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier
+        modifier = modifier
             .padding(horizontal = 18.dp),
     ) {
         Text(
@@ -347,31 +244,6 @@ fun NewsDetailHeader(
                         .clickableNoRipple { onToggleBookmark() }
                 )
             }
-        }
-    }
-}
-
-// 기사 본문
-@Composable
-fun NewsDetailBody(
-    blocks: List<NewsBlock>,
-    scrollState: ScrollState
-) {
-    val blockSheetDrag = rememberBlockSheetDragConnection()
-
-    Column(
-        modifier = Modifier
-            .nestedScroll(blockSheetDrag)
-            .verticalScroll(scrollState)
-            .padding(bottom = 72.dp)
-    ) {
-        blocks.forEach { block ->
-            when (block) {
-                is NewsBlock.Image -> NewsContentImage(url = block.url)
-                is NewsBlock.Desc -> NewsContentDesc(text = block.text)
-                is NewsBlock.Text -> NewsContentText(text = block.text)
-            }
-
         }
     }
 }
@@ -441,8 +313,9 @@ private fun TrackNewsViewEnd(
     }
     DisposableEffect(newsId) {
         onDispose {
-            if (newsId < 0) return@onDispose
+            Log.d("newsId", "$newsId")
             val dwell = SystemClock.elapsedRealtime() - sessionStart
+            if (newsId < 0 || dwell < 1000) return@onDispose
             analytics.logNewsViewEnd(newsId, dwellMs = dwell, scrollPct = maxPct)
             Log.d("logNewsViewEnd", "newsId=$newsId dwell=$dwell scroll=$maxPct")
         }

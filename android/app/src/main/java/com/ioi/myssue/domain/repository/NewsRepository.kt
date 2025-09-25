@@ -1,9 +1,9 @@
 package com.ioi.myssue.domain.repository
 
+import com.ioi.myssue.domain.model.Chat
 import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.model.MainNewsList
 import com.ioi.myssue.domain.model.News
-import com.ioi.myssue.domain.model.NewsPage
 import com.ioi.myssue.domain.model.NewsSummary
 
 interface NewsRepository {
@@ -23,5 +23,5 @@ interface NewsRepository {
 
     suspend fun getBookmarkedNews(cursor: String? = null, size: Int = 10): CursorPage<NewsSummary>
 
-    suspend fun chatNews(newsId: Long, question: String): String
+    suspend fun chatNews(newsId: Long, sid: String?, question: String): Chat
 }

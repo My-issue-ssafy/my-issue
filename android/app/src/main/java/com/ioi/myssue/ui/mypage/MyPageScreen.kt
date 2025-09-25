@@ -69,7 +69,6 @@ fun MyPageScreen(
     viewModel: MyPageViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analytics = LocalAnalytics.current
 
     Column(
@@ -124,7 +123,6 @@ fun MyPageScreen(
     state.selectedNewsId?.let{
         NewsDetail(
             newsId = it,
-            sheetState = sheetState,
             onDismiss = { viewModel.closeNewsDetail() }
         )
     }
