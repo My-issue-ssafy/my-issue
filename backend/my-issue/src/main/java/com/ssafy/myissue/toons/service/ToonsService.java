@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.time.LocalDate;
+import java.util.Comparator;
 
 import com.ssafy.myissue.common.exception.CustomException;
 import com.ssafy.myissue.common.exception.ErrorCode;
@@ -93,6 +94,7 @@ public class ToonsService {
     public List<ToonResponse> getUserLikedToons(Long userId) {
         return toonLikeRepository.findByUserIdAndLikedTrue(userId)
                 .stream()
+                .sorted(Comparator.comparing(ToonLike::getToonLikeId).reversed())
                 .map(like -> ToonResponse.from(like.getToon()))
                 .collect(Collectors.toList());
     }
