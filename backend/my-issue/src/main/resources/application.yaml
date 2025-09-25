@@ -69,6 +69,9 @@ cloud:
 gms:
   key: ${GMS_KEY}
 
+openai:
+  api-key: ${OPENAI_API_KEY}
+
 app:
   recommend:
     url: ${APP_RECOMMEND_BASE_URL}
@@ -77,5 +80,5 @@ app:
 fcm:
   fire_path: /app/config/myissue-firebase.json
   project-id: myssue-7e186
-#   fire_path: ${FIREBASE_PATH}
-#   project-id: ${PROJECT_ID}
+#  fire_path: ${FIREBASE_PATH}
+#  project-id: ${PROJECT_ID}

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
 
 import com.ssafy.myissue.common.exception.CustomException;
 import com.ssafy.myissue.common.exception.ErrorCode;
@@ -26,9 +27,13 @@ public class ToonsService {
     private final ToonLikeRepository toonLikeRepository;
 
     // 네컷뉴스 전체 조회
-    public List<ToonResponse> getToons() {
+    public List<ToonResponse> getToons(Long userId) {
+        LocalDate cutoff = LocalDate.now().minusDays(3);
+
         return toonsRepository.findAll()
                 .stream()
+                .filter(toon -> !toon.getDate().isBefore(cutoff))
+                .filter(toon -> toonLikeRepository.findByUserIdAndToon(userId, toon).isEmpty())
                 .map(ToonResponse::from)
                 .collect(Collectors.toList());
     }

@@ -66,6 +66,10 @@ docker run -d --name "${NEW_NAME}" \
   -e GMS_KEY="${GMS_KEY:-}" \
   -e APP_RECOMMEND_BASE_URL="${APP_RECOMMEND_BASE_URL:-}" \
   -e APP_RECOMMEND_DEFAULT_PARAMS="${APP_RECOMMEND_DEFAULT_PARAMS:-}" \
+  -e ES_URI="${ES_URI:-}" \
+  -e ES_USERNAME="${ES_USERNAME:-}" \
+  -e ES_PASSWORD="${ES_PASSWORD:-}" \
+  -e OPENAI_API_KEY="${OPENAI_API_KEY:-}" \
   -v /home/ubuntu/secrets/myissue-firebase.json:/app/config/myissue-firebase.json \
   "${APP_IMAGE}"
 

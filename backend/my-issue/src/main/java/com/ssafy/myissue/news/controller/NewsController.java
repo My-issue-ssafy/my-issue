@@ -1,10 +1,6 @@
 package com.ssafy.myissue.news.controller;
 
-import com.ssafy.myissue.news.dto.CursorPage;
-import com.ssafy.myissue.news.dto.NewsCardResponse;
-import com.ssafy.myissue.news.dto.NewsDetailResponse;
-import com.ssafy.myissue.news.dto.NewsHomeResponse;
-import com.ssafy.myissue.news.dto.ScrapToggleResponse;
+import com.ssafy.myissue.news.dto.*;
 import com.ssafy.myissue.news.service.NewsBatchService;
 import com.ssafy.myissue.news.service.NewsScheduler;
 import com.ssafy.myissue.news.service.NewsScrapService;
@@ -16,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import com.ssafy.myissue.news.service.NewsChatService;
+
 
 import java.util.List;
 
@@ -29,6 +27,7 @@ public class NewsController {
     private final NewsScrapService scrapService;
     private final NewsScheduler newsScheduler;
     private final NewsBatchService newsBatchService;
+    private final NewsChatService newsChatService;
 
     /** 홈: HOT 5, 추천 5, 최신 5 */
     @GetMapping("/main")
@@ -103,6 +102,21 @@ public class NewsController {
         newsScheduler.manualScheduler();
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/{newsId}/chat") // [ADDED]
+    public ResponseEntity<NewsChatResponse> chatAboutNews( // [CHANGED]
+                                                           @PathVariable Long newsId,               // [ADDED]
+                                                           @RequestBody ChatQuestionRequest req,    // [ADDED]
+                                                           @RequestParam(value = "sid", required = false) String sid // [ADDED]
+    ) {
+        if (req == null || req.question() == null || req.question().isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_PARAMETER);
+        }
+        return ResponseEntity.ok(
+                newsChatService.answerAboutNews(newsId, req.question(), sid) // [CHANGED]
+        );
+    }
+
     // ---------- helpers ----------
 
     /** size 하한/상한 고정 */
