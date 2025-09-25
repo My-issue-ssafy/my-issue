@@ -30,7 +30,6 @@ fun MyScrapScreen(
     viewModel: MyScrapViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
     val analytics = LocalAnalytics.current
 
@@ -77,7 +76,6 @@ fun MyScrapScreen(
     state.selectedNewsId?.let {
         NewsDetail(
             newsId = it,
-            sheetState = sheetState,
             onDismiss = { viewModel.closeNewsDetail() }
         )
     }

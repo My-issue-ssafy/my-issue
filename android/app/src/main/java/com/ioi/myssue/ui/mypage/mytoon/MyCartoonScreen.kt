@@ -49,7 +49,6 @@ fun MyCartoonScreen(
     viewModel: MyCartoonViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val analytics = LocalAnalytics.current
 
     Box(
@@ -127,7 +126,6 @@ fun MyCartoonScreen(
     state.selectedNewsId?.let {
         NewsDetail(
             newsId = it,
-            sheetState = sheetState,
             onDismiss = { viewModel.closeNewsDetail() }
         )
     }

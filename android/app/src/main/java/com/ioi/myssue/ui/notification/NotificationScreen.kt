@@ -42,8 +42,6 @@ fun NotificationScreen(
 ) {
     val uiState by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-
     val context = LocalContext.current
     val topBarVM: TopBarViewModel = hiltViewModel(context as MainActivity)
 
@@ -131,7 +129,6 @@ fun NotificationScreen(
     uiState.selectedNewsId?.let { id ->
         NewsDetail(
             newsId = id,
-            sheetState = sheetState,
             onDismiss = { viewModel.onItemClose() }
         )
     }

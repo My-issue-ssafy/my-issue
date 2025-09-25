@@ -1,27 +1,28 @@
 package com.ioi.myssue.ui.search
 
 import android.util.Log
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ioi.myssue.LocalAnalytics
-import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.news.Loading
 import com.ioi.myssue.ui.news.NewsDetail
-import com.ioi.myssue.ui.news.NewsEmpty
 import com.ioi.myssue.ui.news.NewsItem
-import kotlinx.coroutines.launch
 
 private const val TAG = "SearchScreen"
 
@@ -31,7 +32,6 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.state.collectAsState().value
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()
     val analytics = LocalAnalytics.current
 
@@ -116,7 +116,6 @@ fun SearchScreen(
     uiState.selectedId?.let { id ->
         NewsDetail(
             newsId = id,
-            sheetState = sheetState,
             onDismiss = { viewModel.onItemClose() }
         )
     }
