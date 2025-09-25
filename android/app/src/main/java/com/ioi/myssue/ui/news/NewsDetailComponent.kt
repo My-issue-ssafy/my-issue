@@ -22,7 +22,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,6 +40,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -46,6 +50,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -74,7 +79,8 @@ fun NewsDetail(
     viewModel: NewsDetailViewModel = hiltViewModel()
 ) {
     val state = viewModel.uiState.collectAsState().value
-    val scroll = rememberScrollState()
+    val listState = rememberLazyListState()
+    val itemHeights = remember { mutableStateMapOf<Int, Int>() }
     val analytics = LocalAnalytics.current
 
     LaunchedEffect(newsId) {
@@ -91,10 +97,11 @@ fun NewsDetail(
         }
     }
 
-    TrackNewsViewEnd(
+    TrackNewsViewEndLazy(
         newsId = state.newsId,
-        scrollState = scroll,
-        analytics = analytics
+        listState = listState,
+        analytics = analytics,
+        itemHeights = itemHeights,
     )
 
     CustomModalBottomSheetDialog(
@@ -112,12 +119,18 @@ fun NewsDetail(
     ) {
 
         Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(contentPadding = PaddingValues(bottom = 72.dp)) {
-                items(state.blocks) { block ->
-                    when (block) {
-                        is NewsBlock.Image -> NewsContentImage(url = block.url)
-                        is NewsBlock.Desc -> NewsContentDesc(text = block.text)
-                        is NewsBlock.Text -> NewsContentText(text = block.text)
+            LazyColumn(
+                state = listState,
+                contentPadding = PaddingValues(bottom = 72.dp)
+            ) {
+                itemsIndexed(state.blocks) { index, block ->
+                    // ⬇️ 각 아이템 높이 기록
+                    Column(Modifier.onSizeChanged { size -> itemHeights[index] = size.height }) {
+                        when (block) {
+                            is NewsBlock.Image -> NewsContentImage(url = block.url)
+                            is NewsBlock.Desc -> NewsContentDesc(text = block.text)
+                            is NewsBlock.Text -> NewsContentText(text = block.text)
+                        }
                     }
                 }
             }
@@ -288,32 +301,60 @@ private fun NewsContentText(text: String) {
     )
 }
 
-
 @Composable
-private fun TrackNewsViewEnd(
+private fun TrackNewsViewEndLazy(
     newsId: Long?,
-    scrollState: ScrollState,
+    listState: LazyListState,
     analytics: AnalyticsLogger,
+    itemHeights: Map<Int, Int>,
 ) {
     if (newsId == null) return
     val sessionStart = remember(newsId) { SystemClock.elapsedRealtime() }
-    var maxPct by remember(newsId) {
-        mutableIntStateOf(if (scrollState.maxValue <= 0) 100 else 0)
+    var maxPct by remember(newsId) { mutableIntStateOf(0) }
+
+    LaunchedEffect(newsId, listState, itemHeights) {
+        snapshotFlow {
+            val info = listState.layoutInfo
+            val totalCount = info.totalItemsCount
+
+            // 뷰포트 높이
+            val viewportPx = (info.viewportEndOffset - info.viewportStartOffset).coerceAtLeast(1)
+
+            // 평균/총 높이 추정
+            val knownHeights = itemHeights.values
+            val knownTotalPx = knownHeights.sum()
+            val avgPx = if (knownHeights.isNotEmpty()) knownHeights.average().toInt()
+                .coerceAtLeast(1) else 1
+            val unknownCount = (totalCount - itemHeights.size).coerceAtLeast(0)
+            val estimatedTotalPx = knownTotalPx + unknownCount * avgPx
+
+            // 스크롤된 픽셀: 이전 아이템들의 높이 합 + 현재 오프셋
+            val firstIndex = listState.firstVisibleItemIndex
+            val offsetPx = listState.firstVisibleItemScrollOffset
+            var beforePx = 0
+            if (firstIndex > 0) {
+                // 0 until firstIndex 의 높이 합(미측정 아이템은 avg로 대체)
+                beforePx = (0 until firstIndex).sumOf { idx -> itemHeights[idx] ?: avgPx }
+            }
+            val scrolledPx = (beforePx + offsetPx).coerceAtLeast(0)
+
+            val maxScrollablePx = (estimatedTotalPx - viewportPx).coerceAtLeast(1)
+
+            // 끝까지 도달 체크(시각적으로 마지막까지 밀면 100%)
+            val atEnd = !listState.canScrollForward && totalCount > 0
+            val pct = if (atEnd) 100
+            else ((scrolledPx.toFloat() / maxScrollablePx.toFloat()) * 100f)
+                .toInt()
+                .coerceIn(0, 99)
+
+            pct
+        }.collect { pct ->
+            if (pct > maxPct) maxPct = pct
+        }
     }
 
-    LaunchedEffect(newsId, scrollState) {
-        if (newsId < 0) return@LaunchedEffect
-        snapshotFlow { scrollState.value to scrollState.maxValue }
-            .collectLatest { (value, max) ->
-                val pct = if (max > 0) {
-                    ((value.toFloat() / max.toFloat()) * 100f).toInt().coerceIn(0, 100)
-                } else 100
-                if (pct > maxPct) maxPct = pct
-            }
-    }
     DisposableEffect(newsId) {
         onDispose {
-            Log.d("newsId", "$newsId")
             val dwell = SystemClock.elapsedRealtime() - sessionStart
             if (newsId < 0 || dwell < 1000) return@onDispose
             analytics.logNewsViewEnd(newsId, dwellMs = dwell, scrollPct = maxPct)
