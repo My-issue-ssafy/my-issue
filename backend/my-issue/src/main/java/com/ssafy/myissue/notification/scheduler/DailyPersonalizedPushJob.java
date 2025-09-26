@@ -11,10 +11,13 @@ import com.ssafy.myissue.user.domain.User;
 import com.ssafy.myissue.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -34,81 +37,81 @@ public class DailyPersonalizedPushJob {
     public void run() {
         log.debug("Running DailyPersonalizedPushJob");
 
-        // 대상자 조회 : FcmToken이 null이 아니고 알림 설정이 true일 경우
+        // 대상자 조회 : FcmToken != null & 알림 설정 = true
         List<User> users = userRepository.findByFcmTokenIsNotNullAndNotificationEnabledTrue();
         if(users == null || users.isEmpty()) return;
 
-        // 유저 별 추천 기사 1개 조회
         List<PersonalizedPush> pushes = users.stream()
-            .map(user -> {
-                // 유저별 추천 기사 조회
-                List<String> recommendedNewsIds = stringRedisTemplate.opsForList()
-                        .range("recommend:news:" + user.getId(), 0, -1);
-
-                // 기사목록
-                List<Long> candidateNewsIds;
-
-                // 추천 기사 없으면 Python API 호출
-                if (recommendedNewsIds == null || recommendedNewsIds.isEmpty()) {
-                    log.debug("No recommended news in Redis for userId={}, calling Python API...", user.getId());
-
-                    candidateNewsIds = recommendationService.getRecommendations(
-                        user.getId(),
-                        50,
-                        50,
-                        "balanced"
-                    );
-
-                    if (candidateNewsIds.isEmpty()) {
-                        log.debug("No recommendations from Python API for userId={}", user.getId());
-                        return null;
-                    }
-                } else {
-                    // Redis 결과 사용, ":" 기준으로 잘라서 앞부분만 사용
-                    candidateNewsIds = recommendedNewsIds.stream()
-                        .map(raw -> raw.replace("\"", "").trim().split(":")[0])
-                        .map(Long::valueOf)
-                        .toList();
-                }
-
-                // 유저가 이미 알림 받은 뉴스는 제외
-                Long newsId = candidateNewsIds.stream()
-                    .filter(id -> !notificationRepository.existsByUser_IdAndNews_Id(user.getId(), id))
-                    .findFirst()
-                    .orElse(null);
-
-                if (newsId == null) {
-                    log.debug("All candidate news already notified to userId={}", user.getId());
-                    return null;
-                }
-
-                var newsOpt = newsRepository.findById(newsId);
-                if (newsOpt.isEmpty()) {
-                    log.debug("News not found for newsId={}", newsId);
-                    return null;
-                }
-                News news = newsOpt.get();
-
-                // 알림 제목/본문 생성
-                String newsTitle = newsOpt.get().getTitle();
-                final String title = "당신을 위한 맞춤 뉴스가 도착했습니다!" ;
-                final String body = newsTitle;
-
-                log.debug("Prepared push for userId={}, title={}", user.getId(), newsTitle);
-                return PersonalizedPush.of(user, news, title, body);
-            })
-            .filter(push -> push != null) // null 제외
+            .map(this::selectNewsIdForUser)
+            .filter(newsId -> newsId != null)
+            .map(newsIdUserPair -> createPush(newsIdUserPair.user(), newsIdUserPair.newsId()))
+            .filter(push -> push != null)
             .toList();
 
         if (pushes.isEmpty()) return;
 
-        // 한 번에 전송
         var result = sender.sendPersonalized(pushes);
         log.debug("Sent {} personalized push notifications", pushes.size());
 
-        List<String> invalidTokens = result.invalidTokens();
+        saveNotifications(pushes, result.invalidTokens());
+    }
 
-        // 성공한 push만 DB 저장
+    // 후보 뉴스 선택 (Redis -> Python API -> 인기 뉴스 fallback)
+    private NewsIdUserPair selectNewsIdForUser(User user) {
+        List<Long> candidateNewsIds = getCandidateNewsIdsFromRedis(user.getId());
+
+        if (candidateNewsIds.isEmpty()) {
+            candidateNewsIds = recommendationService.getRecommendations(user.getId(), 50, 50, "balanced");
+            log.debug("Fallback to Python API for userId={}", user.getId());
+        }
+
+        if (candidateNewsIds.isEmpty()) {
+            candidateNewsIds = getHotNewsFallback();
+            log.debug("Fallback to Hot News for userId={}", user.getId());
+        }
+
+        Long newsId = candidateNewsIds.stream()
+            .filter(id -> !notificationRepository.existsByUser_IdAndNews_Id(user.getId(), id))
+            .findFirst()
+            .orElse(null);
+
+        return newsId != null ? new NewsIdUserPair(user, newsId) : null;
+    }
+
+    // Redis에서 후보 뉴스 ID 목록 조회
+    private List<Long> getCandidateNewsIdsFromRedis(Long userId) {
+        List<String> recommendedNewsIds = stringRedisTemplate.opsForList()
+            .range("recommend:news:" + userId, 0, -1);
+
+        if (recommendedNewsIds == null || recommendedNewsIds.isEmpty()) return List.of();
+
+        return recommendedNewsIds.stream()
+            .map(raw -> raw.replace("\"", "").trim().split(":")[0])
+            .map(Long::valueOf)
+            .toList();
+    }
+
+    // 인기 뉴스 fallback
+    private List<Long> getHotNewsFallback() {
+        return newsRepository.findTop10ByDate(LocalDate.now().atStartOfDay(), LocalDateTime.now(), PageRequest.of(0, 10)).stream()
+            .map(News::getId)
+            .toList();
+    }
+
+    // 개인화 알림 생성
+    private PersonalizedPush createPush(User user, Long newsId) {
+        return newsRepository.findById(newsId)
+            .map(news -> {
+                final String title = "당신을 위한 맞춤 뉴스가 도착했습니다!";
+                final String body = news.getTitle();
+                log.debug("Prepared push for userId={}, title={}", user.getId(), news.getTitle());
+                return PersonalizedPush.of(user, news, title, body);
+            })
+            .orElse(null);
+    }
+
+    // 성공한 알림만 DB 저장 & invalid token 정리
+    private void saveNotifications(List<PersonalizedPush> pushes, List<String> invalidTokens) {
         pushes.stream()
             .filter(push -> !invalidTokens.contains(push.token()))
             .forEach(push -> {
@@ -124,10 +127,12 @@ public class DailyPersonalizedPushJob {
                 notificationRepository.save(notification);
             });
 
-        // 만료/실패 토큰 정리
         if (!invalidTokens.isEmpty()) {
             log.debug("Invalid tokens detected: {}", invalidTokens);
             userRepository.clearFcmTokens(invalidTokens);
         }
     }
+
+    // 유저ID + 뉴스ID 매핑
+    private record NewsIdUserPair(User user, Long newsId) {}
 }
