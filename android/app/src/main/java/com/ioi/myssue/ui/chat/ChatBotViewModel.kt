@@ -29,7 +29,13 @@ class ChatBotViewModel @Inject constructor(
         )
 
     fun initData(newsSummary: NewsSummary) {
-        _state.update { it.copy(newsSummary = newsSummary) }
+        _state.update {
+            it.copy(
+                newsSummary = newsSummary,
+                inputMessage = TextFieldValue(),
+                messages = listOf(ChatMessage(text = "어서오십쇼", isUser = false))
+            )
+        }
     }
 
     fun updateInputMessage(value: TextFieldValue) {
@@ -67,7 +73,7 @@ class ChatBotViewModel @Inject constructor(
 
         viewModelScope.launch {
             runCatching {
-                newsRepository.chatNews(newsId, _state.value.sid,userInput)
+                newsRepository.chatNews(newsId, _state.value.sid, userInput)
             }.onSuccess { chat ->
                 _state.update { st ->
                     val updated = st.messages.map { m ->

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.pointer.pointerInput
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.google.firebase.annotations.concurrent.Background
 import com.ioi.myssue.designsystem.theme.AppColors.Primary600
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -35,6 +37,7 @@ fun CustomModalBottomSheetDialog(
     modifier: Modifier = Modifier,
     color: Color = Color.White,
     shape: Shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+    background: Brush? = null,
     dragHandle: @Composable () -> Unit = { SheetDragHandle() },
     headerContent: @Composable () -> Unit = {},
     bodyContent: @Composable ColumnScope.() -> Unit
@@ -85,10 +88,17 @@ fun CustomModalBottomSheetDialog(
             Column(
                 modifier = modifier
                     .fillMaxWidth()
-                    .systemBarsPadding()
+                    .statusBarsPadding()
                     .align(Alignment.BottomCenter)
                     .offset { IntOffset(0, offsetY.value.roundToInt()) }
-                    .background(color, shape)
+                    .then(
+                        if(background == null) {
+                            Modifier.background(color, shape)
+                        } else {
+                            Modifier.background(background, shape)
+                        }
+                    )
+
             ) {
                 /** ───── Header (드래그 전용 + 핸들 표시) ───── */
                 Column(
@@ -129,6 +139,7 @@ fun CustomModalBottomSheetDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .navigationBarsPadding()
                         .weight(1f)
                 ) {
                     bodyContent()
@@ -144,6 +155,7 @@ fun SheetDragHandle(color: Color = Primary600) {
     Box(
         Modifier
             .fillMaxWidth()
+            .background(Color.Transparent)
             .padding(20.dp)
     ) {
         Box(

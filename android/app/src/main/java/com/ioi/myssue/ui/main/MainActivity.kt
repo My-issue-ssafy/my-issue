@@ -110,7 +110,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         LaunchedEffect(pendingNewsId) {
                             if (pendingNewsId != null && currentTab != MainTab.NEWS) {
-                                tabBackStacks[currentTab]?.popNotificationIfTop()
+                                tabBackStacks[currentTab]?.popSomeScreenIfTop()
                                 isTabSwitch = true
                                 currentTab = MainTab.NEWS
                                 Log.d("MainActivity", "DeepLink → switch to NEWS")
@@ -120,12 +120,13 @@ class MainActivity : ComponentActivity() {
                         MainScreen(
                             navBackStack = tabBackStacks[currentTab] ?: newsBackStack,
                             onTabSelected = { newTab ->
-                                if (currentTab != newTab) {
-                                    tabBackStacks[currentTab]?.popNotificationIfTop()
-                                    isTabSwitch = true
-                                    currentTab = newTab
-                                    Log.d("MainActivity", "Tab changed to $currentTab")
+                                tabBackStacks[currentTab]?.popSomeScreenIfTop()
+                                isTabSwitch = true
+                                currentTab = newTab
+                                if (currentTab == MainTab.NEWS) {
+                                    newsBackStack.removeIf { it is BottomTabRoute.NewsAll }
                                 }
+                                Log.d("MainActivity", "Tab changed to $currentTab")
                             },
                             isTabSwitch = isTabSwitch,
                             topBarViewModel = topBarVm
@@ -154,8 +155,8 @@ class MainActivity : ComponentActivity() {
         } else null
     }
 
-    private fun NavBackStack.popNotificationIfTop() {
-        while (lastOrNull() == BottomTabRoute.Notification) {
+    private fun NavBackStack.popSomeScreenIfTop() {
+        while (lastOrNull() == BottomTabRoute.Notification || lastOrNull() == BottomTabRoute.NewsAll) {
             removeLastOrNull()
         }
     }

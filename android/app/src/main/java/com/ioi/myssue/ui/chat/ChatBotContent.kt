@@ -55,7 +55,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ChatBotContent(
-    newsSummary: NewsSummary,
     modifier: Modifier = Modifier,
     viewModel: ChatBotViewModel = hiltViewModel()
 ) {
@@ -63,11 +62,7 @@ fun ChatBotContent(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(newsSummary.newsId) {
-        viewModel.initData(newsSummary)
-    }
-
-    LaunchedEffect(state.messages.size) {
+    LaunchedEffect(state.messages) {
         if (state.messages.isNotEmpty()) {
             scope.launch { listState.animateScrollToItem(state.messages.lastIndex) }
         }
@@ -76,17 +71,8 @@ fun ChatBotContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(listOf(AppColors.Primary300, AppColors.Primary500))
-            )
-            .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)
     ) {
-        NewsSummaryWithPublisher(
-            newsSummary = newsSummary,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(20.dp))
-
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -162,7 +148,6 @@ fun ChatInputBar(
             modifier = Modifier.weight(1f),
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = BackgroundColors.Background50),
-            readOnly = readOnly
         )
 
         IconButton(

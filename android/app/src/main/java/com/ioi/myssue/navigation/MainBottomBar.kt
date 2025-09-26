@@ -57,7 +57,7 @@ internal fun MainBottomBar(
                             selected = tab == currentTab,
                             iconTint = iconTint,
                             onClick = {
-                                if (tab != currentTab) {
+                                if (tab == MainTab.NEWS || tab != currentTab) {
                                     onTabSelected(tab)
                                 }
                             },

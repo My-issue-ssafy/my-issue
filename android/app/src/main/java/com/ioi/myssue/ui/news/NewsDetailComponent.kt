@@ -66,7 +66,10 @@ import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsBlock
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.ui.chat.ChatBotContent
+import com.ioi.myssue.ui.chat.ChatBotViewModel
 import com.ioi.myssue.ui.common.clickableNoRipple
+import com.ioi.myssue.ui.main.MainActivity
+import com.ioi.myssue.ui.podcast.component.bottomsheetplayer.NewsSummaryWithPublisher
 import kotlinx.coroutines.flow.collectLatest
 
 private const val TAG = "NewsDetailComponent"
@@ -139,18 +142,32 @@ fun NewsDetail(
     }
 
     if (state.c) {
+        val chatViewModel: ChatBotViewModel = hiltViewModel(context as MainActivity)
+        val chatState by chatViewModel.state.collectAsState()
         MyssueBottomSheet(
             onDismissRequest = viewModel::closeChat,
-        ) {
-            ChatBotContent(
-                newsSummary = NewsSummary(
+            headerContent = {
+                val newsSummary = remember { NewsSummary(
                     newsId = state.newsId,
                     title = state.title,
                     author = state.author,
                     newspaper = state.newspaper,
                     thumbnail = state.thumbnail,
-                ),
-            )
+                ) }
+
+                LaunchedEffect(newsId) {
+                    if(chatState.newsSummary.newsId != newsId) {
+                        chatViewModel.initData(newsSummary)
+                    }
+                }
+
+                NewsSummaryWithPublisher(
+                    newsSummary = newsSummary,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+                )
+            }
+        ) {
+            ChatBotContent(viewModel = chatViewModel)
         }
     }
 }

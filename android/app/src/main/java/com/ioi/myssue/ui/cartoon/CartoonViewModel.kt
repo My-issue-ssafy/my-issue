@@ -84,13 +84,13 @@ class CartoonViewModel @Inject constructor(
     fun onExitFinished() {
         if (_state.value.isHatePressed || _state.value.isLikePressed) {
             _state.value =
-                _state.value.copy(currentCartoonIndex = _state.value.currentCartoonIndex + 1)
+                _state.value.copy(currentCartoonIndex = _state.value.currentCartoonIndex + 1, currentCardPositionX = 0f)
         }
         resetState()
     }
 
     fun updateCardPositionX(tx: Float) {
-        _state.update { it.copy(currentCardPositionX = tx) }
+        _state.update { it.copy(currentCardPositionX = tx, isLikePressed = tx > 0, isHatePressed = tx < 0) }
     }
 
     private fun resetState() {

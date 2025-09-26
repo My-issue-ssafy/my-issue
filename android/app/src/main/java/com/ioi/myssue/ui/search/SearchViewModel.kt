@@ -1,7 +1,9 @@
 package com.ioi.myssue.ui.search
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ioi.myssue.domain.model.CursorPage
 import com.ioi.myssue.domain.repository.NewsRepository
 import com.ioi.myssue.domain.model.NewsPage
@@ -19,16 +21,16 @@ class SearchViewModel @Inject constructor(
     private val _state = MutableStateFlow(SearchUiState())
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
 
-    private val queryInput = MutableStateFlow("")
+    init {
+        refresh()
+    }
 
     fun onQueryChange(q: String) {
         _state.update { it.copy(query = q) }
-        queryInput.value = q
     }
 
     fun onClearQuery() {
         onQueryChange("")
-        refresh()
     }
 
     fun onSelectCategory(category: NewsCategory) {
@@ -49,7 +51,9 @@ class SearchViewModel @Inject constructor(
                 error = null,
                 newsItems = emptyList(),
                 cursor = null,
-                hasNext = false
+                hasNext = false,
+                scrollIndex = 0,
+                scrollOffset = 0
             )
         }
 
@@ -109,4 +113,11 @@ class SearchViewModel @Inject constructor(
     fun onItemClose() {
         _state.update { it.copy(selectedId = null) }
     }
+
+    fun saveScrollState(index: Int, offset: Int) {
+        _state.update {
+            it.copy(scrollIndex = index, scrollOffset = offset)
+        }
+    }
+
 }
