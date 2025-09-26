@@ -1,7 +1,5 @@
 package com.ssafy.myissue.user.token;
 
-import com.ssafy.myissue.common.exception.CustomException;
-import com.ssafy.myissue.common.exception.ErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
