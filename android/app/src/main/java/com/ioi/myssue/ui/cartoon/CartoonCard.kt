@@ -144,7 +144,7 @@ fun CartoonCard(
                     )
                     CartoonWithNewsSummary(
                         cartoon = cartoon,
-                        scale = if (isSmallMode) 0.5f else 1.0f
+                        scale = if (isSmallMode) 0.6f else 1.0f
                     )
                 }
             }
@@ -273,7 +273,7 @@ private fun CartoonWithNewsSummary(
             modifier = Modifier.padding(4.dp),
             text = cartoon.newsTitle,
             style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 32.sp * scale,
+                fontSize = 28.sp * scale,
                 lineHeight = 44.sp * scale,
             ),
             maxLines = if (scale < 1f) 5 else 3,
@@ -292,7 +292,7 @@ private fun CartoonWithNewsSummary(
                 modifier = Modifier.padding(16.dp),
                 text = cartoon.newsDescription,
                 style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 20.sp * scale
+                    fontSize = 16.sp * scale
                 ),
                 maxLines = 5,
                 overflow = TextOverflow.Ellipsis

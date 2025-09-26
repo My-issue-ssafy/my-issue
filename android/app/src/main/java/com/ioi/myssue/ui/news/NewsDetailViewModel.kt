@@ -15,13 +15,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private const val TAG = "NewsDetailViewModel"
+
 sealed interface NewsDetailEffect {
-    data class Toast(val message: String): NewsDetailEffect
+    data class Toast(val message: String) : NewsDetailEffect
 }
+
 @HiltViewModel
 class NewsDetailViewModel @Inject constructor(
     private val newsRepository: NewsRepository,
-    private val navigator: Navigator
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(NewsDetailUiState())
     val uiState = _uiState.asStateFlow()
@@ -30,7 +31,7 @@ class NewsDetailViewModel @Inject constructor(
     val effect = _effect.asSharedFlow()
 
     fun getNewsDetail(newsId: Long?) {
-        if(newsId == null) return
+        if (newsId == null) return
         viewModelScope.launch {
             _uiState.update { NewsDetailUiState(loading = true, error = null) }
             runCatching { newsRepository.getNewsDetail(newsId) }
@@ -52,7 +53,11 @@ class NewsDetailViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
-                    Log.e(TAG, "getNewsDetail failed: id=$newsId, ${e::class.simpleName}: ${e.message}", e)
+                    Log.e(
+                        TAG,
+                        "getNewsDetail failed: id=$newsId, ${e::class.simpleName}: ${e.message}",
+                        e
+                    )
                 }
         }
     }
@@ -74,7 +79,11 @@ class NewsDetailViewModel @Inject constructor(
                         )
                     )
                 }
-                .onFailure { }
+                .onFailure { e ->
+                    // 실패: 롤백 + 안내 토스트
+                    _uiState.update { it.copy(isBookmarked = before) }
+                    _effect.tryEmit(NewsDetailEffect.Toast("스크랩 처리에 실패했어요. 잠시 후 다시 시도해주세요."))
+                }
         }
     }
 
