@@ -89,7 +89,7 @@ public class GptService {
                 "[1, \"맞습니다, 숫자가 3만8천 명이 넘는다니 충격적입니다.\"], " +
                 "[2, \"특히 유가족 입장에서는 시급한 보상이 필요한 문제일 수밖에 없습니다.\"]]";
 
-        String content = callGpt("gpt-5-nano", systemPrompt, userPrompt);
+        String content = callGpt("gpt-5", systemPrompt, userPrompt);
 
         try {
             return objectMapper.readValue(content, new TypeReference<>() {});
