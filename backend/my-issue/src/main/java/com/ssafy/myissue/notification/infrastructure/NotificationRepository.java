@@ -4,7 +4,6 @@ import com.ssafy.myissue.notification.domain.Notification;
 import com.ssafy.myissue.user.domain.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
