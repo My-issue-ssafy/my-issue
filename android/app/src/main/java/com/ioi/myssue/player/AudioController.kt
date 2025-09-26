@@ -163,7 +163,17 @@ class AudioController(
 
     fun next() = controller?.seekToNextMediaItem()
     fun prev() = controller?.seekToPreviousMediaItem()
-    fun seekTo(positionMs: Long) = controller?.seekTo(positionMs)
+    fun seekTo(positionMs: Long) {
+        controller?.seekTo(positionMs)
+        controller?.let { ctl ->
+            updateState {
+                copy(
+                    position = maxOf(0L, ctl.currentPosition),
+                    bufferedPosition = ctl.bufferedPosition
+                )
+            }
+        }
+    }
 
     private fun updateMetadata(md: MediaMetadata?) {
         updateState {
