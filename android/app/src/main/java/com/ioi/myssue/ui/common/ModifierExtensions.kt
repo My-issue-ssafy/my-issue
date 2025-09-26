@@ -31,6 +31,7 @@ fun Modifier.swipeWithAnimation(
     maxRotation: Float = 20f,
     locked: Boolean = false,
     upDragFactor: Float = 0.4f, // 위로 들릴 때 반영 비율
+    onPositionChange: (Float) -> Unit,
     onSwiped: (SwipeDir) -> Unit
 ): Modifier = composed {
     val scope = rememberCoroutineScope()
@@ -74,6 +75,7 @@ fun Modifier.swipeWithAnimation(
 
                     if (swipeAxis == SwipeDir.Left) {
                         val newX = tx.value + drag.x
+
                         scope.launch { tx.snapTo(newX) }
                         scope.launch {
                             val r = (newX / widthPx) * maxRotation
@@ -84,6 +86,8 @@ fun Modifier.swipeWithAnimation(
                         val newY = ty.value + drag.y * upDragFactor
                         scope.launch { ty.snapTo(newY.coerceAtMost(0f)) }
                     }
+
+                    onPositionChange(tx.value)
                 },
                 onDragEnd = {
                     if (swipeAxis == SwipeDir.Up) {
@@ -102,6 +106,7 @@ fun Modifier.swipeWithAnimation(
 
                     if (swipeAxis == SwipeDir.Left) {
                         // 기존 좌우 스와이프 처리 그대로
+                        onPositionChange(0f)
                         val threshold = widthPx * thresholdFraction
                         val x = tx.value
                         val dir = when {

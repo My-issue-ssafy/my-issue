@@ -9,6 +9,7 @@ data class CartoonUiState(
     val isSwiping: Boolean = false,
     val isLikePressed: Boolean = false,
     val isHatePressed: Boolean = false,
+    val currentCardPositionX: Float = 0f,
 
     val isLoading: Boolean = false,
     val error: String? = null

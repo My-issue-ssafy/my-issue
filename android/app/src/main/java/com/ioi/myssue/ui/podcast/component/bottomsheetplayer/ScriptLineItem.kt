@@ -65,8 +65,8 @@ private fun AnimatedScriptText(
         text = line.line,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .blur(blur),
+            .padding(8.dp),
+//            .blur(blur),
         color = BackgroundColors.Background50,
         style = MaterialTheme.typography.titleLarge.copy(
             fontWeight = FontWeight.Bold,

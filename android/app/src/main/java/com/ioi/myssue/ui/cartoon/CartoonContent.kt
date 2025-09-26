@@ -83,6 +83,7 @@ private fun ActionButton(
 
 @Composable
 fun CartoonCardStack(
+    modifier: Modifier = Modifier,
     cartoonList: List<CartoonNews>,
     currentIndex: Int,
     exitTrigger: Int,
@@ -90,8 +91,8 @@ fun CartoonCardStack(
     onExitFinished: () -> Unit,
     onLikePressed: (Boolean) -> Unit,
     onHatePressed: (Boolean) -> Unit,
+    onTopCardPositionChange: (Float) -> Unit = {},
     onShowDetail: (Long) -> Unit,
-    modifier: Modifier = Modifier
 ) {
     var exitingKey by remember { mutableStateOf<String?>(null) }
     var exitDir by remember { mutableIntStateOf(1) }
@@ -125,6 +126,7 @@ fun CartoonCardStack(
                     .swipeWithAnimation(
                         key = item.toonImageUrl,
                         locked = isExiting && !isSwiping,
+                        onPositionChange = onTopCardPositionChange,
                         onSwiped = { dir ->
                             when (dir) {
                                 SwipeDir.Left -> onHatePressed(true)
@@ -138,7 +140,7 @@ fun CartoonCardStack(
                         exitingKey = null
                         onExitFinished()
                     }
-                }
+                },
             )
         }
     }

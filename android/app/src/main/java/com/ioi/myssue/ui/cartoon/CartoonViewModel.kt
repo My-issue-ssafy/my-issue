@@ -89,6 +89,10 @@ class CartoonViewModel @Inject constructor(
         resetState()
     }
 
+    fun updateCardPositionX(tx: Float) {
+        _state.update { it.copy(currentCardPositionX = tx) }
+    }
+
     private fun resetState() {
         _state.value = _state.value.copy(
             isLikePressed = false,

@@ -1,10 +1,15 @@
 package com.ioi.myssue.ui.cartoon
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,6 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +42,7 @@ import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.R
 import com.ioi.myssue.ui.news.NewsDetail
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +109,8 @@ fun CartoonScreen(
             }
 
             else -> {
+                GradientOverlay(uiState.currentCardPositionX)
+
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -112,6 +124,7 @@ fun CartoonScreen(
                         onExitFinished = viewModel::onExitFinished,
                         onLikePressed = viewModel::onLikePressed,
                         onHatePressed = viewModel::onHatePressed,
+                        onTopCardPositionChange = viewModel::updateCardPositionX,
                         onShowDetail = {
                             Log.d("CartoonScreen", "it: $it")
                             showingNewsId = it
@@ -172,3 +185,32 @@ fun BatteryChargingIcon(
         modifier = modifier
     )
 }
+
+@SuppressLint("ConfigurationScreenWidthHeight")
+@Composable
+fun GradientOverlay(tx: Float) {
+    if (tx == 0f) return
+
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val density = LocalDensity.current
+    val screenWidthPx = with(density) { screenWidth.toPx() }
+
+    val alpha = (abs(tx) / (screenWidthPx / 2f)).coerceIn(0f, 1f)*0.7f
+
+    Box(Modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.horizontalGradient(
+                        colors = if (tx > 0) {
+                            listOf(Color.Transparent, Color(0xFFFFC0CB).copy(alpha = alpha))
+                        } else {
+                            listOf(Color.Gray.copy(alpha = alpha), Color.Transparent)
+                        },
+                    )
+                )
+        )
+    }
+}
+
