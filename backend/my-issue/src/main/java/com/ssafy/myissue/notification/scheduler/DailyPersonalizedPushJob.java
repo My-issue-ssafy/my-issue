@@ -32,7 +32,6 @@ public class DailyPersonalizedPushJob {
 
     @Scheduled(cron = "0 30 8,20 * * *", /* 매일 오전 8시 30분 */ zone = "Asia/Seoul")
     public void run() {
-        // TODO: 개인화 푸시 알림 발송 작업
         log.debug("Running DailyPersonalizedPushJob");
 
         // 대상자 조회 : FcmToken이 null이 아니고 알림 설정이 true일 경우
@@ -44,35 +43,46 @@ public class DailyPersonalizedPushJob {
             .map(user -> {
                 // 유저별 추천 기사 조회
                 List<String> recommendedNewsIds = stringRedisTemplate.opsForList()
-                        .range("recommend:news:" + user.getId(), 0, 0);
+                        .range("recommend:news:" + user.getId(), 0, -1);
 
-                String newsId = null;
+                // 기사목록
+                List<Long> candidateNewsIds;
 
                 // 추천 기사 없으면 Python API 호출
                 if (recommendedNewsIds == null || recommendedNewsIds.isEmpty()) {
                     log.debug("No recommended news in Redis for userId={}, calling Python API...", user.getId());
 
-                    List<Long> fallbackNewsIds = recommendationService.getRecommendations(
+                    candidateNewsIds = recommendationService.getRecommendations(
                         user.getId(),
                         50,
                         50,
                         "balanced"
                     );
 
-                    if (fallbackNewsIds.isEmpty()) {
+                    if (candidateNewsIds.isEmpty()) {
                         log.debug("No recommendations from Python API for userId={}", user.getId());
                         return null;
                     }
-
-                    newsId = String.valueOf(fallbackNewsIds.get(0));
                 } else {
-                    // Redis 결과 사용
-                    String rawNewsId = recommendedNewsIds.getFirst();
-                    // ":" 기준으로 잘라서 앞부분만 사용
-                    newsId = rawNewsId.replace("\"", "").trim().split(":")[0];
+                    // Redis 결과 사용, ":" 기준으로 잘라서 앞부분만 사용
+                    candidateNewsIds = recommendedNewsIds.stream()
+                        .map(raw -> raw.replace("\"", "").trim().split(":")[0])
+                        .map(Long::valueOf)
+                        .toList();
                 }
 
-                var newsOpt = newsRepository.findById(Long.valueOf(newsId));
+                // 유저가 이미 알림 받은 뉴스는 제외
+                Long newsId = candidateNewsIds.stream()
+                    .filter(id -> !notificationRepository.existsByUser_IdAndNews_Id(user.getId(), id))
+                    .findFirst()
+                    .orElse(null);
+
+                if (newsId == null) {
+                    log.debug("All candidate news already notified to userId={}", user.getId());
+                    return null;
+                }
+
+                var newsOpt = newsRepository.findById(newsId);
                 if (newsOpt.isEmpty()) {
                     log.debug("News not found for newsId={}", newsId);
                     return null;

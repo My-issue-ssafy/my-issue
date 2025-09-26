@@ -6,7 +6,6 @@ import com.ssafy.myissue.notification.dto.fcm.SendSummary;
 import com.ssafy.myissue.notification.scheduler.DailyPersonalizedPushJob;
 import com.ssafy.myissue.notification.service.NotificationService;
 import io.swagger.v3.oas.annotations.Hidden;
-import com.ssafy.myissue.notification.service.impl.FcmPersonalizedSender;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
@@ -112,6 +111,7 @@ public class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @Hidden
     @PostMapping("/send-personalized")
     public ResponseEntity<SendSummary> send() {
         job.run();
