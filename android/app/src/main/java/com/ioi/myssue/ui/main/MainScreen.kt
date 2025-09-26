@@ -48,10 +48,10 @@ fun MainScreen(
     navBackStack: NavBackStack,
     isTabSwitch: Boolean,
     onTabSelected: (MainTab) -> Unit,
+    topBarViewModel: TopBarViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val topBarViewModel: TopBarViewModel = hiltViewModel(context as MainActivity)
-
+    context as MainActivity
     // 현재 탭 계산
     val currentRoute = navBackStack.lastOrNull()
     val currentTab = mapTab(currentRoute, navBackStack)

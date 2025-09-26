@@ -127,7 +127,8 @@ class MainActivity : ComponentActivity() {
                                     Log.d("MainActivity", "Tab changed to $currentTab")
                                 }
                             },
-                            isTabSwitch = isTabSwitch
+                            isTabSwitch = isTabSwitch,
+                            topBarViewModel = topBarVm
                         )
                     }
                 }
