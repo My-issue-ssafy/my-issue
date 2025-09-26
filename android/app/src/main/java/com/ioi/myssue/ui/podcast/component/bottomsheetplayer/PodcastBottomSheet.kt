@@ -1,7 +1,5 @@
 package com.ioi.myssue.ui.podcast.component.bottomsheetplayer
 
-import android.R.attr.onClick
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,12 +14,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.ioi.myssue.designsystem.theme.AppColors
 import com.ioi.myssue.designsystem.ui.MyssueBottomSheet
 import com.ioi.myssue.domain.model.NewsSummary
 import com.ioi.myssue.domain.model.ScriptLine
@@ -52,20 +46,25 @@ fun PodcastBottomSheet(
     toggleContentType: () -> Unit,
     contentType: PodcastContentType
 ) {
-    val bottomSheetGradient = Brush.verticalGradient(
-        listOf(AppColors.Primary300, AppColors.Primary500)
-    )
     var bottomControlsHeight by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
 
     MyssueBottomSheet(
-        onDismissRequest = onDismissRequest
+        onDismissRequest = onDismissRequest,
+        headerContent = {
+            BottomPlayerHeader(
+                thumbnailUrl = thumbnailUrl,
+                title = title,
+                dateText = dateText,
+                toggleContentType = toggleContentType,
+                contentType = contentType
+            )
+        }
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(bottomSheetGradient)
-                .padding(horizontal = 16.dp, vertical = 20.dp)
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 20.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -73,14 +72,6 @@ fun PodcastBottomSheet(
                     .padding(bottom = bottomControlsHeight),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                BottomPlayerHeader(
-                    thumbnailUrl = thumbnailUrl,
-                    title = title,
-                    dateText = dateText,
-                    toggleContentType = toggleContentType,
-                    contentType = contentType
-                )
-
                 if (contentType == PodcastContentType.SCRIPT) {
                     ScriptBlockAnimated(
                         scripts = scripts,
