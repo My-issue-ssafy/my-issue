@@ -1,14 +1,11 @@
-// NotificationPermissionGate.kt
-package com.ioi.myssue.ui.main
+package com.ioi.myssue.permissions
 
 import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable

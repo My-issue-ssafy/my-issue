@@ -19,16 +19,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.rememberNavBackStack
 import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.analytics.AnalyticsLogger
 import com.ioi.myssue.designsystem.theme.MyssueTheme
+import com.ioi.myssue.designsystem.ui.TopBarViewModel
 import com.ioi.myssue.navigation.BottomTabRoute
 import com.ioi.myssue.navigation.MainTab
+import com.ioi.myssue.permissions.NotificationPermission
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
-import okhttp3.internal.concurrent.TaskRunner.Companion.logger
 import javax.inject.Inject
 
 val LocalDeepLinkNewsId = compositionLocalOf<Long?> { null }
@@ -40,7 +42,6 @@ class MainActivity : ComponentActivity() {
     lateinit var logger: AnalyticsLogger
     private val splashViewModel: SplashViewModel by viewModels()
     private val deepLinkNewsId = MutableStateFlow<Long?>(null)
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -88,10 +89,17 @@ class MainActivity : ComponentActivity() {
                     }
                 )
 
+                val topBarVm: TopBarViewModel = hiltViewModel()
+
                 NotificationPermission(
                     firstLaunch = firstLaunch,
-                    onGranted = { firstLaunch = false },
-                    onRefused = { firstLaunch = false }
+                    onGranted = {
+                        topBarVm.toggleNotification(true)
+                        firstLaunch = false
+                    },
+                    onRefused = {
+                        firstLaunch = false
+                    }
                 )
 
                 MyssueTheme {
