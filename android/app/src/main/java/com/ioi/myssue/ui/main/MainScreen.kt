@@ -42,6 +42,7 @@ import com.ioi.myssue.ui.notification.NotificationViewModel
 import com.ioi.myssue.ui.podcast.PodCastScreen
 import com.ioi.myssue.ui.podcast.PodcastViewModel
 import com.ioi.myssue.ui.search.SearchScreen
+import com.ioi.myssue.ui.search.SearchViewModel
 
 @Composable
 fun MainScreen(
@@ -66,7 +67,6 @@ fun MainScreen(
             topBarViewModel.getNotificationStatus()
         }
     }
-
 
     BackHandler(enabled = atRoot) {
         if (currentTab != MainTab.NEWS) {
@@ -118,7 +118,10 @@ fun MainScreen(
                 when (key) {
                     BottomTabRoute.News -> NavEntry(key) { NewsScreen() }
                     is BottomTabRoute.NewsAll -> NavEntry(key) { NewsAllScreen(type = key.type) }
-                    BottomTabRoute.Search -> NavEntry(key) { SearchScreen() }
+                    BottomTabRoute.Search -> NavEntry(key) {
+                        val searchViewModel: SearchViewModel = hiltViewModel(context)
+                        SearchScreen(searchViewModel)
+                    }
                     BottomTabRoute.Cartoon -> NavEntry(key) { CartoonScreen() }
                     BottomTabRoute.Podcast -> NavEntry(key) {
                         val podcastViewModel: PodcastViewModel = hiltViewModel(context)

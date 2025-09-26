@@ -28,7 +28,6 @@ import com.ioi.myssue.navigation.BottomTabRoute
 import com.ioi.myssue.navigation.MainTab
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
-import okhttp3.internal.concurrent.TaskRunner.Companion.logger
 import javax.inject.Inject
 
 val LocalDeepLinkNewsId = compositionLocalOf<Long?> { null }
@@ -102,7 +101,7 @@ class MainActivity : ComponentActivity() {
                     ) {
                         LaunchedEffect(pendingNewsId) {
                             if (pendingNewsId != null && currentTab != MainTab.NEWS) {
-                                tabBackStacks[currentTab]?.popNotificationIfTop()
+                                tabBackStacks[currentTab]?.popSomeScreenIfTop()
                                 isTabSwitch = true
                                 currentTab = MainTab.NEWS
                                 Log.d("MainActivity", "DeepLink → switch to NEWS")
@@ -112,12 +111,13 @@ class MainActivity : ComponentActivity() {
                         MainScreen(
                             navBackStack = tabBackStacks[currentTab] ?: newsBackStack,
                             onTabSelected = { newTab ->
-                                if (currentTab != newTab) {
-                                    tabBackStacks[currentTab]?.popNotificationIfTop()
-                                    isTabSwitch = true
-                                    currentTab = newTab
-                                    Log.d("MainActivity", "Tab changed to $currentTab")
+                                tabBackStacks[currentTab]?.popSomeScreenIfTop()
+                                isTabSwitch = true
+                                currentTab = newTab
+                                if (currentTab == MainTab.NEWS) {
+                                    newsBackStack.removeIf { it is BottomTabRoute.NewsAll }
                                 }
+                                Log.d("MainActivity", "Tab changed to $currentTab")
                             },
                             isTabSwitch = isTabSwitch
                         )
@@ -145,8 +145,8 @@ class MainActivity : ComponentActivity() {
         } else null
     }
 
-    private fun NavBackStack.popNotificationIfTop() {
-        while (lastOrNull() == BottomTabRoute.Notification) {
+    private fun NavBackStack.popSomeScreenIfTop() {
+        while (lastOrNull() == BottomTabRoute.Notification || lastOrNull() == BottomTabRoute.NewsAll) {
             removeLastOrNull()
         }
     }

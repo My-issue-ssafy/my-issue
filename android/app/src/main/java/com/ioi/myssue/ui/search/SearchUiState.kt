@@ -28,4 +28,7 @@ data class SearchUiState(
     val cursor: String? = null,
     val hasNext: Boolean = true,
     val error: String? = null,
+
+    val scrollIndex: Int = 0,
+    val scrollOffset: Int = 0,
 )
