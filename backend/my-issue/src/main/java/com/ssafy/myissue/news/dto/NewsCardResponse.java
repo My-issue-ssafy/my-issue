@@ -26,4 +26,15 @@ public record NewsCardResponse(
                 news.getThumbnail()
         );
     }
+    public static NewsCardResponse toCard(HotNewsCandidates n) {
+        return new NewsCardResponse(
+                n.getId(),
+                n.getTitle(),
+                n.getNewsPaper(),
+                n.getCreatedAt(),
+                n.getViews(),
+                n.getCategory(),
+                n.getThumbnail()
+        );
+    }
 }
