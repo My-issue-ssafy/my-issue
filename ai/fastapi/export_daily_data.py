@@ -13,7 +13,7 @@ from google.cloud import bigquery
 from google.cloud.bigquery import ScalarQueryParameter, QueryJobConfig
 from loguru import logger
 
-from app.bq import get_client, fetch_events
+from app.core.analytics.bq import get_client, fetch_events
 from app.config import PROJECT_ID, DEFAULT_DATASET
 
 def export_daily_events_to_csv(target_date: str, output_dir: str = "data"):
