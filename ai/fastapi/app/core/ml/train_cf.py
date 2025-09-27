@@ -166,15 +166,19 @@ def fetch_interactions(client: bigquery.Client) -> pd.DataFrame:
         AND (ep_news_id.value.int_value IS NOT NULL OR ep_news_id.value.string_value IS NOT NULL)
         AND (STARTS_WITH(e.event_name, 'news_') OR STARTS_WITH(e.event_name, 'toon_'))
     ), scored AS (
-      -- 이벤트 종류에 따른 점수 부여
+      -- 이벤트 종류에 따른 점수 부여 (EDA 분석 결과 반영)
       SELECT
         user_id, news_id,
         CASE event_name
-          WHEN 'news_bookmark' THEN IF(action='add', 3.0, NULL)  -- 북마크 추가: 최고 선호도 (3.0)
-          WHEN 'news_click'     THEN 2.0                         -- 클릭: 높은 선호도 (2.0)
-          WHEN 'news_view_end'  THEN IF(COALESCE(dwell_ms,0) >= 15000 OR COALESCE(scroll_pct,0) >= 70, 1.2, 0.6)  -- 읽기 완료: 체류시간/스크롤로 차등 점수
-          WHEN 'toon_expand_news' THEN 1.0                       -- 툰 전개: 보통 선호도 (1.0)
-          WHEN 'toon_positive'  THEN 0.8                         -- 긍정 반응: 약간의 선호도 (0.8)
+          -- News 이벤트 (EDA 분석 기반 점수)
+          WHEN 'news_view_end'  THEN IF(COALESCE(dwell_ms,0) >= 4200 OR COALESCE(scroll_pct,0) >= 100, 4.9, 2.9)  -- 읽기 완료: 고품질(4.9) vs 일반(2.9)
+          WHEN 'news_click'     THEN 3.5                         -- 클릭: 높은 선호도
+          WHEN 'news_bookmark'  THEN IF(action='add', 3.0, NULL) -- 북마크 추가: 높은 선호도
+
+          -- Toon 이벤트 (EDA 분석 결과 추가, 부정 신호 제외)
+          WHEN 'toon_positive'  THEN 3.9                         -- 긍정 반응: 높은 선호도
+          WHEN 'toon_click'     THEN 3.6                         -- 툰 클릭: 높은 관심
+          WHEN 'toon_expand_news' THEN 3.5                       -- 툰 뉴스 확장: 높은 관심
           ELSE NULL
         END AS w
       FROM base
