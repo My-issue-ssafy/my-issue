@@ -100,7 +100,7 @@ public class NewsService {
         return toCards(newsList);
     }
 
-    // HOT: Redis ZSET 기반 무한스크롤 (순서 보존)
+    // HOT: Redis ZSET 기반 무한스크롤 (DTO 그대로 반환)
     public CursorPage<NewsCardResponse> getHotByRedis(String cursor, int size) {
         final int pageSize = (size <= 0) ? 10 : size;
 
@@ -122,19 +122,27 @@ public class NewsService {
         int endInclusive = Math.min(offset + pageSize, total) - 1;
         if (start > endInclusive) return new CursorPage<>(List.of(), null, false);
 
-        // 4) Redis ZSET → ID들 (이미 reverseRange 순서 유지됨)
-        List<Long> ids = getNewsIdListByRedis(HOT_KEY, start, endInclusive);
-        if (ids.isEmpty()) return new CursorPage<>(List.of(), null, false);
+        // 4) Redis ZSET → JSON → DTO
+        Set<Object> values = zset.reverseRange(HOT_KEY, start, endInclusive);
+        if (values == null || values.isEmpty()) return new CursorPage<>(List.of(), null, false);
 
-        // 5) DB 조회 후 Redis 순서대로 재정렬
-        List<News> found   = newsRepository.findAllById(ids);
-        List<News> ordered = reorderByIds(found, ids);
+        List<NewsCardResponse> items = values.stream()
+                .map(v -> {
+                    try {
+                        return objectMapper.readValue((String) v, NewsCardResponse.class);
+                    } catch (Exception e) {
+                        log.error("HOT 뉴스 역직렬화 실패", e);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
 
-        // 6) nextCursor 구성
+        // 5) nextCursor 구성
         boolean hasNext = (endInclusive + 1) < total;
         String next = hasNext ? CursorCodec.encode(new HotZOffsetCursor(endInclusive + 1)) : null;
 
-        return new CursorPage<>(toCards(ordered), next, hasNext);
+        return new CursorPage<>(items, next, hasNext);
     }
 
     // 추천: Redis LIST("id:score") 기반 무한스크롤 (10개씩)
