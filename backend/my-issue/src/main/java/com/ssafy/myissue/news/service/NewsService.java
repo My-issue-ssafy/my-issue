@@ -9,6 +9,8 @@ import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ssafy.myissue.news.dto.*;
 import com.ssafy.myissue.news.domain.News;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
@@ -44,7 +46,9 @@ public class NewsService {
     private String recommendParams;
     private final RedisTemplate<String, Object> redisTemplate;
     private final NewsRepository newsRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     private final NewsScrapRepository scrapRepository;
     private final ElasticsearchClient elasticsearchClient;
 
@@ -177,14 +181,22 @@ public class NewsService {
 
 
     private List<NewsCardResponse> getMainHotNews() {
-        List<Long> ids = getNewsIdListByRedis(HOT_KEY, 0, 4); // TOP5
-        if (ids.isEmpty()) return List.of();
+        ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
+        Set<Object> values = zset.reverseRange(HOT_KEY, 0, 4);
+        if (values == null || values.isEmpty()) return List.of();
 
-        List<News> found   = newsRepository.findAllById(ids);
-        List<News> ordered = reorderByIds(found, ids);        // ★ 순서 보존
-        return toCards(ordered);
+        return values.stream()
+                .map(v -> {
+                    try {
+                        return objectMapper.readValue((String) v, NewsCardResponse.class);
+                    } catch (Exception e) {
+                        log.error("HOT 뉴스 역직렬화 실패", e);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
-
 
     private List<Long> getIdsFromList(String key, int start, int end) {
         List<Object> items = redisTemplate.opsForList().range(key, start, end);

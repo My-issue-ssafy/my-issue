@@ -1,6 +1,11 @@
 package com.ssafy.myissue.news.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ssafy.myissue.news.dto.HotNewsCandidates;
+import com.ssafy.myissue.news.dto.NewsCardResponse;
 import com.ssafy.myissue.news.infrastructure.NewsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +26,9 @@ public class NewsScheduler {
 
     private final NewsRepository newsRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     private static final String HOT_KEY = "hot:news";
 
     @Scheduled(fixedRate = 1800000) // 30분마다 실행
@@ -40,20 +48,33 @@ public class NewsScheduler {
         // 후보군 조회
         List<HotNewsCandidates> candidates = newsRepository.findHotCandidates(since, 50, 0);
 
+        for(int i = 0 ; i < candidates.size(); i++) {
+            HotNewsCandidates n = candidates.get(i);
+            log.info("{}. {} (조회수: {}, 스크랩: {}, 작성일: {}, 신문사: {})", i + 1, n.getTitle(), n.getViews(), n.getScrapCount(), n.getCreatedAt(), n.getNewsPaper());
+        }
         // 점수 계산 후 정렬
-        List<NewsScore> scored = candidates.stream()
-                .map(n -> new NewsScore(n.getId(), calculateScore(n)))
-                .sorted(Comparator.comparingDouble(NewsScore::score).reversed())
+        List<HotNewsCandidates> sorted = candidates.stream()
+                .sorted(Comparator.comparingDouble(this::calculateScore).reversed())
                 .limit(100)
                 .toList();
 
         // Redis Sorted Set에 ID만 저장
         redisTemplate.delete(HOT_KEY);
-        ZSetOperations<String, Object> zset = redisTemplate.opsForZSet();
+        ZSetOperations<String, Object> zSet = redisTemplate.opsForZSet();
 
-        for (NewsScore ns : scored) {
-            zset.add(HOT_KEY, ns.newsId(), ns.score());
+        for (HotNewsCandidates n : sorted) {
+            try {
+                NewsCardResponse card = NewsCardResponse.toCard(n);
+                String json = objectMapper.writeValueAsString(card);
+
+                double score = calculateScore(n);
+                zSet.add(HOT_KEY, json, score);
+
+            } catch (JsonProcessingException e) {
+                log.error("NewsCardResponse 직렬화 실패: {}", n.getId(), e);
+            }
         }
+
         log.info("HOT 뉴스 TOP 100 업데이트 완료");
     }
 
@@ -66,5 +87,5 @@ public class NewsScheduler {
         return (points - 1) / Math.pow(hoursSince + 2, 1.8);
     }
 
-    record NewsScore(Long newsId, double score) {}
+    record NewsScore(NewsCardResponse card, double score) {}
 }
