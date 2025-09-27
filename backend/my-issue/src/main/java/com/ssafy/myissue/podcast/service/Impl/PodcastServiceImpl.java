@@ -56,7 +56,7 @@ public class PodcastServiceImpl implements PodcastService {
             throw new CustomException(ErrorCode.PODCAST_NOT_FOUND);
         }
 
-        List<PodcastSubtitle> podcastSubtitles = podcastSubtitleRepository.findByPodcast_Id(podcast.getId());
+        List<PodcastSubtitle> podcastSubtitles = podcastSubtitleRepository.findByPodcast_IdOrderByIdAsc(podcast.getId());
         List<Subtitles> subtitles = podcastSubtitles.stream()
                         .map(sub -> new Subtitles(
                                 sub.getSpeaker(),

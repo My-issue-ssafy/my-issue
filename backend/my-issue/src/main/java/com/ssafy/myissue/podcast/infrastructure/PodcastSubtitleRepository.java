@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface PodcastSubtitleRepository extends JpaRepository<PodcastSubtitle, Long> {
-    List<PodcastSubtitle> findByPodcast_Id(Long podcastId);
+    List<PodcastSubtitle> findByPodcast_IdOrderByIdAsc(Long podcastId);
 }
