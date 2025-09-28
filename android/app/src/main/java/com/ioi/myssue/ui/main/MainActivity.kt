@@ -93,11 +93,14 @@ class MainActivity : ComponentActivity() {
 
                 NotificationPermission(
                     firstLaunch = firstLaunch,
-                    onGranted = {
+                    onNewGranted = {
                         topBarVm.toggleNotification(true)
                         firstLaunch = false
                     },
                     onRefused = {
+                        firstLaunch = false
+                    },
+                    onAlreadyGranted = {
                         firstLaunch = false
                     }
                 )

@@ -17,41 +17,36 @@ import androidx.core.content.ContextCompat
 @Composable
 fun NotificationPermission(
     firstLaunch: Boolean,
-    onGranted: () -> Unit = {},
-    onRefused: () -> Unit = {}
+    onNewGranted: () -> Unit = {},
+    onRefused: () -> Unit = {},
+    onAlreadyGranted: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
     // 33 미만은 권한 필요 없음
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-        LaunchedEffect(Unit) { onGranted() }
+        LaunchedEffect(Unit) { onAlreadyGranted() }
         return
     }
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) onGranted() else onRefused()
+        if (granted) onNewGranted() else onRefused()
     }
 
     LaunchedEffect(firstLaunch) {
         if (!firstLaunch) return@LaunchedEffect
 
         val perm = Manifest.permission.POST_NOTIFICATIONS
-        when {
-            ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED -> {
-                onGranted()
-            }
-            ActivityCompat.shouldShowRequestPermissionRationale(context.findActivity(), perm) -> {
-                launcher.launch(perm)
-            }
-            else -> {
-                launcher.launch(perm)
-            }
+        val granted = ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
+        if (granted) {
+            onAlreadyGranted()
+        } else {
+            launcher.launch(perm)
         }
     }
 }
-
 
 private fun Context.findActivity(): Activity =
     when (this) {
