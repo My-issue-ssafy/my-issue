@@ -94,22 +94,57 @@ def _get_kobert():
     """
     global _KOBERT_TOKENIZER, _KOBERT_MODEL, _KOBERT_DEVICE
     if _KOBERT_MODEL is None or _KOBERT_TOKENIZER is None:
-        from transformers import AutoTokenizer, AutoModel
-        import torch
-        _KOBERT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-        # 👇 여기 trust_remote_code=True 추가
-        _KOBERT_TOKENIZER = AutoTokenizer.from_pretrained(
-            EMBED_MODEL_NAME,
-            trust_remote_code=True
-        )
-        _KOBERT_MODEL = AutoModel.from_pretrained(
-            EMBED_MODEL_NAME,
-            trust_remote_code=True,
-            low_cpu_mem_usage=False  # meta tensor 방지
-        )
-        _KOBERT_MODEL = _KOBERT_MODEL.to(_KOBERT_DEVICE)
-        _KOBERT_MODEL.eval()
-        logger.info(f"[EMB] loaded: {EMBED_MODEL_NAME} on {_KOBERT_DEVICE}")
+        try:
+            # Try different import methods
+            import torch
+            _KOBERT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+            # Try importing from transformers directly
+            try:
+                import transformers
+                logger.info(f"[EMB] transformers version: {transformers.__version__}")
+
+                # Use sentence_transformers as fallback which should have transformers
+                try:
+                    from transformers import AutoTokenizer, AutoModel
+                    logger.info("[EMB] Successfully imported AutoTokenizer and AutoModel")
+                except ImportError as e:
+                    logger.warning(f"[EMB] Direct import failed: {e}, trying sentence_transformers route")
+                    from sentence_transformers.models import Transformer
+                    # Use sentence_transformers internal transformers
+                    import sentence_transformers
+                    AutoTokenizer = transformers.AutoTokenizer
+                    AutoModel = transformers.AutoModel
+
+            except Exception as e:
+                logger.error(f"[EMB] All import methods failed: {e}")
+                raise ImportError(f"Cannot import transformers components: {e}")
+
+            logger.info(f"[EMB] Loading tokenizer: {EMBED_MODEL_NAME}")
+            _KOBERT_TOKENIZER = AutoTokenizer.from_pretrained(
+                EMBED_MODEL_NAME,
+                trust_remote_code=True
+            )
+
+            logger.info(f"[EMB] Loading model: {EMBED_MODEL_NAME}")
+            _KOBERT_MODEL = AutoModel.from_pretrained(
+                EMBED_MODEL_NAME,
+                trust_remote_code=True,
+                low_cpu_mem_usage=False  # meta tensor 방지
+            )
+            _KOBERT_MODEL = _KOBERT_MODEL.to(_KOBERT_DEVICE)
+            _KOBERT_MODEL.eval()
+            logger.success(f"[EMB] Successfully loaded: {EMBED_MODEL_NAME} on {_KOBERT_DEVICE}")
+
+        except Exception as e:
+            logger.error(f"[EMB] Failed to load KoBERT model: {e}")
+            logger.error(f"[EMB] Model loading traceback:\n{traceback.format_exc()}")
+            # Set to None to indicate failure but don't crash the crawler
+            _KOBERT_TOKENIZER = None
+            _KOBERT_MODEL = None
+            _KOBERT_DEVICE = None
+            raise
+
     return _KOBERT_TOKENIZER, _KOBERT_MODEL, _KOBERT_DEVICE
 
 def embed_title(text: str):
