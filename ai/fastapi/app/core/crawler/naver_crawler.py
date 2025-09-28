@@ -182,12 +182,22 @@ def embed_title(text: str):
 
         with torch.no_grad():
             logger.debug("[EMB] Running forward pass through model")
-            last_hidden = mdl(**inputs).last_hidden_state   # [1, L, 768]
+            outputs = mdl(**inputs)
+            last_hidden = outputs.last_hidden_state   # [1, L, 768]
 
         logger.debug(f"[EMB] Hidden state shape: {last_hidden.shape}")
+        logger.debug(f"[EMB] Hidden state device: {last_hidden.device}")
 
-        # Mean pooling
+        # Mean pooling - ensure all tensors are on the same device
         mask = inputs["attention_mask"].unsqueeze(-1)       # [1, L, 1]
+        logger.debug(f"[EMB] Mask device: {mask.device}")
+
+        # Ensure mask is on the same device as hidden states
+        if mask.device != last_hidden.device:
+            logger.warning(f"[EMB] Device mismatch: mask={mask.device}, hidden={last_hidden.device}")
+            mask = mask.to(last_hidden.device)
+            logger.debug(f"[EMB] Moved mask to device: {mask.device}")
+
         vec = (last_hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)  # mean-pooling
 
         # L2 normalization
