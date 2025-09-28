@@ -8,25 +8,31 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.ioi.myssue.R
-import com.ioi.myssue.ui.main.MainActivity
-import java.net.HttpURLConnection
-import java.net.URL
+
 import kotlin.run
 import androidx.core.net.toUri
 
 object Noti {
-    private const val CHANNEL_ID = "news"
+    private const val CHANNEL_ID = "news_high"
 
     fun ensureChannel(ctx: Context) {
         val mgr = ctx.getSystemService(NotificationManager::class.java)
-        val ch =
-            NotificationChannel(CHANNEL_ID, "뉴스 알림", NotificationManager.IMPORTANCE_DEFAULT)
-        mgr.createNotificationChannel(ch)
+        if (mgr.getNotificationChannel(CHANNEL_ID) == null) {
+            val ch = NotificationChannel(
+                CHANNEL_ID,
+                "뉴스 알림(팝업)",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "개인화 뉴스 알림"
+                vibrationPattern = longArrayOf(0, 250, 150, 250)
+                lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+            }
+            mgr.createNotificationChannel(ch)
+        }
     }
 
     @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -35,7 +41,7 @@ object Noti {
 
         val newsId = data["newsId"] ?: return
         val thumbUrl = data["thumbnailUrl"]
-        
+
         val clickIntent = Intent(
             Intent.ACTION_VIEW,
             "myssue://news/$newsId".toUri()
@@ -57,13 +63,14 @@ object Noti {
             .setAutoCancel(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(pi)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
 
-
-        // 썸네일
-        val bitmap: Bitmap? = thumbUrl?.let { safeLoadBitmap(it) }
+        // 썸네일 스타일
+        val bitmap = thumbUrl?.let { safeLoadBitmap(it) }
         if (bitmap != null) {
-            builder
-                .setLargeIcon(bitmap)
+            builder.setLargeIcon(bitmap)
                 .setStyle(
                     NotificationCompat.BigPictureStyle()
                         .bigPicture(bitmap)
@@ -77,8 +84,8 @@ object Noti {
     }
 
     private fun safeLoadBitmap(urlStr: String): Bitmap? = runCatching {
-        val url = URL(urlStr)
-        (url.openConnection() as HttpURLConnection).run {
+        val url = java.net.URL(urlStr)
+        (url.openConnection() as java.net.HttpURLConnection).run {
             connectTimeout = 4000
             readTimeout = 4000
             doInput = true
@@ -86,17 +93,16 @@ object Noti {
             connect()
             inputStream.use { stream ->
                 val bytes = stream.readBytes()
-                val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                 val target = 1024
                 var sample = 1
-                while (opts.outWidth / sample > target || opts.outHeight / sample > target) {
+                while (bounds.outWidth / sample > target || bounds.outHeight / sample > target) {
                     sample *= 2
                 }
-                val realOpts = BitmapFactory.Options().apply { inSampleSize = sample }
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, realOpts)
+                val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
             }
         }
     }.getOrNull()
 }
-
