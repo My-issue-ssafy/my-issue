@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.common.collect.Multimaps.index
 import com.ioi.myssue.LocalAnalytics
 import com.ioi.myssue.ui.news.Loading
 import com.ioi.myssue.ui.news.NewsDetail
@@ -115,8 +117,8 @@ fun SearchScreen(
                     contentPadding = PaddingValues(vertical = 4.dp)
                 ) {
                     items(
-                        items = uiState.newsItems,
-                        key = { it.newsId }
+                        items = uiState.newsItems.distinctBy { it.newsId },
+                        key = {  item -> "${item.newsId}" }
                     ) { item ->
                         NewsItem(
                             modifier = Modifier,
