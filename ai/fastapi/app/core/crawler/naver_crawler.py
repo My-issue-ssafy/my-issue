@@ -14,7 +14,7 @@ pip install transformers torch sentencepiece
 """
 
 # 필요한 라이브러리 import
-import os, re, json, time, hashlib, random
+import os, re, json, time, hashlib, random, traceback
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin, urlparse, parse_qs, unquote
 
@@ -104,8 +104,10 @@ def _get_kobert():
         )
         _KOBERT_MODEL = AutoModel.from_pretrained(
             EMBED_MODEL_NAME,
-            trust_remote_code=True
-        ).to(_KOBERT_DEVICE)
+            trust_remote_code=True,
+            low_cpu_mem_usage=False  # meta tensor 방지
+        )
+        _KOBERT_MODEL = _KOBERT_MODEL.to(_KOBERT_DEVICE)
         _KOBERT_MODEL.eval()
         logger.info(f"[EMB] loaded: {EMBED_MODEL_NAME} on {_KOBERT_DEVICE}")
     return _KOBERT_TOKENIZER, _KOBERT_MODEL, _KOBERT_DEVICE
@@ -115,24 +117,56 @@ def embed_title(text: str):
     제목 → 768차원 KoBERT 임베딩(list[float])
     - mean-pooling + L2 정규화(코사인 유사도용)
     """
-    if not EMBEDDING_ENABLED or not text:
+    if not EMBEDDING_ENABLED:
+        logger.debug("[EMB] Embedding disabled, returning None")
         return None
-    from torch.nn.functional import normalize
-    import torch
-    tok, mdl, device = _get_kobert()
-    inputs = tok(
-        text,
-        return_tensors="pt",
-        truncation=True,
-        padding=True,
-        max_length=128
-    ).to(device)
-    with torch.no_grad():
-        last_hidden = mdl(**inputs).last_hidden_state   # [1, L, 768]
-    mask = inputs["attention_mask"].unsqueeze(-1)       # [1, L, 1]
-    vec = (last_hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)  # mean-pooling
-    vec = normalize(vec, p=2, dim=1)                    # L2 정규화
-    return vec.squeeze(0).cpu().tolist()                # 768 floats
+
+    if not text:
+        logger.warning("[EMB] Empty text provided for embedding")
+        return None
+
+    logger.debug(f"[EMB] Starting embedding for text: '{text[:50]}{'...' if len(text) > 50 else ''}'")
+
+    try:
+        from torch.nn.functional import normalize
+        import torch
+
+        logger.debug("[EMB] Loading KoBERT model and tokenizer")
+        tok, mdl, device = _get_kobert()
+
+        logger.debug(f"[EMB] Tokenizing text on device: {device}")
+        inputs = tok(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            max_length=128
+        ).to(device)
+
+        logger.debug(f"[EMB] Input shape: {inputs['input_ids'].shape}")
+
+        with torch.no_grad():
+            logger.debug("[EMB] Running forward pass through model")
+            last_hidden = mdl(**inputs).last_hidden_state   # [1, L, 768]
+
+        logger.debug(f"[EMB] Hidden state shape: {last_hidden.shape}")
+
+        # Mean pooling
+        mask = inputs["attention_mask"].unsqueeze(-1)       # [1, L, 1]
+        vec = (last_hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)  # mean-pooling
+
+        # L2 normalization
+        vec = normalize(vec, p=2, dim=1)                    # L2 정규화
+
+        result = vec.squeeze(0).cpu().tolist()              # 768 floats
+
+        logger.debug(f"[EMB] Successfully generated embedding with dimension: {len(result)}")
+        return result
+
+    except Exception as e:
+        logger.error(f"[EMB] Failed to generate embedding for text '{text[:50]}{'...' if len(text) > 50 else ''}': {e}")
+        logger.error(f"[EMB] Full embedding error traceback:\n{traceback.format_exc()}")
+        return None
 
 # ========================
 # HTTP 세션 및 안전한 GET
