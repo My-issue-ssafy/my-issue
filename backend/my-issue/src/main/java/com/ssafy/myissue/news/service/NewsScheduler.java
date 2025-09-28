@@ -48,10 +48,6 @@ public class NewsScheduler {
         // 후보군 조회
         List<HotNewsCandidates> candidates = newsRepository.findHotCandidates(since, 50, 0);
 
-        for(int i = 0 ; i < candidates.size(); i++) {
-            HotNewsCandidates n = candidates.get(i);
-            log.info("{}. {} (조회수: {}, 스크랩: {}, 작성일: {}, 신문사: {})", i + 1, n.getTitle(), n.getViews(), n.getScrapCount(), n.getCreatedAt(), n.getNewsPaper());
-        }
         // 점수 계산 후 정렬
         List<HotNewsCandidates> sorted = candidates.stream()
                 .sorted(Comparator.comparingDouble(this::calculateScore).reversed())
