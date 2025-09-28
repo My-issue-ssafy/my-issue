@@ -21,7 +21,7 @@ public class ToonsScheduler { // [ADDED]
      * 매일 00:30 (KST) 실행
      * cron 포맷: 초 분 시 일 월 요일
      */
-    @Scheduled(cron = "0 30 0 * * *", zone = "Asia/Seoul") // [ADDED]
+    @Scheduled(cron = "0 00 23 * * *", zone = "Asia/Seoul") // [ADDED]
     public void generateDailyToonsAt0030KST() {
         if (!running.compareAndSet(false, true)) {
             log.warn("[ToonsScheduler] A previous run is still running. Skip this tick."); // [ADDED]
