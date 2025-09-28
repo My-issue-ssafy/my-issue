@@ -104,8 +104,11 @@ public class DailyPersonalizedPushJob {
             .map(news -> {
                 final String title = "당신을 위한 맞춤 뉴스가 도착했습니다!";
                 final String body = news.getTitle();
+                final String thumbnail = news.getThumbnail() != null
+                    ? news.getThumbnail()
+                    : "";
                 log.debug("Prepared push for userId={}, title={}", user.getId(), news.getTitle());
-                return PersonalizedPush.of(user, news, title, body);
+                return PersonalizedPush.of(user, news, title, body, thumbnail);
             })
             .orElse(null);
     }

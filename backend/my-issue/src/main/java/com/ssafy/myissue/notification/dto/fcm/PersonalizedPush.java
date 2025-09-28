@@ -11,7 +11,7 @@ public record PersonalizedPush(
         Long userId,
         Long newsId
 ) {
-    public static PersonalizedPush of(User user, News news, String title, String body) {
-        return new PersonalizedPush(user.getFcmToken(), title, body, news.getThumbnail(), user.getId(), news.getId());
+    public static PersonalizedPush of(User user, News news, String title, String body, String thumbnailUrl) {
+        return new PersonalizedPush(user.getFcmToken(), title, body, thumbnailUrl, user.getId(), news.getId());
     }
 }
