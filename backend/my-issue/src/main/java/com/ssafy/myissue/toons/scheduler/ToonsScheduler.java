@@ -29,7 +29,7 @@ public class ToonsScheduler { // [ADDED]
         }
         long started = System.currentTimeMillis(); // [ADDED]
         try {
-            log.info("[ToonsScheduler] Start daily toon generation (00:30 KST)"); // [ADDED]
+            log.info("[ToonsScheduler] Start daily toon generation (23:00 KST)"); // [ADDED]
             toonGeneratorService.generateDailyToons(); // [ADDED]
             log.info("[ToonsScheduler] Done in {} ms", System.currentTimeMillis() - started); // [ADDED]
         } catch (JsonProcessingException e) {

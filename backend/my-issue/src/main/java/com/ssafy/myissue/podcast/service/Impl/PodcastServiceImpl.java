@@ -88,8 +88,8 @@ public class PodcastServiceImpl implements PodcastService {
     @Override
     public void generateDailyPodcast() {
 
-        // 어제 날짜의 네컷뉴스 10개 가져오기
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        // 어제 날짜의 네컷뉴스 10개 가져오기 --> 오늘로 수정
+        LocalDate yesterday = LocalDate.now();
         List<Toons> topNews = toonsRepository.findByDate(yesterday);
 
         if(topNews.isEmpty()) {

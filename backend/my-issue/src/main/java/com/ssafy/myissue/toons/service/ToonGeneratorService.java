@@ -37,7 +37,7 @@ public class ToonGeneratorService {
     @Transactional
     public void generateDailyToons() throws JsonProcessingException {
         ZoneId zone = ZoneId.of(appTimeZone);
-        LocalDate target = LocalDate.now(zone).minusDays(1);
+        LocalDate target = LocalDate.now(zone);
         var zStart = target.atStartOfDay(zone);
         var zEnd   = target.atTime(LocalTime.MAX).atZone(zone);
         LocalDateTime start = zStart.toLocalDateTime();
