@@ -47,6 +47,9 @@
 |:--:|:--:|:--:|
 | ![Image](/uploads/f807a9bfac7aecaa55a2e809e218749c/네컷뉴스.gif) | ![Image](/uploads/ef9dd2c9c70cb31f68891aef7f8d3617/팟캐스트.gif) | ![Image](/uploads/24163196d4f57974d1756a574017b7b2/홈_추천_.gif) | 
 
+## 시스템 아키텍처
+![Image](https://github.com/user-attachments/assets/848425ff-9b2e-4f65-a99b-38d709be275e)
+
 ## Stacks
 
 ### Environment
