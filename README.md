@@ -52,7 +52,7 @@
 ### Environment
 
 ### Backend
-![Java17](https://img.shields.io/badge/Java17-4D7896?style=flat&logo=Java&logoColor=white)
+![Java21](https://img.shields.io/badge/Java21-4D7896?style=flat&logo=Java&logoColor=white)
 ![SpringBoot](https://img.shields.io/badge/SpringBoot-6DB33F?style=flat&logo=Spring&logoColor=white)
 ![Gradle](https://img.shields.io/badge/Gradle-012F38?style=flat&logo=Gradle&logoColor=white)
 ![Spring Security](https://img.shields.io/badge/SpringSecurity-6BB344?style=flat&logo=SpringSecurity&logoColor=white)
@@ -61,14 +61,16 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-B916DD?style=flat&logo=Kotlin&logoColor=white)
 ![Retrofit](https://img.shields.io/badge/Retrofit-45B37F?style=flat&logo=Retrofit&logoColor=white)
 ![KotlinCoroutines](https://img.shields.io/badge/KotlinCoroutines-5468F1?style=flat&logo=KotlinCoroutines&logoColor=white)
+![Android](https://img.shields.io/badge/android-3DDC84?style=flat&logo=android&logoColor=white)
+![Androidstudio](https://img.shields.io/badge/Android%20studio-3DDC84?style=flat&logo=androidstudio&logoColor=white)
 
 ### Database
-![MariaDB](https://img.shields.io/badge/MariaDB-002F43?style=flat&logo=MariaDB&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-306091?style=flat&logo=PostgreSQL&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-A41E11?style=flat&logo=Redis&logoColor=white)
 
 ### Infra
 ![AWS](https://img.shields.io/badge/AWS-333664?style=flat&logo=aws&logoColor=white)
-![GitLab CI/CD](https://img.shields.io/badge/GitLab%20CI/CD-E34124?style=flat&logo=Gitlab&logoColor=white)
+![Jenkins](https://img.shields.io/badge/Jenkins-CC3631?style=flat&logo=Jenkins&logoColor=white)
 
 ### AI
 ![FASTAPI](https://img.shields.io/badge/fastapi-009688?style=flat&logo=fastapi&logoColor=white)
@@ -81,6 +83,5 @@
 ### Communication
 ![GitLab](https://img.shields.io/badge/GitLab-E34124?style=flat&logo=Gitlab&logoColor=white)
 ![Mattermost](https://img.shields.io/badge/Mattermost-284077?style=flat&logo=Mattermost&logoColor=white)
-![Discord](https://img.shields.io/badge/Discord-5765F2?style=flat&logo=Discord&logoColor=white)
 ![Notion](https://img.shields.io/badge/Notion-000000?style=flat&logo=Notion&logoColor=white)
 ![JIRA](https://img.shields.io/badge/jira-0052CC?style=flat&logo=jira&logoColor=white)
