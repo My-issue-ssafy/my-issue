@@ -56,6 +56,7 @@
 ![SpringBoot](https://img.shields.io/badge/SpringBoot-6DB33F?style=flat&logo=Spring&logoColor=white)
 ![Gradle](https://img.shields.io/badge/Gradle-012F38?style=flat&logo=Gradle&logoColor=white)
 ![Spring Security](https://img.shields.io/badge/SpringSecurity-6BB344?style=flat&logo=SpringSecurity&logoColor=white)
+![Elasticsearch](https://img.shields.io/badge/Elasticsearch-005571?style=flat&logo=Elasticsearch&logoColor=white)
 
 ### Mobile
 ![Kotlin](https://img.shields.io/badge/Kotlin-B916DD?style=flat&logo=Kotlin&logoColor=white)
