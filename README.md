@@ -44,18 +44,9 @@
 
 ## 화면 구성
 
-| **네컷뉴스** |
-|:--:|
-| ![Image](/uploads/f807a9bfac7aecaa55a2e809e218749c/네컷뉴스.gif) | 
-
-| **팟캐스트** | 
-|:--:|
-| ![Image](/uploads/ef9dd2c9c70cb31f68891aef7f8d3617/팟캐스트.gif) | 
-
-| **홈 화면(추천)** |
-|:--:|
-| ![Image](/uploads/24163196d4f57974d1756a574017b7b2/홈_추천_.gif) | 
-
+| **네컷뉴스** | **팟캐스트** | **홈 화면(추천)** |
+|:--:|:--:|:--:|
+| ![Image](/uploads/f807a9bfac7aecaa55a2e809e218749c/네컷뉴스.gif) | ![Image](/uploads/ef9dd2c9c70cb31f68891aef7f8d3617/팟캐스트.gif) | ![Image](/uploads/24163196d4f57974d1756a574017b7b2/홈_추천_.gif) | 
 
 ## Stacks
 
