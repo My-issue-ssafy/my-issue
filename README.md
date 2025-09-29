@@ -71,16 +71,16 @@
 ![GitLab CI/CD](https://img.shields.io/badge/GitLab%20CI/CD-E34124?style=flat&logo=Gitlab&logoColor=white)
 
 ### AI
-![FASTAPI](https://img.shields.io/badge/fastapi-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![PANDAS](https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
-![SCIPY](https://img.shields.io/badge/scipy-8CAAE6?style=for-the-badge&logo=scipy&logoColor=white)
-![GOOGLE ANALYTICS](https://img.shields.io/badge/google%20analytics-E37400?style=for-the-badge&logo=googleanalytics&logoColor=white)
-![GOOGLE BIGQUERY](https://img.shields.io/badge/google%20bigquery-669DF6?style=for-the-badge&logo=googlebigquery&logoColor=white)
-![SQLALCHEMY](https://img.shields.io/badge/sqlalchemy-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
+![FASTAPI](https://img.shields.io/badge/fastapi-009688?style=flat&logo=fastapi&logoColor=white)
+![PANDAS](https://img.shields.io/badge/pandas-150458?style=flat&logo=pandas&logoColor=white)
+![SCIPY](https://img.shields.io/badge/scipy-8CAAE6?style=flat&logo=scipy&logoColor=white)
+![GOOGLE ANALYTICS](https://img.shields.io/badge/google%20analytics-E37400?style=flat&logo=googleanalytics&logoColor=white)
+![GOOGLE BIGQUERY](https://img.shields.io/badge/google%20bigquery-669DF6?style=flat&logo=googlebigquery&logoColor=white)
+![SQLALCHEMY](https://img.shields.io/badge/sqlalchemy-D71F00?style=flat&logo=sqlalchemy&logoColor=white)
 
 ### Communication
 ![GitLab](https://img.shields.io/badge/GitLab-E34124?style=flat&logo=Gitlab&logoColor=white)
 ![Mattermost](https://img.shields.io/badge/Mattermost-284077?style=flat&logo=Mattermost&logoColor=white)
 ![Discord](https://img.shields.io/badge/Discord-5765F2?style=flat&logo=Discord&logoColor=white)
 ![Notion](https://img.shields.io/badge/Notion-000000?style=flat&logo=Notion&logoColor=white)
-![JIRA](https://img.shields.io/badge/jira-0052CC?style=for-the-badge&logo=jira&logoColor=white)
+![JIRA](https://img.shields.io/badge/jira-0052CC?style=flat&logo=jira&logoColor=white)
