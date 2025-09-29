@@ -1,0 +1,27 @@
+package com.ioi.myssue.domain.repository
+
+import com.ioi.myssue.domain.model.Chat
+import com.ioi.myssue.domain.model.CursorPage
+import com.ioi.myssue.domain.model.MainNewsList
+import com.ioi.myssue.domain.model.News
+import com.ioi.myssue.domain.model.NewsSummary
+
+interface NewsRepository {
+    suspend fun getNews(keyword: String? = null, category: String? = null, size: Int, cursor : String?): CursorPage<NewsSummary>
+
+    suspend fun getMainNews(): MainNewsList
+
+    suspend fun getHotNews(cursor: String? = null, size: Int = 20): CursorPage<NewsSummary>
+
+    suspend fun getRecommendNews(cursor: String? = null, size: Int = 20): CursorPage<NewsSummary>
+
+    suspend fun getTrendNews(cursor: String? = null, size: Int = 20): CursorPage<NewsSummary>
+
+    suspend fun getNewsDetail(newsId: Long): News
+
+    suspend fun bookMarkNews(newsId: Long): Boolean
+
+    suspend fun getBookmarkedNews(cursor: String? = null): CursorPage<NewsSummary>
+
+    suspend fun chatNews(newsId: Long, sid: String?, question: String): Chat
+}

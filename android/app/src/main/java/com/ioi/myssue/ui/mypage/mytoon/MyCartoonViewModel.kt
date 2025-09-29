@@ -1,0 +1,89 @@
+package com.ioi.myssue.ui.mypage.mytoon
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ioi.myssue.domain.model.CartoonNews
+import com.ioi.myssue.domain.repository.CartoonRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
+import kotlinx.coroutines.flow.onSubscription
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class MyCartoonViewModel @Inject constructor(
+    private val cartoonRepository: CartoonRepository,
+) : ViewModel() {
+
+    private var _state = MutableStateFlow(MyCartoonUiState())
+    val state = _state.onSubscription {
+        initData()
+    }.stateIn(
+        scope = viewModelScope,
+        started = WhileSubscribed(5_000),
+        initialValue = MyCartoonUiState()
+    )
+
+    private fun initData() {
+        loadMyToons()
+    }
+
+    private fun loadMyToons() = viewModelScope.launch {
+        runCatching { cartoonRepository.getLikedCartoons() }
+            .onSuccess { cartoonNews ->
+                _state.update {
+                    it.copy(myToons = cartoonNews)
+                }
+            }
+    }
+
+    fun setClickedToon(toon: CartoonNews?) {
+        _state.update {
+            it.copy(clickedToon = toon)
+        }
+    }
+
+    fun openNewsDetail(newsId: Long) = viewModelScope.launch {
+        _state.update { it.copy(selectedNewsId = newsId) }
+    }
+
+    fun closeNewsDetail() = viewModelScope.launch {
+        _state.update { it.copy(selectedNewsId = null) }
+    }
+
+    fun toggleLike(toon: CartoonNews) = viewModelScope.launch {
+        val newValue = !toon.isLiked
+
+        _state.update { state ->
+            state.copy(
+                myToons = state.myToons.map {
+                    if (it.newsId == toon.newsId) it.copy(isLiked = newValue) else it
+                },
+                clickedToon = state.clickedToon?.takeIf { it.toonId != toon.toonId }
+                    ?: toon.copy(isLiked = newValue)
+            )
+        }
+
+        runCatching {
+            if (newValue) {
+                cartoonRepository.likeCartoon(toon.toonId)
+            } else {
+                cartoonRepository.cancelLike(toon.toonId)
+            }
+        }.onFailure {
+            // 서버 실패 시 롤백
+            _state.update { state ->
+                state.copy(
+                    myToons = state.myToons.map {
+                        if (it.newsId == toon.newsId) it.copy(isLiked = toon.isLiked) else it
+                    },
+                    clickedToon = state.clickedToon?.takeIf { it.newsId != toon.newsId }
+                        ?: toon
+                )
+            }
+        }
+    }
+}
