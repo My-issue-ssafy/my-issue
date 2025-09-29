@@ -1,3 +1,4 @@
+
 # 마이슈
 > 바쁜 현대인들을 위한 숏 콘텐츠 기반 뉴스 플랫폼
 
@@ -5,21 +6,21 @@
 ### 모바일(안드로이드)
 | | 박승준 | 윤석찬 |
 |-----------|:------------------------:|:---------------------------:|
-| **프로필** | <img src="/uploads/43d346cff8d91c2af9d77fcba7c0f9d3/박승준.png" width="150"/> | <img src="/uploads/bbf74a5bd63f7e0281ffff5c653527e6/윤석찬.png" width="150"/> |
+| **프로필** | <img src="/uploads/fac24fa80b2c34ecaa154f3fdb2f9689/박승준.png" width="150"/> | <img src="/uploads/bbf74a5bd63f7e0281ffff5c653527e6/윤석찬.png" width="150"/> |
 | **기술 스택** | <img src="https://www.vectorlogo.zone/logos/android/android-icon.svg" width="40" height="40"/> | <img src="https://www.vectorlogo.zone/logos/android/android-icon.svg" width="40" height="40"/>|
 | **R&R** | 팟캐스트 개발 <br> 네컷뉴스 개발 <br> 마이페이지 개발 <br> 챗봇 ui 개발 | 뉴스 메인 화면 구현 <br> 뉴스 검색 개발 <br> 뉴스 알림 개발 |
 
 ### 백엔드
 | | 김진현 | 홍시은 |
 |-----------|:------------------------:|:---------------------------:|
-| **프로필** | <img src="/uploads/3f066ca3ce6d1468d850893e754de593/image.png" width="150"/> | <img src="/uploads/589e6a7e6b97c9ba15e062f1f24e0ea9/image.png" width="150"/> |
+| **프로필** | <img src="https://lab.ssafy.com/-/project/1050572/uploads/3f066ca3ce6d1468d850893e754de593/image.png" width="150"/> | <img src="https://lab.ssafy.com/-/project/1050572/uploads/589e6a7e6b97c9ba15e062f1f24e0ea9/image.png" width="150"/> |
 | **기술 스택** | <img src="https://www.vectorlogo.zone/logos/springio/springio-icon.svg" width="40" height="40"/> <img src="https://www.vectorlogo.zone/logos/springio/springio-icon.svg" width="40" height="40" /> |
 | **R&R** | 챗봇 서버 개발 <br> 네컷 뉴스 서버 개발 <br> 뉴스 서버 개발 | CI/CD 파이프라인 구현 <br> 팟캐스트 서버 개발 <br> 알림 서버 개발 |
 
 ### AI*데이터 분석
 | | 이승훈 | 한동근 |
 |-----------|:------------------------:|:---------------------------:|
-| **프로필** | <img src="/uploads/0b06db2392416920758e8e9d2e8559c6/image.png" width="150"/> | <img src="/uploads/646f4fb9a45d3ff51c85b2f6792c97b4/image.png" width="150"/> |
+| **프로필** | <img src="https://lab.ssafy.com/-/project/1050572/uploads/0b06db2392416920758e8e9d2e8559c6/image.png" width="150"/> | <img src="https://lab.ssafy.com/-/project/1050572/uploads/646f4fb9a45d3ff51c85b2f6792c97b4/image.png" width="150">
 | **기술 스택** | <img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" width="40" height="40"/> | <img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" width="40" height="40"/>  |
 | **R&R** | GA4, BigQuery 연결 <br> 데이터 EDA <br> 개인화 추천 알고리즘 | 뉴스 크롤링 자동화 <br> 뉴스 검색 ES 도입 <br> 비개인화 추천 알고리즘 |
 
