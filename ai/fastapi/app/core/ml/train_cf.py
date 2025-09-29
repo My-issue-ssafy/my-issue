@@ -1,0 +1,580 @@
+# 협업 필터링 (Collaborative Filtering) 모델을 학습하고 실시간 추천을 위한 모델을 저장하는 모듈
+# ALS (Alternating Least Squares) 알고리즘을 사용하여 사용자-뉴스 상호작용 데이터로부터 학습된 모델을 생성
+
+import os
+import pickle
+import json
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import scipy.sparse as sp
+
+from google.cloud import bigquery
+from google.cloud.bigquery import ScalarQueryParameter, QueryJobConfig
+from loguru import logger
+
+# implicit 라이브러리의 ALS (Alternating Least Squares) 협업 필터링 알고리즘
+from implicit.als import AlternatingLeastSquares
+
+from app.config import PROJECT_ID, DEFAULT_DATASET, LOOKBACK_DAYS
+from app.core.analytics.bq import get_client, get_latest_date
+
+# BigQuery 뷰 대신 events_* 테이블 직접 쿼리 사용
+# VIEW = f"`{PROJECT_ID}.{DEFAULT_DATASET}`.events_wide_v1"  # 비활성화: 뷰 대신 직접 쿼리
+
+# 모델 저장 경로 설정
+MODELS_DIR = Path(__file__).resolve().parent.parent.parent / "models"
+MODEL_PATH = MODELS_DIR / "als_model.pkl"
+METADATA_PATH = MODELS_DIR / "model_metadata.json"
+
+# 마지막 학습 날짜를 기록하는 파일 경로 (중복 학습 방지용)
+STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "last_trained.txt")
+
+# 1) 오늘 날짜를 한국 시간 기준으로 YYYYMMDD 형태 문자열로 반환
+def today_kst_str():
+    """현재 날짜를 한국 시간대 기준으로 YYYYMMDD 형식 문자열로 반환"""
+    kst = ZoneInfo("Asia/Seoul")
+    return datetime.now(kst).strftime("%Y%m%d")
+
+# 2) 최신 GA4 이벤트 테이블이 오늘 또는 어제 날짜인지 확인
+def has_today_table(client: bigquery.Client, dataset: str) -> bool:
+    """최신 events_YYYYMMDD 테이블이 오늘 또는 어제 날짜인지 확인"""
+    latest = get_latest_date(client, dataset)  # 최신 events_ 테이블 날짜 조회
+    if latest is None:
+        return False
+
+    today_str = today_kst_str()
+    yesterday_str = (datetime.now(ZoneInfo("Asia/Seoul")) - timedelta(days=1)).strftime("%Y%m%d")
+
+    return latest == today_str or latest == yesterday_str
+
+# 3) 오늘 이미 학습했는지 확인하고 학습 완료 상태를 기록하는 함수들
+def already_trained_with_latest_data(client: bigquery.Client, dataset: str) -> bool:
+    """최신 가용 데이터로 이미 모델 학습을 완료했는지 확인 (중복 학습 방지)"""
+    if not os.path.exists(STATE_PATH):
+        return False
+
+    # 파일에서 마지막 학습한 데이터 날짜 읽기
+    with open(STATE_PATH, "r", encoding="utf-8") as f:
+        last_trained_date = f.read().strip()
+
+    # 현재 가용한 최신 테이블 날짜 확인
+    latest_table_date = get_latest_date(client, dataset)
+
+    # 최신 테이블 날짜와 마지막 학습 날짜가 같으면 이미 학습 완료
+    return latest_table_date == last_trained_date
+
+def mark_trained_with_data(data_date: str):
+    """특정 날짜 데이터로 모델 학습을 완료했다는 표시를 파일에 기록"""
+    os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        f.write(data_date)
+
+def cleanup_old_csv_files(data_dir: str, days_to_keep: int = 14):
+    """
+    2주 이상 된 interactions_*.csv 파일들을 자동 삭제
+    
+    Args:
+        data_dir: 데이터 디렉토리 경로
+        days_to_keep: 보관할 일수 (기본값: 14일)
+    """
+    import glob
+    from datetime import datetime, timedelta
+    from pathlib import Path
+    
+    # interactions_YYYYMMDD.csv 패턴의 파일들 찾기
+    csv_pattern = os.path.join(data_dir, "interactions_*.csv")
+    csv_files = glob.glob(csv_pattern)
+    
+    if not csv_files:
+        return
+    
+    # 기준 날짜 계산 (오늘부터 days_to_keep일 전)
+    cutoff_date = datetime.now().date() - timedelta(days=days_to_keep)
+    deleted_count = 0
+    
+    logger.info(f"{days_to_keep}일 이전 CSV 파일 정리 중 (기준: {cutoff_date})")
+    
+    for csv_file in csv_files:
+        try:
+            # 파일명에서 날짜 추출 (interactions_YYYYMMDD.csv)
+            filename = Path(csv_file).stem
+            if filename.startswith("interactions_") and len(filename) == 21:  # interactions_ + 8자리 날짜
+                date_str = filename.split("_")[1]  # YYYYMMDD 부분
+                if len(date_str) == 8 and date_str.isdigit():
+                    file_date = datetime.strptime(date_str, "%Y%m%d").date()
+                    
+                    # 기준 날짜보다 오래된 파일 삭제
+                    if file_date < cutoff_date:
+                        os.remove(csv_file)
+                        file_size = Path(csv_file).stat().st_size / (1024*1024) if Path(csv_file).exists() else 0
+                        logger.info(f"삭제됨: {Path(csv_file).name} ({file_date}, {file_size:.1f}MB)")
+                        deleted_count += 1
+                        
+        except (ValueError, OSError) as e:
+            logger.warning(f"파일 처리 실패: {Path(csv_file).name} - {e}")
+    
+    if deleted_count > 0:
+        logger.info(f"{deleted_count}개 오래된 CSV 파일 정리 완료")
+    else:
+        logger.info("삭제할 오래된 CSV 파일 없음")
+
+# 4) 협업 필터링 모델 학습을 위한 사용자-뉴스 상호작용 데이터 추출
+def fetch_interactions(client: bigquery.Client) -> pd.DataFrame:
+    """
+    최근 LOOKBACK_DAYS 일간의 사용자 상호작용 데이터를 추출하여 모델 학습용 데이터로 반환
+    
+    사용자의 뉴스 읽기, 스크롤, 북마크 등의 행동을 점수화하여
+    사용자-뉴스 간의 선호도 강도를 산출합니다.
+    """
+    # 한국 시간 기준으로 날짜 범위 계산
+    kst = ZoneInfo("Asia/Seoul")
+    to_date = datetime.now(kst).date()  # 오늘 날짜
+    from_date = to_date - timedelta(days=LOOKBACK_DAYS)  # LOOKBACK_DAYS일 전
+
+    # 사용자 상호작용을 점수화하는 SQL 쿼리 (실제 테이블 구조에 맞게 수정)
+    # 이벤트 종류별로 가중치를 다르게 적용하여 선호도 강도를 산출
+    sql = f"""
+    WITH base AS (
+      -- GA4 원시 테이블에서 데이터 추출 (event_params 파싱)
+      SELECT
+        e.user_id,
+        COALESCE(
+          SAFE_CAST(ep_news_id.value.int_value AS INT64),
+          SAFE_CAST(ep_news_id.value.string_value AS INT64)
+        ) AS news_id,
+        e.event_name,
+        TIMESTAMP_MICROS(e.event_timestamp) AS ts,
+        e.event_date,
+        SAFE_CAST(ep_dwell.value.int_value AS INT64) AS dwell_ms,
+        SAFE_CAST(ep_scroll.value.int_value AS INT64) AS scroll_pct,
+        ep_action.value.string_value AS action,
+        ep_feed.value.string_value AS feed_source,
+        ep_from.value.string_value AS from_source
+      FROM `{PROJECT_ID}.{DEFAULT_DATASET}.events_*` e
+      LEFT JOIN UNNEST(e.event_params) ep_news_id ON ep_news_id.key = 'news_id'
+      LEFT JOIN UNNEST(e.event_params) ep_dwell ON ep_dwell.key = 'dwell_ms'
+      LEFT JOIN UNNEST(e.event_params) ep_scroll ON ep_scroll.key = 'scroll_pct'
+      LEFT JOIN UNNEST(e.event_params) ep_action ON ep_action.key = 'action'
+      LEFT JOIN UNNEST(e.event_params) ep_feed ON ep_feed.key = 'feed_source'
+      LEFT JOIN UNNEST(e.event_params) ep_from ON ep_from.key = 'from_source'
+      WHERE _TABLE_SUFFIX BETWEEN @from AND @to
+        AND e.user_id IS NOT NULL
+        AND (ep_news_id.value.int_value IS NOT NULL OR ep_news_id.value.string_value IS NOT NULL)
+        AND (STARTS_WITH(e.event_name, 'news_') OR STARTS_WITH(e.event_name, 'toon_'))
+    ), scored AS (
+      -- 이벤트 종류에 따른 점수 부여 (EDA 분석 결과 반영)
+      SELECT
+        user_id, news_id,
+        CASE event_name
+          -- News 이벤트 (EDA 분석 기반 점수)
+          WHEN 'news_view_end'  THEN IF(COALESCE(dwell_ms,0) >= 4200 OR COALESCE(scroll_pct,0) >= 100, 4.9, 2.9)  -- 읽기 완료: 고품질(4.9) vs 일반(2.9)
+          WHEN 'news_click'     THEN 3.5                         -- 클릭: 높은 선호도
+          WHEN 'news_bookmark'  THEN IF(action='add', 3.0, NULL) -- 북마크 추가: 높은 선호도
+
+          -- Toon 이벤트 (EDA 분석 결과 추가, 부정 신호 제외)
+          WHEN 'toon_positive'  THEN 3.9                         -- 긍정 반응: 높은 선호도
+          WHEN 'toon_click'     THEN 3.6                         -- 툰 클릭: 높은 관심
+          WHEN 'toon_expand_news' THEN 3.5                       -- 툰 뉴스 확장: 높은 관심
+          ELSE NULL
+        END AS w
+      FROM base
+    )
+    -- 사용자-뉴스별 점수 합계
+    SELECT user_id, news_id, SUM(w) AS strength
+    FROM scored
+    WHERE w IS NOT NULL
+    GROUP BY user_id, news_id
+    HAVING strength > 0  -- 양수 점수만 유지
+    """
+    # 쿼리 매개변수 설정 (SQL 인젝션 방지) - STRING으로 설정
+    job_config = QueryJobConfig(
+        query_parameters=[
+            ScalarQueryParameter("from","STRING", from_date.strftime("%Y%m%d")),
+            ScalarQueryParameter("to",  "STRING", to_date.strftime("%Y%m%d")),
+        ]
+    )
+
+    # 디버깅: 생성된 SQL 출력
+    logger.debug("Generated SQL:")
+    logger.debug(sql)
+    logger.debug(f"Date range: {from_date} to {to_date}")
+
+    # 쿼리 실행 및 DataFrame으로 변환
+    import pandas as pd
+    job = client.query(sql, job_config=job_config)
+
+    # 결과를 수동으로 DataFrame으로 변환 (타입 문제 해결)
+    rows = []
+    for row in job:
+        rows.append({
+            'user_id': str(row.user_id),
+            'news_id': int(row.news_id),
+            'strength': float(row.strength)
+        })
+
+    df = pd.DataFrame(rows)
+    return df
+
+# 5) ALS (Alternating Least Squares) 알고리즘으로 모델 학습 (실시간 추천을 위한 모델만 생성)
+def train_model(df: pd.DataFrame):
+    """
+    사용자-뉴스 상호작용 데이터로부터 ALS 모델을 학습 (실시간 추천을 위해 모델만 저장)
+    
+    Args:
+        df: 사용자-뉴스-선호도 데이터프레임 (user_id, news_id, strength)
+    
+    Returns:
+        model: 학습된 ALS 모델
+        users: 사용자 카테고리 인덱스
+        items: 뉴스 카테고리 인덱스
+        interaction_matrix: 사용자-아이템 상호작용 행렬
+    """
+    if df.empty:
+        logger.warning("빈 데이터프레임으로 인해 모델 학습을 건너뜁니다.")
+        return None, None, None, None
+
+    # 데이터 유효성 검사
+    if 'user_id' not in df.columns or 'news_id' not in df.columns or 'strength' not in df.columns:
+        logger.warning("필수 컬럼(user_id, news_id, strength)이 누락되었습니다.")
+        return None, None, None, None
+        
+    # null 값 제거
+    df_clean = df.dropna(subset=['user_id', 'news_id', 'strength'])
+    if df_clean.empty:
+        logger.warning("null 값 제거 후 데이터가 비어있습니다.")
+        return None, None, None, None
+
+    # 사용자/뉴스 ID를 숫자 인덱스로 변환 (효율적인 행렬 연산을 위해)
+    users = df_clean["user_id"].astype(str).astype("category")
+    items = df_clean["news_id"].astype("category")
+    
+    # 빈 카테고리 체크
+    if len(users.cat.categories) == 0 or len(items.cat.categories) == 0:
+        logger.warning("유효한 사용자나 아이템이 없습니다.")
+        return None, None, None, None
+        
+    user_index = users.cat.codes.values  # 사용자 ID -> 숫자 인덱스
+    item_index = items.cat.codes.values  # 뉴스 ID -> 숫자 인덱스
+
+    # 사용자-뉴스 상호작용 희소 행렬 생성 (user x item 형태)
+    # 대부분의 사용자가 전체 뉴스의 일부만 읽으므로 희소행렬이 효율적
+    mat = sp.coo_matrix(
+        (df_clean["strength"].values, (user_index, item_index)),  # (선호도 값, (사용자 인덱스, 뉴스 인덱스))
+        shape=(users.cat.categories.size, items.cat.categories.size)  # 사용자 수 x 뉴스 수
+    ).tocsr()  # Compressed Sparse Row 형태로 변환 (빠른 연산을 위해)
+
+    # implicit 라이브러리의 ALS 모델 학습
+    # factors: 잠재 요인 개수 (64차원), regularization: 과적합 방지 정규화, iterations: 반복 횟수
+    model = AlternatingLeastSquares(factors=64, regularization=0.05, iterations=20)
+    
+    try:
+        # implicit ALS는 item x user 형태를 기대하므로 행렬을 전치
+        # 하지만 recommend 시에는 user x item 형태를 사용해야 하므로
+        # 모델 학습과 추천 시 일관성을 맞춰야 함
+        logger.info(f"모델 학습 중 - 행렬 크기: {mat.shape} -> 전치 후: {mat.T.shape}")
+        model.fit(mat.T)  # item x user 형태로 학습
+        logger.info(f"모델 학습 완료 - Users: {len(users.cat.categories)}, Items: {len(items.cat.categories)}")
+        logger.info(f"모델 내부 차원 - item_factors: {model.item_factors.shape}, user_factors: {model.user_factors.shape}")
+    except Exception as e:
+        logger.error(f"모델 학습 실패: {e}")
+        return None, None, None, None
+
+    # 실시간 추천에 필요한 데이터 반환 (미리 계산된 추천은 생성하지 않음)
+    return model, users, items, mat
+
+# 6) 학습된 모델을 파일 시스템에 저장 (실시간 추천을 위해)
+def save_model(model, users, items, interaction_matrix):
+    """
+    학습된 ALS 모델과 관련 데이터를 파일로 저장
+    
+    Args:
+        model: 학습된 ALS 모델
+        users: 사용자 카테고리 인덱스
+        items: 뉴스 카테고리 인덱스  
+        interaction_matrix: 사용자-아이템 상호작용 행렬
+    """
+    # models 디렉토리 생성
+    MODELS_DIR.mkdir(exist_ok=True)
+    
+    # 모델 데이터 패키징
+    model_data = {
+        'model': model,
+        'user_categories': users.cat.categories,
+        'item_categories': items.cat.categories,
+        'interaction_matrix': interaction_matrix,
+        'trained_at': datetime.now(timezone.utc),
+        'train_date': today_kst_str(),
+        'model_params': {
+            'factors': model.factors,
+            'regularization': model.regularization,
+            'iterations': model.iterations
+        }
+    }
+    
+    # 모델을 pickle 파일로 저장
+    with open(MODEL_PATH, 'wb') as f:
+        pickle.dump(model_data, f)
+    
+    # 메타데이터를 JSON 파일로 저장 (디버깅 및 확인용)
+    metadata = {
+        'trained_at': model_data['trained_at'].isoformat(),
+        'train_date': model_data['train_date'],
+        'num_users': len(users.cat.categories),
+        'num_items': len(items.cat.categories),
+        'model_params': model_data['model_params'],
+        'model_file': str(MODEL_PATH.name)
+    }
+    
+    with open(METADATA_PATH, 'w') as f:
+        json.dump(metadata, f, indent=2)
+    
+    logger.info(f"Model saved to {MODEL_PATH}")
+    logger.info(f"Metadata saved to {METADATA_PATH}")
+    logger.info(f"Users: {len(users.cat.categories)}, Items: {len(items.cat.categories)}")
+
+# 7) 테스트용: 샘플 사용자에게 추천 생성 및 출력
+def test_recommendations(model, users, items, interaction_matrix, num_test_users=3, topn=5):
+    """
+    테스트용으로 몇 명의 사용자에게 추천을 생성하고 결과를 출력
+    
+    Args:
+        model: 학습된 ALS 모델
+        users: 사용자 카테고리 인덱스
+        items: 뉴스 카테고리 인덱스
+        interaction_matrix: 사용자-아이템 상호작용 행렬
+        num_test_users: 테스트할 사용자 수
+        topn: 사용자당 추천할 아이템 수
+    """
+    logger.info(f"\n{num_test_users}명의 샘플 사용자에게 추천 생성 중...")
+    logger.debug(f"전체 사용자 수: {len(users.cat.categories)}")
+    logger.debug(f"전체 아이템 수: {len(items.cat.categories)}")
+    logger.debug(f"상호작용 행렬 크기: {interaction_matrix.shape}")
+    logger.debug(f"행렬 형태: users x items = {interaction_matrix.shape[0]} x {interaction_matrix.shape[1]}")
+    
+    # 랜덤하게 몇 명의 사용자 선택 (실제 사용자 인덱스 범위 내에서)
+    import random
+    total_users = len(users.cat.categories)
+    # interaction_matrix 행 개수로 제한
+    max_user_idx = interaction_matrix.shape[0] - 1
+    
+    # 안전성 검사: 유효한 사용자가 있는지 확인
+    if total_users == 0 or max_user_idx < 0:
+        logger.warning("유효한 사용자가 없습니다.")
+        return
+        
+    valid_range = min(total_users, max_user_idx + 1)
+    if valid_range <= 0:
+        logger.warning("유효한 사용자 범위가 없습니다.")
+        return
+        
+    actual_test_users = min(num_test_users, valid_range)
+    test_user_indices = random.sample(range(valid_range), actual_test_users)
+    
+    for user_idx in test_user_indices:
+        # 안전성 체크
+        if user_idx >= len(users.cat.categories):
+            logger.warning(f"사용자 인덱스 {user_idx} >= 사용자 카테고리 수 {len(users.cat.categories)}")
+            continue
+        if user_idx >= interaction_matrix.shape[0]:
+            logger.warning(f"사용자 인덱스 {user_idx} >= 행렬 행 수 {interaction_matrix.shape[0]}")
+            continue
+            
+        user_id = users.cat.categories[user_idx]
+        
+        try:
+            logger.debug(f"사용자 처리 중 - 인덱스: {user_idx}, ID: {user_id}")
+            logger.debug(f"사용자 행렬 범위 체크: user_idx={user_idx} < matrix_rows={interaction_matrix.shape[0]}? {user_idx < interaction_matrix.shape[0]}")
+            
+            # 해당 사용자에게 추천 생성 - implicit ALS recommend 메소드 올바른 사용법  
+            try:
+                # implicit 라이브러리 recommend 함수의 올바른 사용법:
+                # user_items는 해당 사용자의 아이템 선호도를 나타내는 행 벡터 (1 x items)
+                user_items = interaction_matrix[user_idx]  # 사용자 행렬에서 해당 사용자 행 추출 (1 x 200000)
+                logger.debug(f"user_items shape: {user_items.shape}")
+                logger.debug(f"user_items type: {type(user_items)}")
+                logger.debug(f"interaction_matrix shape: {interaction_matrix.shape}")
+                
+                # user_items가 올바른 형태인지 확인
+                if hasattr(user_items, 'toarray'):
+                    non_zero_count = (user_items.toarray() > 0).sum()
+                    logger.debug(f"user_items 비영값 개수: {non_zero_count}")
+                
+                # implicit이 차원을 바꿔 학습했으므로 직접 계산으로 추천 생성
+                import numpy as np
+                
+                # implicit이 사용자/아이템을 바꿔 학습했으므로 변수명을 명확하게:
+                # model.item_factors가 실제로는 사용자 임베딩 (50000, 64)
+                # model.user_factors가 실제로는 아이템 임베딩 (200000, 64) 
+                actual_user_embeddings = model.item_factors     # (50000, 64) - 실제 사용자들
+                actual_item_embeddings = model.user_factors     # (200000, 64) - 실제 아이템들
+                
+                user_embedding = actual_user_embeddings[user_idx]   # shape: (64,) - 해당 사용자 임베딩
+                item_embeddings = actual_item_embeddings           # shape: (200000, 64) - 모든 아이템 임베딩
+                
+                # 내적으로 모든 아이템에 대한 점수 계산
+                scores_all = item_embeddings.dot(user_embedding)  # shape: (200000,)
+                
+                # 이미 상호작용한 아이템들은 제외 (filter_already_liked_items=True)
+                if hasattr(user_items, 'toarray'):
+                    user_items_dense = user_items.toarray().flatten()
+                else:
+                    user_items_dense = user_items
+                    
+                # 상호작용한 아이템의 점수를 매우 낮게 설정
+                interacted_items = np.where(user_items_dense > 0)[0]
+                scores_all[interacted_items] = -np.inf
+                
+                # 상위 N개 아이템 선택
+                top_indices = np.argsort(-scores_all)[:topn]
+                rec_items = top_indices
+                scores = scores_all[top_indices]
+                
+                logger.debug("직접 계산 결과:")
+                logger.debug(f"actual_user_embeddings shape: {actual_user_embeddings.shape}")
+                logger.debug(f"actual_item_embeddings shape: {actual_item_embeddings.shape}")
+                logger.debug(f"user_embedding shape: {user_embedding.shape}")
+                logger.debug(f"item_embeddings shape: {item_embeddings.shape}")
+                logger.debug(f"scores_all shape: {scores_all.shape}")
+                logger.debug(f"상호작용한 아이템 수: {len(interacted_items)}")
+                logger.debug(f"점수 통계 - min: {scores_all.min():.6f}, max: {scores_all.max():.6f}, mean: {scores_all.mean():.6f}")
+                logger.debug(f"최대 추천 아이템 인덱스: {max(rec_items) if len(rec_items) > 0 else 'N/A'}")
+                logger.debug(f"아이템 카테고리 수: {len(items.cat.categories)}")
+                logger.debug(f"추천된 아이템 인덱스: {rec_items}")
+                logger.debug(f"아이템 인덱스 범위: max={max(rec_items) if len(rec_items) > 0 else 'N/A'}, items_count={len(items.cat.categories)}")
+            except (IndexError, ValueError) as idx_error:
+                logger.warning(f"사용자 {user_id} 인덱스/값 오류: {idx_error}")
+                try:
+                    # 대안 1: filter_already_liked_items=False로 직접 계산 재시도
+                    actual_user_embeddings = model.item_factors     # 실제 사용자 임베딩들
+                    actual_item_embeddings = model.user_factors     # 실제 아이템 임베딩들
+                    user_embedding = actual_user_embeddings[user_idx]
+                    item_embeddings = actual_item_embeddings
+                    scores_all = item_embeddings.dot(user_embedding)
+                    
+                    # 이번에는 이미 상호작용한 아이템도 포함 (filter_already_liked_items=False)
+                    top_indices = np.argsort(-scores_all)[:topn]
+                    rec_items = top_indices
+                    scores = scores_all[top_indices]
+                    
+                    logger.debug("대안 계산 완료 - filter_already_liked_items=False")
+                except Exception as e:
+                    logger.error(f"사용자 {user_id} 추천 생성 완전 실패: {e}")
+                    # 대안 2: 빈 추천 결과로 처리
+                    rec_items, scores = [], []
+            
+            logger.info(f"\n--- User: {user_id} ---")
+            
+            # 사용자가 이미 상호작용한 아이템들 출력
+            user_interactions = interaction_matrix[user_idx].nonzero()[1]
+            if len(user_interactions) > 0:
+                logger.info("이전에 상호작용한 뉴스:")
+                for i, item_idx in enumerate(user_interactions[:3]):  # 상위 3개만
+                    # 아이템 인덱스 안전성 검사
+                    if item_idx < 0 or item_idx >= len(items.cat.categories):
+                        logger.warning(f"  - [잘못된 아이템 인덱스 {item_idx}]")
+                        continue
+                    try:
+                        item_id = items.cat.categories[item_idx]
+                        score = interaction_matrix[user_idx, item_idx]
+                        logger.info(f"  - {item_id} (score: {score:.2f})")
+                    except IndexError as e:
+                        logger.error(f"  - [인덱스 에러 {item_idx}] - {e}")
+                if len(user_interactions) > 3:
+                    logger.info(f"  ... and {len(user_interactions) - 3} more")
+            
+            # 추천 결과 출력
+            logger.info("추천 뉴스 (점수가 높을수록 선호도 높음):")
+            if len(rec_items) == 0:
+                logger.info("  추천 결과가 없습니다.")
+            else:
+                for rank, (item_idx, score) in enumerate(zip(rec_items, scores), 1):
+                    # 아이템 인덱스가 범위를 벗어나면 건너뛰기
+                    if item_idx < 0 or item_idx >= len(items.cat.categories):
+                        logger.warning(f"  {rank}. [잘못된 아이템 인덱스 {item_idx}/{len(items.cat.categories)}] (선호도: {score:.4f})")
+                        continue
+                    try:
+                        item_id = items.cat.categories[item_idx]
+                        logger.info(f"  {rank}. {item_id} (선호도: {score:.4f})")
+                    except IndexError as e:
+                        logger.error(f"  {rank}. [인덱스 에러 {item_idx}] (선호도: {score:.4f}) - {e}")
+                
+        except Exception as e:
+            logger.error(f"Error generating recommendations for {user_id}: {e}")
+    
+    logger.info("\nRecommendation test completed!")
+
+def main():
+    """
+    협업 필터링 모델 학습 및 파일 저장 메인 함수
+    
+    1. 오늘 날짜의 GA4 데이터가 준비되었는지 확인
+    2. 이미 오늘 학습을 완료했는지 확인 (중복 방지)
+    3. 사용자 상호작용 데이터 추출 및 전처리
+    4. ALS 모델 학습 (실시간 추천을 위해 모델만 생성)
+    5. 학습된 모델을 파일 시스템에 저장
+    6. 오늘 학습 완료 상태 기록
+    """
+    # BigQuery 클라이언트 초기화
+    client = get_client()
+    dataset = DEFAULT_DATASET
+
+    # 1. 최신 GA4 이벤트 테이블이 오늘 또는 어제 날짜인지 확인
+    # GA4 데이터는 일반적으로 1일 지연되어 BigQuery에 도착
+    today_str = today_kst_str()
+    latest_date = get_latest_date(client, dataset)
+    logger.info(f"오늘 날짜: {today_str}, 최신 테이블 날짜: {latest_date}")
+
+    if not has_today_table(client, dataset):
+        logger.info(f"최신 테이블이 너무 오래되었습니다 (오늘/어제 아님). 최신: {latest_date}")
+        return
+
+    # 2. 이미 최신 데이터로 모델 학습을 완료했는지 확인 (중복 학습 방지)
+    if already_trained_with_latest_data(client, dataset):
+        logger.info(f"already trained with latest data ({latest_date}).")
+        return
+
+    # 3. 협업 필터링에 사용할 사용자-뉴스 상호작용 데이터 추출
+    df = fetch_interactions(client)
+    logger.info(f"interactions rows={len(df)}")
+
+    # 추출된 상호작용 데이터를 CSV로 저장 (EDA 및 추후 분석용)
+    if not df.empty:
+        csv_filename = f"interactions_{today_kst_str()}.csv"
+        data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "data")
+        csv_path = os.path.join(data_dir, csv_filename)
+        os.makedirs(data_dir, exist_ok=True)
+        
+        # 2주 이전 CSV 파일들 정리
+        cleanup_old_csv_files(data_dir, days_to_keep=14)
+        
+        df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+        logger.info(f"Interactions data saved to {csv_path}")
+
+    if df.empty:
+        logger.info("no interactions to train.")
+        return
+
+    # 4. ALS 모델 학습 (실시간 추천을 위해 미리 계산된 추천은 생성하지 않음)
+    model, users, items, interaction_matrix = train_model(df)
+    if model is None:
+        logger.info("no model generated.")
+        return
+
+    # 5. 학습된 모델과 관련 데이터를 파일 시스템에 저장
+    save_model(model, users, items, interaction_matrix)
+    logger.info("Model training completed and saved")
+
+    # 6. 테스트용: 샘플 사용자들에게 추천 생성 및 결과 출력
+    test_recommendations(model, users, items, interaction_matrix, num_test_users=3, topn=5)
+
+    # 7. 모델 학습 완료 상태를 파일에 기록 (학습에 사용한 데이터 날짜로 기록)
+    mark_trained_with_data(latest_date)
+
+if __name__ == "__main__":
+    # 스크립트가 직접 실행될 때만 main 함수 호출
+    # 스케줄러나 다른 모듈에서 import 할 때는 실행되지 않음
+    main()

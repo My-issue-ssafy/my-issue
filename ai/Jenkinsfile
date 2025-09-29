@@ -1,0 +1,117 @@
+pipeline {
+	agent any
+  options { timestamps(); disableConcurrentBuilds(); gitLabConnection('my-issue') }
+
+  environment {
+	IMAGE_REPO = 'xioz19/my-issue-py'
+	TAG = 'manual' // Checkout에서 커밋 SHA로 덮어씀
+	DOCKER_BUILDKIT = '1' 
+  }
+
+  triggers {
+		gitlab(
+      triggerOnPush: true,
+      branchFilterType: 'NameBasedFilter',
+      includeBranchesSpec: 'dev/data'
+    )
+  }
+
+  stages {
+		stage('Checkout') {
+			steps {
+				gitlabCommitStatus(name: 'Checkout') {
+					checkout scm
+					script {
+						env.TAG = sh(returnStdout: true, script: "bash -lc 'git rev-parse --short=7 HEAD'").trim()
+						echo "COMMIT_SHA=${env.TAG}"
+					}
+				}
+      }
+    }
+
+    stage('Docker Build & Push') {
+			steps {
+				gitlabCommitStatus(name: 'Docker Build & Push') {
+					withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+						dir('ai/fastapi') {
+							sh '''
+								bash -lc '
+									set -Eeuo pipefail
+									docker build -t ${IMAGE_REPO}:${TAG} -t ${IMAGE_REPO}:latest .
+									echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+									docker push ${IMAGE_REPO}:${TAG}
+									docker push ${IMAGE_REPO}:latest
+									docker logout || true
+								'
+							'''
+						}
+					}
+				}
+      }
+    }
+
+    stage('Deploy (Blue/Green)') {
+			steps {
+				gitlabCommitStatus(name: 'Deploy (Blue/Green)') {
+					withCredentials([
+						sshUserPrivateKey(credentialsId: 'ec2-ssh-key-pem', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
+						string(credentialsId: 'NGINX_HOST', variable: 'NGINX_HOST'),
+						string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL'),
+						file(credentialsId: 'google-service-account', variable: 'GOOGLE_APPLICATION_CREDENTIALS')
+					]) {
+						sh '''
+							bash -lc '
+								set -Eeuo pipefail
+								echo "🚀 Deploy Python ${IMAGE_REPO}:${TAG}"
+								scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" scripts/deploy_python.sh "$SSH_USER@$NGINX_HOST:~/deploy_python.sh"
+
+								# SA 파일 서버로 복사
+								ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "sudo mkdir -p /opt/sa && sudo chown $SSH_USER /opt/sa"
+								scp -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$GOOGLE_APPLICATION_CREDENTIALS" "$SSH_USER@$NGINX_HOST:/opt/sa/gcp.json"
+								ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "sudo chmod 600 /opt/sa/gcp.json"
+
+								# 배포 스크립트 실행
+								ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i "$SSH_KEY" "$SSH_USER@$NGINX_HOST" "\
+									export DATABASE_URL=$(printf %q \"$DATABASE_URL\"); \
+									chmod +x ~/deploy_python.sh; \
+									sudo --preserve-env=DATABASE_URL -E ~/deploy_python.sh ${TAG} \
+								"
+							'
+						'''
+					}
+        }
+      }
+    }
+  }
+
+  post {
+		success {
+      script {
+        def authorName = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
+        def authorEmail = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
+        mattermostSend(
+          endpoint: 'https://meeting.ssafy.com/hooks/smhi3szhdirx8mggofg3hwgoxc',
+          channel: 'D101-Webhook',
+          color: 'good',
+          message: "✅ 빌드 성공: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${authorName} (${authorEmail})\n(<${env.BUILD_URL}|Details>)"
+        )
+      }
+			echo "✅ Deployed ${IMAGE_REPO}:${TAG}"
+			updateGitlabCommitStatus name: 'Pipeline', state: 'success'
+		}
+		failure {
+      script {
+        def authorName = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
+        def authorEmail = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
+        mattermostSend(
+          endpoint: 'https://meeting.ssafy.com/hooks/smhi3szhdirx8mggofg3hwgoxc',
+          channel: 'D101-Webhook',
+          color: 'danger',
+          message: "❌ 빌드 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${authorName} (${authorEmail})\n(<${env.BUILD_URL}|Details>)"
+        )
+      }
+			updateGitlabCommitStatus name: 'Pipeline', state: 'failed'
+		}
+    always  { sh "bash -lc 'docker image prune -f || true'" }
+  }
+}
