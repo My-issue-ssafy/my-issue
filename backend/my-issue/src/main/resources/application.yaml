@@ -1,0 +1,84 @@
+spring:
+  application:
+    name: my-issue
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true # SQL 쿼리 로그 출력
+  data:
+    redis:
+      host: j13d101.p.ssafy.io
+      port: 6379
+      password: ${REDIS_PASSWORD}
+  task:
+    scheduling:
+      pool:
+        size: 4
+      thread-name-prefix: scheduling-
+  elasticsearch:
+    uris: ${ES_URI}
+    username: ${ES_USERNAME}
+    password: ${ES_PASSWORD}
+
+# Spring Boot Actuator configuration ( Jenkins 에서 접근 가능하도록 설정 )
+# health: 시스템 상태 확인(헬스체크용)
+# info: 애플리케이션 정보 제공(git 커밋 정보 등)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, mappings, beans
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+    com:
+      ssafy:
+        myissue: DEBUG
+
+jwt:
+  secret-base64: ${JWT_SECRET_BASE64}
+
+cloud:
+  aws:
+    s3:
+      bucket: venture-review   # 네가 만든 버킷 이름
+    region:
+      static: ap-northeast-2 # 서울
+    stack:
+      auto: false
+    credentials:
+      access-key: ${AWS_ACCESS_KEY}
+      secret-key: ${AWS_SECRET_KEY}
+
+gms:
+  key: ${GMS_KEY}
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+
+app:
+  recommend:
+    url: ${APP_RECOMMEND_BASE_URL}
+    params: ${APP_RECOMMEND_DEFAULT_PARAMS}
+
+fcm:
+  fire_path: /app/config/myissue-firebase.json
+  project-id: myssue-7e186
+#  fire_path: ${FIREBASE_PATH}
+#  project-id: ${PROJECT_ID}

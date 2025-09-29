@@ -1,0 +1,80 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.9'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.ssafy'
+version = '0.0.1-SNAPSHOT'
+description = 'my-issue'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation"org.springframework.boot:spring-boot-starter-data-elasticsearch"
+    compileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'org.postgresql:postgresql'
+    annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+
+    implementation 'org.postgresql:postgresql'
+
+    // swagger
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13")
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // queryDSL
+    implementation(group: "com.querydsl", name: "querydsl-jpa", version: "5.1.0", classifier: "jakarta")
+    annotationProcessor(group: "com.querydsl", name: "querydsl-apt", version: "5.1.0", classifier: "jakarta")
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api:3.1.0"
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api:2.1.1"
+
+    // jwt
+    implementation "io.jsonwebtoken:jjwt-api:0.11.5"
+    runtimeOnly   "io.jsonwebtoken:jjwt-impl:0.11.5"
+    runtimeOnly   "io.jsonwebtoken:jjwt-jackson:0.11.5"
+
+    // redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // fcm
+    implementation 'com.google.firebase:firebase-admin:9.4.3'
+
+    // aws s3
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.annotationProcessorPath = configurations.annotationProcessor
+}
+
+tasks.withType(Test).configureEach {
+    enabled = false
+}
+
+sourceSets {
+    main.java.srcDirs += file("$buildDir/generated/sources/annotationProcessor/java/main")
+}
