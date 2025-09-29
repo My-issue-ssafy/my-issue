@@ -50,6 +50,11 @@
 ## Stacks
 
 ### Environment
+![Android Studio](https://img.shields.io/badge/Android_Studio-3DDC84?style=flat&logo=AndroidStudio&logoColor=white)
+![IntelliJ IDEA](https://img.shields.io/badge/IntelliJ_IDEA-2C2255?style=flat&logo=intellij-idea&logoColor=white)
+![VScode](https://img.shields.io/badge/Visual%20Studio%20Code-1E97E8?style=flat&logo=visual-studio-code&logoColor=white)
+![GitLab](https://img.shields.io/badge/GitLab-E34124?style=flat&logo=Gitlab&logoColor=white)
+![Git](https://img.shields.io/badge/git-F05032?style=flat&logo=git&logoColor=white)
 
 ### Backend
 ![Java21](https://img.shields.io/badge/Java21-4D7896?style=flat&logo=Java&logoColor=white)
