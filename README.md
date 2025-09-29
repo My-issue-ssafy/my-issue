@@ -74,8 +74,8 @@
 ![FASTAPI](https://img.shields.io/badge/fastapi-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![PANDAS](https://img.shields.io/badge/pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
 ![SCIPY](https://img.shields.io/badge/scipy-8CAAE6?style=for-the-badge&logo=scipy&logoColor=white)
-![GOOGLE ANALYTICS](https://img.shields.io/badge/google analytics-E37400?style=for-the-badge&logo=googleanalytics&logoColor=white)
-![GOOGLE BIGQUERY](https://img.shields.io/badge/google bigquery-669DF6?style=for-the-badge&logo=googlebigquery&logoColor=white)
+![GOOGLE ANALYTICS](https://img.shields.io/badge/google%20analytics-E37400?style=for-the-badge&logo=googleanalytics&logoColor=white)
+![GOOGLE BIGQUERY](https://img.shields.io/badge/google%20bigquery-669DF6?style=for-the-badge&logo=googlebigquery&logoColor=white)
 ![SQLALCHEMY](https://img.shields.io/badge/sqlalchemy-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
 
 ### Communication
