@@ -20,7 +20,7 @@
 | | 이승훈 | 한동근 |
 |-----------|:------------------------:|:---------------------------:|
 | **프로필** | <img src="https://lab.ssafy.com/-/project/1050572/uploads/0b06db2392416920758e8e9d2e8559c6/image.png" width="150"/> | <img src="https://lab.ssafy.com/-/project/1050572/uploads/646f4fb9a45d3ff51c85b2f6792c97b4/image.png" width="150">
-| **기술 스택** | <img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" width="40" height="40"/> | <img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" width="40" height="40"/>  |
+| **기술 스택** | <img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" width="40" height="40"/> | <img src="https://www.vectorlogo.zone/logos/python/python-icon.svg" width="40" height="40"/> <img src="https://www.vectorlogo.zone/logos/springio/springio-icon.svg" width="40" height="40" />  |
 | **R&R** | GA4, BigQuery 연결 <br> 데이터 EDA <br> 개인화 추천 알고리즘 | 뉴스 크롤링 자동화 <br> 뉴스 검색 ES 도입 <br> 비개인화 추천 알고리즘 |
 
 ## 프로젝트 기획 배경
@@ -32,10 +32,10 @@
 
 ## 프로젝트 소개
 **마이슈(My-Issue)** 는 바쁜 현대인을 위해 뉴스를 더 빠르고, 더 쉽고, 더 재미있게 전달하는 숏콘텐츠 기반 뉴스 플랫폼입니다. <br>
-기존 뉴스 앱이 긴 텍스트 기사에 집중하고 있는 반면, 마이슈는 짧은 카드형 뉴스, 네컷 만화(네컷뉴스), AI 팟캐스트를 통해 사용자가 언제 어디서나 짧은 시간 안에 뉴스를 이해하고 즐길 수 있도록 설계되었습니다.
+기존 뉴스 앱이 긴 텍스트 기사에 집중하고 있는 반면, 마이슈는 네컷 만화(네컷뉴스), 팟캐스트를 통해 사용자가 언제 어디서나 짧은 시간 안에 뉴스를 이해하고 즐길 수 있도록 설계되었습니다.
 
 ## 주요 기능
-- 📰 **맞춤형 뉴스 피드** : 사용자의 관심사를 학습해 개인화된 뉴스 제공
+- 📰 **맞춤형 뉴스 피드(추천 뉴스)** : 사용자의 관심사를 학습해 개인화된 뉴스 제공
 - 🎨 **네컷뉴스**: 복잡한 이슈도 네 컷 만화 형식으로 직관적·재미있게 전달
 - 🎧 **팟캐스트**: 매일 주요 뉴스를 두 명의 진행자가 대화 형식으로 읽어주는 음성 콘텐츠
 - 🔔 **맞춤형 알림**: 사용자 관심 키워드 기반 뉴스 푸시 알림
